@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: inline-flex;
+  animation: marquee 20s linear infinite;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+  --lolly-blue: #0055ff;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-lolly: var(--lolly-blue);
+  --font-sans: var(--font-roboto), ui-sans-serif, system-ui;
+  --font-museo: var(--font-museo);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-roboto), ui-sans-serif, system-ui;
+}
+
+/* Custom Lolly Utilities */
+.text-lolly {
+  color: var(--lolly-blue);
+}
+
+.bg-lolly {
+  background-color: var(--lolly-blue);
+}
+
+.brand-lolly {
+  font-family: var(--font-museo);
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+}

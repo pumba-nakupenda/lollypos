@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+:root {
+  --background: 240 10% 4%;
+  --foreground: 0 0% 98%;
+
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+
+  --radius: 0.75rem;
+
+  /* Default Shop Colors (will be overridden by ShopProvider) */
+  --shop-primary: 239 84% 67%;
+  /* Default Luxya Indigo */
+  --shop-secondary: 43 100% 70%;
+  /* Default Gold */
+  --shop-accent: 239 84% 67%;
+
+  --glass-bg: hsl(240 10% 6%);
+  --glass-border: hsl(240 5% 15%);
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+}
+
+@theme inline {
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui;
+  --font-mono: var(--font-geist-mono);
+
+  --color-shop: hsl(var(--shop-primary));
+  --color-shop-secondary: hsl(var(--shop-secondary));
+  --color-shop-accent: hsl(var(--shop-accent));
+
+  --animate-float: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-outfit), sans-serif;
+  background-image: none; /* Removed background gradients for a cleaner opaque look */
+  min-height: 100vh;
+}
+
+/* Solid Panel Utilities - Removed Transparency */
+.glass-panel {
+  background: hsl(240 10% 7%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+.glass-card {
+  background: hsl(240 10% 9%);
+  border: 1px solid var(--glass-border);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  background: hsl(240 10% 12%);
+  border-color: hsl(var(--shop-primary) / 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+.shop-gradient-text {
+  background: linear-gradient(135deg, hsl(var(--shop-primary)), hsl(var(--shop-secondary)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.font-museo-lolly {
+  font-family: var(--font-museo), system-ui;
+  font-weight: 900;
+  font-style: italic;
+}
+
+.brand-lolly {
+  font-family: var(--font-museo), system-ui;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+}
