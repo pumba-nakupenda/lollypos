@@ -1,5 +1,5 @@
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -18,6 +18,7 @@ export class AiService {
     constructor(
         private configService: ConfigService,
         private supabaseService: SupabaseService,
+        @Inject(forwardRef(() => ProductsService))
         private productsService: ProductsService,
         private salesService: SalesService,
         private expensesService: ExpensesService,
