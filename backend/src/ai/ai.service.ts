@@ -76,6 +76,15 @@ export class AiService {
         };
     }
 
+    async getStatus() {
+        return {
+            status: 'online',
+            ai_ready: !!this.model,
+            supabase_ready: !!this.supabaseService.getClient(),
+            timestamp: new Date().toISOString()
+        };
+    }
+
     private async getMarketingContext(shopId?: number) {
         const { data } = await this.supabase
             .from('site_settings')

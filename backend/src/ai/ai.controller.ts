@@ -5,6 +5,11 @@ import { AiService } from './ai.service';
 export class AiController {
     constructor(private readonly aiService: AiService) {}
 
+    @Post('status') // Using POST for consistency with other AI routes if needed, or GET
+    async getStatus() {
+        return this.aiService.getStatus();
+    }
+
     @Post('analyze')
     async analyze(
         @Body('question') question: string,

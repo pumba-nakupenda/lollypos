@@ -73,7 +73,24 @@ export default function WebManagementPage() {
     }
 
     useEffect(() => {
-        fetchSettings()
+        const checkConnection = async () => {
+            try {
+                const res = await fetch(`${API_URL}/ai/status`, { method: 'POST' });
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log("[AI] Backend Connection Verified:", data);
+                } else {
+                    console.error("[AI] Backend returned error status:", res.status);
+                    showToast("Le backend est joignable mais retourne une erreur.", "warning");
+                }
+            } catch (err) {
+                console.error("[AI] Cannot connect to backend at:", API_URL);
+                showToast(`Impossible de contacter le backend sur ${API_URL}`, "error");
+            }
+        };
+        
+        fetchSettings();
+        checkConnection();
     }, [])
 
     const handleSave = async () => {
