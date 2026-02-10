@@ -4,12 +4,14 @@ import { useState, useRef, useEffect } from 'react'
 import { Plus, X, Package, Ruler, Hash, Image as ImageIcon, Tags, FileText, Upload, Trash2, ChevronDown, AlertTriangle, Store, PlusCircle, Sparkles, Calendar, PlayCircle, Globe } from 'lucide-react'
 import { createProduct } from '@/app/inventory/actions'
 import { useShop } from '@/context/ShopContext'
+import { useToast } from '@/context/ToastContext'
 import CustomDropdown from './CustomDropdown'
 import Portal from './Portal'
 import { API_URL } from '@/utils/api'
 
 export default function CreateProductButton() {
     const { activeShop, shops } = useShop()
+    const { showToast } = useToast()
     const [isOpen, setIsOpen] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
