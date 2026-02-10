@@ -40,7 +40,7 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
     if (!slides || slides.length === 0) return null
 
     return (
-        <section className="relative h-[80vh] md:h-[92vh] w-full overflow-hidden bg-[#050505]">
+        <section className="relative h-[80vh] md:h-[92vh] w-full overflow-hidden bg-[#050505]" suppressHydrationWarning>
             {/* Cinematic Background Grain / Overlay */}
             <div className="absolute inset-0 z-20 pointer-events-none opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay" />
             <div className="absolute inset-0 z-20 bg-gradient-to-b from-black/40 via-transparent to-black/60 pointer-events-none" />
@@ -148,16 +148,6 @@ export default function HeroCarousel({ slides }: HeroCarouselProps) {
                     </button>
                 ))}
             </div>
-
-            <style jsx>{`
-                @keyframes progress-bar {
-                    0% { transform: scale-x(0); }
-                    100% { transform: scale-x(1); }
-                }
-                .animate-progress-bar {
-                    animation: progress-bar 6s linear infinite;
-                }
-            `}</style>
         </section>
     )
 }

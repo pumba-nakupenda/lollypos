@@ -10,6 +10,15 @@
   animation: marquee 20s linear infinite;
 }
 
+@keyframes progress-bar {
+  0% { transform: scale-x(0); }
+  100% { transform: scale-x(1); }
+}
+
+.animate-progress-bar {
+  animation: progress-bar 6s linear infinite;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #000000;
