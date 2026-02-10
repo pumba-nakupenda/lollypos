@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Globe, Save, Image as ImageIcon, MessageCircle, Type, Layout, RefreshCw, Plus, Trash2, Upload, X, Sparkles } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
+import { API_URL } from '@/utils/api'
 
 export default function WebManagementPage() {
     const { showToast } = useToast()
@@ -28,14 +29,22 @@ export default function WebManagementPage() {
     const handleGenerateBanner = async () => {
         try {
             setGeneratingBanner(true)
-            const res = await fetch('http://127.0.0.1:3005/ai/generate-banner', { method: 'POST' })
+            console.log(`[AI] Generating banner via: ${API_URL}/ai/generate-banner`)
+            const res = await fetch(`${API_URL}/ai/generate-banner`, { 
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            
+            if (!res.ok) throw new Error(`Server returned ${res.status}`)
+            
             const data = await res.json()
             if (data.slogan) {
                 setSettings({ ...settings, promo_banner: data.slogan })
                 showToast("Nouveau slogan généré par l'IA !", "success")
             }
-        } catch (err) {
-            showToast("Erreur lors de la génération IA", "error")
+        } catch (err: any) {
+            console.error('[AI] Generation failed:', err)
+            showToast("Erreur lors de la génération IA. Vérifiez que le backend est lancé.", "error")
         } finally {
             setGeneratingBanner(false)
         }
