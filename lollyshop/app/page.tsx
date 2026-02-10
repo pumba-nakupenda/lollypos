@@ -76,11 +76,11 @@ export default async function Home(props: {
   });
 
   // Sorting Logic
-  if (sort === "price_asc") filteredProducts.sort((a, b) => a.price - b.price);
-  else if (sort === "price_desc") filteredProducts.sort((a, b) => b.price - a.price);
+  if (sort === "price_asc") filteredProducts.sort((a: any, b: any) => a.price - b.price);
+  else if (sort === "price_desc") filteredProducts.sort((a: any, b: any) => b.price - a.price);
   else {
       // Default sorting: Featured first, then Promo, then newest
-      filteredProducts.sort((a, b) => {
+      filteredProducts.sort((a: any, b: any) => {
           if (a.is_featured && !b.is_featured) return -1;
           if (!a.is_featured && b.is_featured) return 1;
           
