@@ -65,7 +65,7 @@ export class AiService {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
         
-        let salesQuery = this.supabase.from('sales').select('total_amount');
+        let salesQuery = this.supabaseService.getAdminClient().from('sales').select('total_amount');
         if (shopId) salesQuery = salesQuery.eq('shop_id', shopId);
         const { data: sales } = await salesQuery.gte('created_at', startDate.toISOString());
 
@@ -86,7 +86,7 @@ export class AiService {
     }
 
     private async getMarketingContext(shopId?: number) {
-        const { data } = await this.supabase
+        const { data } = await this.supabaseService.getAdminClient()
             .from('site_settings')
             .select('content')
             .eq('name', 'lolly_shop_config')
@@ -115,7 +115,7 @@ export class AiService {
             Tu dois générer UN SEUL slogan percutant pour le bandeau défilant du site e-commerce.
             
             DONNÉES ACTUELLES :
-            - Top Ventes : ${JSON.stringify(topProducts.map(p => p.name))}
+            - Top Ventes : ${topProducts.length > 0 ? JSON.stringify(topProducts.map(p => p.name)) : "Nouveautés de saison"}
             - Stats 30j : ${stats.sales_count} ventes.
             - Contexte : Nous sommes en Février (Ambiance Post-Saint-Valentin / Pré-Ramadan).
             
@@ -126,17 +126,16 @@ export class AiService {
             4. Le ton doit être PREMIUM, INCITATIF et SÉNÉGALAIS (Dakar Style).
             5. Varie entre Luxya (Beauté) et Homtek (Tech).
             
-            EXEMPLES :
-            - NOUVEL ARRIVAGE LUXYA : L'EXCELLENCE DE LA BEAUTÉ À DAKAR ⚡
-            - HOMTEK TECH : LES DERNIÈRES INNOVATIONS AU MEILLEUR PRIX 💻
-            
             RÉPONSE (SLOGAN UNIQUEMENT) :
         `;
 
         try {
+            this.logger.log(`[AI Banner] Requesting slogan from Gemini...`);
             const result = await this.model.generateContent(prompt);
             const response = await result.response;
             const slogan = response.text().trim().replace(/\"/g, '');
+
+            if (!slogan) throw new Error("L'IA a renvoyé un slogan vide");
 
             // Update Supabase site_settings using ADMIN client to bypass RLS
             const updatedContent = { ...marketing, promo_banner: slogan };
@@ -326,7 +325,7 @@ export class AiService {
 
     private async getTopProducts(limit: number, shopId?: number) {
         try {
-            const { data: items, error } = await this.supabase
+            const { data: items, error } = await this.supabaseService.getAdminClient()
                 .from('sale_items')
                 .select('quantity, price, products!inner(name, shop_id)');
             
