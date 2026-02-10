@@ -303,7 +303,7 @@ export default function SalesTerminal() {
                                                             </div>
                                                         )}
                                                         <div className="absolute top-3 right-3">
-                                                            <ExpiryBadge date={p.expiry_date} compact />
+                                                            <ExpiryBadge expiryDate={p.expiry_date} />
                                                         </div>
                                                     </div>
                                                     <div className="space-y-1 sm:space-y-2">
