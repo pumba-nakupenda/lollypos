@@ -73,18 +73,36 @@ export default function AdminDashboard() {
         email: '',
         password: '',
         role: 'cashier',
-        shopId: null as any,
+        shopIds: [] as number[],
         hasStockAccess: false
     })
     const [editData, setEditData] = useState({
         email: '',
         password: '',
         role: '',
-        shopId: null as any,
+        shopIds: [] as number[],
         hasStockAccess: false
     })
     const [creating, setCreating] = useState(false)
     const [updating, setUpdating] = useState(false)
+
+    const toggleShopSelection = (shopId: number, isEdit: boolean = false) => {
+        if (isEdit) {
+            setEditData(prev => ({
+                ...prev,
+                shopIds: prev.shopIds.includes(shopId) 
+                    ? prev.shopIds.filter(id => id !== shopId) 
+                    : [...prev.shopIds, shopId]
+            }))
+        } else {
+            setNewUserData(prev => ({
+                ...prev,
+                shopIds: prev.shopIds.includes(shopId) 
+                    ? prev.shopIds.filter(id => id !== shopId) 
+                    : [...prev.shopIds, shopId]
+            }))
+        }
+    }
 
     const roleOptions = [
         { label: 'Administrateur', value: 'admin', icon: <Shield className="w-3.5 h-3.5" /> },
@@ -109,7 +127,7 @@ export default function AdminDashboard() {
             if (res.ok) {
                 showToast("Compte créé avec succès", "success")
                 setIsCreateModalOpen(false)
-                setNewUserData({ email: '', password: '', role: 'cashier', shopId: null, hasStockAccess: false })
+                setNewUserData({ email: '', password: '', role: 'cashier', shopIds: [], hasStockAccess: false })
                 fetchUsers()
             } else {
                 const data = await res.json()
@@ -128,7 +146,7 @@ export default function AdminDashboard() {
             email: user.email || '',
             password: '',
             role: user.role,
-            shopId: user.shop_id,
+            shopIds: user.shop_ids || (user.shop_id ? [user.shop_id] : []),
             hasStockAccess: user.has_stock_access
         })
         setIsEditModalOpen(true)
@@ -351,12 +369,15 @@ export default function AdminDashboard() {
                                             </button>
                                         </td>
                                         <td className="px-8 py-6 border-r border-white/5">
-                                            <CustomDropdown 
-                                                options={shopOptions}
-                                                value={u.shop_id || ''}
-                                                onChange={(val) => updateShop(u.id, val === '' ? null : val)}
-                                                className="w-[200px]"
-                                            />
+                                            <div className="flex flex-wrap gap-1.5 min-w-[200px]">
+                                                {u.shop_ids && u.shop_ids.length > 0 ? u.shop_ids.map((id: number) => (
+                                                    <span key={id} className="px-2.5 py-1 bg-shop/10 border border-shop/20 text-shop text-[8px] font-black uppercase rounded-lg">
+                                                        {shops.find(s => s.id === id)?.name || id}
+                                                    </span>
+                                                )) : (
+                                                    <span className="text-[8px] font-black uppercase text-muted-foreground opacity-30 italic">Global</span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center space-x-2">
@@ -412,13 +433,16 @@ export default function AdminDashboard() {
                                     </div>
                                     
                                     <div className="space-y-2">
-                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Boutique Assignée</p>
-                                        <CustomDropdown 
-                                            options={shopOptions}
-                                            value={u.shop_id || ''}
-                                            onChange={(val) => updateShop(u.id, val === '' ? null : val)}
-                                            className="w-full"
-                                        />
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Boutiques Assignées</p>
+                                        <div className="flex flex-wrap gap-2 p-4 bg-white/5 rounded-2xl border border-white/10">
+                                            {u.shop_ids && u.shop_ids.length > 0 ? u.shop_ids.map((id: number) => (
+                                                <span key={id} className="px-3 py-1.5 bg-shop/10 border border-shop/20 text-shop text-[9px] font-black uppercase rounded-lg">
+                                                    {shops.find(s => s.id === id)?.name || id}
+                                                </span>
+                                            )) : (
+                                                <span className="text-[9px] font-black uppercase text-muted-foreground opacity-30 italic">Accès Global</span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <button
@@ -584,14 +608,29 @@ export default function AdminDashboard() {
                                         <option value="admin">Admin</option>
                                     </select>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Boutique</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-[10px] font-black uppercase outline-none focus:border-shop/50 appearance-none bg-black" value={newUserData.shopId || ''} onChange={e => setNewUserData({ ...newUserData, shopId: e.target.value ? parseInt(e.target.value) : null })}>
-                                        <option value="">Global</option>
-                                        {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
-                                </div>
                             </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Boutiques Assignées (Multi-sélection)</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {shops.map(s => (
+                                        <button
+                                            key={s.id}
+                                            type="button"
+                                            onClick={() => toggleShopSelection(s.id)}
+                                            className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase border transition-all ${
+                                                newUserData.shopIds.includes(s.id)
+                                                ? 'bg-shop border-shop text-white shadow-lg'
+                                                : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
+                                            }`}
+                                        >
+                                            {s.name}
+                                        </button>
+                                    ))}
+                                </div>
+                                {newUserData.shopIds.length === 0 && <p className="text-[8px] text-red-400 font-bold uppercase ml-2">Aucune boutique (Accès Global par défaut)</p>}
+                            </div>
+
                             <button type="submit" disabled={creating} className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-2xl hover:bg-shop hover:text-white transition-all shadow-xl disabled:opacity-50">
                                 {creating ? 'Création...' : 'Créer le Compte'}
                             </button>
@@ -637,14 +676,29 @@ export default function AdminDashboard() {
                                         <option value="admin">Admin</option>
                                     </select>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Boutique</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-[10px] font-black uppercase outline-none focus:border-shop/50 appearance-none bg-black" value={editData.shopId || ''} onChange={e => setEditData({ ...editData, shopId: e.target.value ? parseInt(e.target.value) : null })}>
-                                        <option value="">Global</option>
-                                        {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                                    </select>
-                                </div>
                             </div>
+
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Boutiques Assignées (Multi-sélection)</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {shops.map(s => (
+                                        <button
+                                            key={s.id}
+                                            type="button"
+                                            onClick={() => toggleShopSelection(s.id, true)}
+                                            className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase border transition-all ${
+                                                editData.shopIds.includes(s.id)
+                                                ? 'bg-shop border-shop text-white shadow-lg'
+                                                : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
+                                            }`}
+                                        >
+                                            {s.name}
+                                        </button>
+                                    ))}
+                                </div>
+                                {editData.shopIds.length === 0 && <p className="text-[8px] text-red-400 font-bold uppercase ml-2">Aucune boutique (Accès Global par défaut)</p>}
+                            </div>
+
                             <button type="submit" disabled={updating} className="w-full py-4 bg-shop text-white font-black uppercase tracking-widest rounded-2xl hover:scale-[1.02] transition-all shadow-xl disabled:opacity-50">
                                 {updating ? 'Mise à jour...' : 'Sauvegarder les changements'}
                             </button>
