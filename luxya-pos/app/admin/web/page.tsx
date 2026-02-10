@@ -41,10 +41,12 @@ export default function WebManagementPage() {
             if (data.slogan) {
                 setSettings({ ...settings, promo_banner: data.slogan })
                 showToast("Nouveau slogan généré par l'IA !", "success")
+            } else if (data.message) {
+                throw new Error(data.message)
             }
         } catch (err: any) {
             console.error('[AI] Generation failed:', err)
-            showToast("Erreur lors de la génération IA. Vérifiez que le backend est lancé.", "error")
+            showToast(`Erreur: ${err.message}`, "error")
         } finally {
             setGeneratingBanner(false)
         }

@@ -131,7 +131,7 @@ export class AiService {
 
             // Update Supabase site_settings using ADMIN client to bypass RLS
             const updatedContent = { ...marketing, promo_banner: slogan };
-            await this.supabaseService.getAdminClient()
+            const { error: supabaseError } = await this.supabaseService.getAdminClient()
                 .from('site_settings')
                 .upsert({ 
                     name: 'lolly_shop_config', 
@@ -139,6 +139,12 @@ export class AiService {
                     updated_at: new Date() 
                 }, { onConflict: 'name' });
 
+            if (supabaseError) {
+                this.logger.error(`[AI Banner] Supabase Update Error: ${supabaseError.message}`);
+                throw new Error(`Erreur Supabase: ${supabaseError.message}`);
+            }
+
+            this.logger.log(`[AI Banner] Successfully updated slogan: ${slogan}`);
             return { slogan };
         } catch (error) {
             this.logger.error(`[AI Banner] Error: ${error.message}`);
