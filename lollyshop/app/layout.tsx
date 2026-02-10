@@ -24,7 +24,6 @@ export const metadata: Metadata = {
   description: "La boutique officielle du groupe Lolly.",
 };
 
-import Footer from "@/components/Footer"; // Assuming you might have one or just add it before body close
 import ShoppingAssistant from "@/components/ai/ShoppingAssistant";
 import MobileNav from "@/components/MobileNav";
 
