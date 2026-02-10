@@ -99,8 +99,74 @@ export default async function Home(props: {
 
   const isFiltering = query || catFilter !== "all" || shopFilter !== "all" || priceFilter !== "all" || onlyInStock;
 
+  // JSON-LD for Products
+  const productListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "numberOfItems": filteredProducts.length,
+    "itemListElement": filteredProducts.slice(0, 20).map((p: any, index: number) => ({
+      "@type": "ListItem",
+      "position": index + 1,
+      "item": {
+        "@type": "Product",
+        "name": p.name,
+        "description": p.description || `Découvrez ${p.name} chez Lolly Shop.`,
+        "image": p.image,
+        "offers": {
+          "@type": "Offer",
+          "priceCurrency": "XOF",
+          "price": p.promo_price || p.price,
+          "availability": p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
+        }
+      }
+    }))
+  };
+
+  // JSON-LD for FAQ (AEO Strategy)
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Qu'est-ce que Lolly Shop ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Lolly Shop est la destination shopping premium au Sénégal, regroupant Luxya pour la beauté et maroquinerie, et Homtek pour la technologie."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Quels sont les délais de livraison à Dakar ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Nous livrons à Dakar en moins de 24h. Les livraisons en régions sont effectuées sous 48h à 72h."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Les produits Luxya sont-ils authentiques ?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Oui, tous nos produits Luxya sont 100% authentiques et sélectionnés avec le plus grand soin."
+        }
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-[#fafafa] text-black font-sans selection:bg-[#0055ff] selection:text-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productListJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+      
+      <h1 className="sr-only">Lolly Shop - Boutique Premium Beauté, Maroquinerie et Tech au Sénégal</h1>
+      
       <Initializer products={shopProducts} />
       {/* Promo Banner Top */}
       <div className="bg-[#0055ff] text-white py-2 px-4 overflow-hidden relative">
@@ -160,6 +226,37 @@ export default async function Home(props: {
                 </div>
             </div>
         )}
+
+        {/* FAQ Section for AEO & SEO */}
+        <section className="mt-40 border-t border-gray-100 pt-20">
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic mb-12">Questions Fréquentes <span className="text-[#0055ff]">(FAQ)</span></h2>
+            <div className="grid md:grid-cols-2 gap-12">
+                <div className="space-y-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-black">Comment se passe la livraison ?</h3>
+                    <p className="text-gray-500 text-xs font-medium leading-relaxed">
+                        Lolly Shop assure une livraison express en moins de 24h sur Dakar. Pour les régions du Sénégal (Thiès, Saint-Louis, Mbour, etc.), comptez 48h à 72h via nos partenaires logistiques.
+                    </p>
+                </div>
+                <div className="space-y-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-black">Quelles sont les méthodes de paiement ?</h3>
+                    <p className="text-gray-500 text-xs font-medium leading-relaxed">
+                        Nous acceptons le paiement à la livraison, Wave, Orange Money et les cartes bancaires. La sécurité de vos transactions est notre priorité absolue.
+                    </p>
+                </div>
+                <div className="space-y-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-black">D'où viennent vos produits ?</h3>
+                    <p className="text-gray-500 text-xs font-medium leading-relaxed">
+                        Les articles de <span className="font-bold text-red-500">Luxya</span> (beauté et sacs) et <span className="font-bold text-blue-600">Homtek</span> (tech) sont soigneusement sélectionnés auprès de fournisseurs certifiés pour vous garantir une qualité premium et une authenticité totale.
+                    </p>
+                </div>
+                <div className="space-y-6">
+                    <h3 className="text-sm font-black uppercase tracking-widest text-black">Puis-je retourner un article ?</h3>
+                    <p className="text-gray-500 text-xs font-medium leading-relaxed">
+                        Oui, nous acceptons les retours sous 48h si l'article est dans son emballage d'origine et n'a pas été utilisé. Contactez notre service client WhatsApp pour la procédure.
+                    </p>
+                </div>
+            </div>
+        </section>
 
       </main>
 

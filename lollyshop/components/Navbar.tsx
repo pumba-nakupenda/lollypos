@@ -34,7 +34,7 @@ export default function Navbar({ settings }: NavbarProps) {
                     <div className="flex justify-between items-center text-black">
                         
                         {/* Brand */}
-                        <Link href="/" className="group relative">
+                        <Link href="/" className="group relative" aria-label="Lolly Shop Accueil">
                             <div className="flex items-baseline">
                                 <span className="brand-lolly text-3xl sm:text-4xl tracking-tighter transition-transform group-hover:-rotate-3 duration-300 uppercase">
                                     LOLLY<span className="ml-1 text-[#0055ff]">SHOP</span>
@@ -45,7 +45,7 @@ export default function Navbar({ settings }: NavbarProps) {
                         {/* Navigation Links */}
                         <div className="hidden lg:flex items-center space-x-12">
                             {navItems.map((item) => (
-                                <Link key={item.name} href={item.href} className="text-[11px] font-black uppercase tracking-[0.2em] hover:text-[#0055ff] transition-all relative group">
+                                <Link key={item.name} href={item.href} className="text-[11px] font-black uppercase tracking-[0.2em] hover:text-[#0055ff] transition-all relative group" aria-label={item.name}>
                                     {item.name}
                                     <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-1 bg-[#0055ff] rounded-full transition-all group-hover:w-4"></span>
                                 </Link>
@@ -57,6 +57,7 @@ export default function Navbar({ settings }: NavbarProps) {
                             <button 
                                 onClick={() => setIsCartOpen(true)}
                                 className="relative p-3 bg-black text-[#0055ff] rounded-2xl hover:scale-110 active:scale-95 transition-all shadow-xl shadow-black/10"
+                                aria-label={`Voir le panier (${cartCount} articles)`}
                             >
                                 <ShoppingBag className="w-5 h-5" />
                                 {cartCount > 0 && (
@@ -66,7 +67,7 @@ export default function Navbar({ settings }: NavbarProps) {
                                 )}
                             </button>
 
-                            <button className="lg:hidden p-2 text-black">
+                            <button className="lg:hidden p-2 text-black" aria-label="Ouvrir le menu">
                                 <Menu className="w-6 h-6" />
                             </button>
                         </div>
