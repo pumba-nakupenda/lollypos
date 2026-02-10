@@ -5,6 +5,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
     origin: [
+      'https://admin.lolly.sn',
+      'https://shop.lolly.sn',
       'https://lollypos-six.vercel.app',
       'https://lollypos.vercel.app',
       'http://localhost:3000',
