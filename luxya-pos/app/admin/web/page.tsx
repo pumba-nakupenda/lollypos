@@ -29,18 +29,12 @@ export default function WebManagementPage() {
     const handleGenerateBanner = async () => {
         try {
             setGeneratingBanner(true)
-            const targetUrl = `${API_URL}/ai/generate-banner`;
-            console.log(`[AI] Requesting banner at: ${targetUrl}`)
-            
-            const res = await fetch(targetUrl, { 
+            const res = await fetch(`${API_URL}/ai/generate-banner`, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             })
             
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.message || `Erreur Serveur ${res.status}`);
-            }
+            if (!res.ok) throw new Error(`Erreur Serveur (${res.status})`);
             
             const data = await res.json()
             if (data.slogan) {
@@ -48,8 +42,7 @@ export default function WebManagementPage() {
                 showToast("Nouveau slogan généré !", "success")
             }
         } catch (err: any) {
-            console.error('[AI] Generation failed:', err)
-            showToast(`Erreur sur ${API_URL}: ${err.message}`, "error")
+            showToast("La génération IA est indisponible.", "error")
         } finally {
             setGeneratingBanner(false)
         }
@@ -76,23 +69,7 @@ export default function WebManagementPage() {
     }
 
     useEffect(() => {
-        const checkConnection = async () => {
-            try {
-                const res = await fetch(`${API_URL}/ai/status`);
-                if (res.ok) {
-                    const data = await res.json();
-                    console.log("[AI] Backend Connection Verified:", data);
-                } else {
-                    console.error("[AI] Backend returned error status:", res.status);
-                    showToast(`Backend joignable (${res.status})`, "warning");
-                }
-            } catch (err) {
-                console.error("[AI] Cannot connect to backend at:", API_URL);
-            }
-        };
-        
         fetchSettings();
-        checkConnection();
     }, [])
 
     const handleSave = async () => {
