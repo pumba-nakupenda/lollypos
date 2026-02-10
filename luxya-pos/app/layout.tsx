@@ -18,7 +18,7 @@ const museo = MuseoModerno({
 });
 
 export const metadata: Metadata = {
-  title: "LUXYA POS | Gestion Lolly",
+  title: "ADMIN LOLLY | Gestion Lolly",
   description: "Système de vente premium pour Lolly",
 };
 

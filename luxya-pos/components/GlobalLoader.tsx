@@ -9,7 +9,7 @@ export default function GlobalLoader() {
                 <div className="absolute top-0 left-0 w-16 h-16 border-4 border-shop border-t-transparent rounded-full animate-spin" />
             </div>
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground animate-pulse">
-                LUXYA SYSTEM
+                ADMIN LOLLY
             </p>
         </div>
     )

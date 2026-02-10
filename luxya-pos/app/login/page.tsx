@@ -14,7 +14,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                     </div>
                     <div>
                         <h1 className="text-4xl sm:text-5xl font-black tracking-tighter uppercase shop-gradient-text">
-                            Luxya POS
+                            ADMIN LOLLY
                         </h1>
                         <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-muted-foreground mt-1 sm:mt-2">
                             Premium Management System
