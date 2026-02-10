@@ -6,6 +6,8 @@ import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { ProductProvider } from "@/context/ProductContext";
 import { AiProvider } from "@/context/AiContext";
+import ShoppingAssistant from "@/components/ai/ShoppingAssistant";
+import MobileNav from "@/components/MobileNav";
 
 const museo = MuseoModerno({ 
   subsets: ["latin"],
