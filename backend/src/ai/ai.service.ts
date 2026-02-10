@@ -37,7 +37,7 @@ export class AiService {
         }
     }
 
-    @Cron(CronExpression.EVERY_MONDAY_AT_8AM)
+    @Cron('0 8 * * 1')
     async handleWeeklyBannerUpdate() {
         this.logger.log('[AI Schedule] Starting weekly banner update...');
         try {
@@ -59,7 +59,7 @@ export class AiService {
     async findRelevantContext(query: string, shopId?: number, limit = 5) {
         const embedding = await this.generateEmbedding(query);
         
-        const { data, error } = await this.supabase.rpc('match_products', {
+        const { data, error } = await (this.supabaseService as any).getClient().rpc('match_products', {
             query_embedding: embedding,
             match_threshold: 0.5,
             match_count: limit,
@@ -77,7 +77,7 @@ export class AiService {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
         
-        let salesQuery = this.supabaseService.getAdminClient().from('sales').select('total_amount');
+        let salesQuery = (this.supabaseService as any).getAdminClient().from('sales').select('total_amount');
         if (shopId) salesQuery = salesQuery.eq('shop_id', shopId);
         const { data: sales } = await salesQuery.gte('created_at', startDate.toISOString());
 
@@ -92,13 +92,13 @@ export class AiService {
         return {
             status: 'online',
             ai_ready: !!this.model,
-            supabase_ready: !!this.supabaseService.getClient(),
+            supabase_ready: !!(this.supabaseService as any).getClient(),
             timestamp: new Date().toISOString()
         };
     }
 
     private async getMarketingContext(shopId?: number) {
-        const { data } = await this.supabaseService.getAdminClient()
+        const { data } = await (this.supabaseService as any).getAdminClient()
             .from('site_settings')
             .select('content')
             .eq('name', 'lolly_shop_config')
@@ -126,7 +126,7 @@ export class AiService {
             const marketing = await this.getMarketingContext();
 
             // Simple product list for context (fallback to generic if empty)
-            const { data: products } = await this.supabaseService.getAdminClient()
+            const { data: products } = await (this.supabaseService as any).getAdminClient()
                 .from('products')
                 .select('name, category')
                 .limit(10);
@@ -161,7 +161,7 @@ export class AiService {
 
             // Update using ADMIN client
             const updatedContent = { ...marketing, promo_banner: slogan };
-            const { error: supabaseError } = await this.supabaseService.getAdminClient()
+            const { error: supabaseError } = await (this.supabaseService as any).getAdminClient()
                 .from('site_settings')
                 .upsert({ 
                     name: 'lolly_shop_config', 
@@ -180,7 +180,7 @@ export class AiService {
     }
 
     private get supabase() {
-        return this.supabaseService.getClient();
+        return (this.supabaseService as any).getClient();
     }
 
     async analyzeBusiness(userQuestion: string, shopId?: number) {
@@ -236,7 +236,7 @@ export class AiService {
             }
 
             // 3. Persistent History (Background)
-            this.supabase.from('ai_chat_history').insert({
+            (this.supabaseService as any).getClient().from('ai_chat_history').insert({
                 session_key: sessionKey,
                 role: 'user',
                 content: userQuestion
@@ -246,7 +246,7 @@ export class AiService {
             const response = await result.response;
             const finalAnswer = response.text();
 
-            this.supabase.from('ai_chat_history').insert({
+            (this.supabaseService as any).getClient().from('ai_chat_history').insert({
                 session_key: sessionKey,
                 role: 'model',
                 content: finalAnswer
@@ -261,7 +261,7 @@ export class AiService {
     }
 
     private async getTopCustomers(limit: number, shopId?: number) {
-        let query = this.supabase.from('sales').select('customer_name, total_amount');
+        let query = (this.supabaseService as any).getClient().from('sales').select('customer_name, total_amount');
         if (shopId) query = query.eq('shop_id', shopId);
         
         const { data } = await query;
@@ -280,7 +280,7 @@ export class AiService {
     }
 
     private async getDebtsOverview(shopId?: number) {
-        let query = this.supabase.from('debts').select('amount, remaining_amount, status');
+        let query = (this.supabaseService as any).getClient().from('debts').select('amount, remaining_amount, status');
         // Debts aren't directly shop_id linked in some schemas, verify if needed.
         // Assuming global for now or linked via customers
         const { data } = await query;
@@ -307,7 +307,7 @@ export class AiService {
         // We generate 4 different URLs by adding different search indexes/tags
         const urls = [
             `https://loremflickr.com/800/800/${cleanName}?lock=1`,
-            `https://loremflickr.com/800/800/${cleanName}?lock=2`,
+            `` + `https://loremflickr.com/800/800/${cleanName}?lock=2`,
             `https://loremflickr.com/800/800/${cleanName}?lock=3`,
             `https://loremflickr.com/800/800/${cleanName}?lock=4`
         ];
@@ -320,7 +320,7 @@ export class AiService {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
         
-        let query = this.supabase.from('sales').select('total_amount, created_at, payment_method, type').gte('created_at', startDate.toISOString());
+        let query = (this.supabaseService as any).getClient().from('sales').select('total_amount, created_at, payment_method, type').gte('created_at', startDate.toISOString());
         if (shopId) query = query.eq('shop_id', shopId);
         
         const { data: sales } = await query;
@@ -344,7 +344,7 @@ export class AiService {
 
     private async getTopProducts(limit: number, shopId?: number) {
         try {
-            const { data: items, error } = await this.supabaseService.getAdminClient()
+            const { data: items, error } = await (this.supabaseService as any).getAdminClient()
                 .from('sale_items')
                 .select('quantity, price, products!inner(name, shop_id)');
             
@@ -375,7 +375,7 @@ export class AiService {
         
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
-        let expQuery = this.supabase.from('expenses').select('amount').gte('date', startDate.toISOString());
+        let expQuery = (this.supabaseService as any).getClient().from('expenses').select('amount').gte('date', startDate.toISOString());
         if (shopId) expQuery = expQuery.eq('shop_id', shopId);
         const { data: expenses } = await expQuery;
 
@@ -395,7 +395,7 @@ export class AiService {
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - days);
         
-        let query = this.supabase.from('expenses')
+        let query = (this.supabaseService as any).getClient().from('expenses')
             .select('*')
             .gte('date', startDate.toISOString());
         
@@ -424,7 +424,7 @@ export class AiService {
     }
 
     private async getDebts(status?: string, shopId?: number) {
-        let query = this.supabase.from('debts').select('*, customers(name, phone)');
+        let query = (this.supabaseService as any).getClient().from('debts').select('*, customers(name, phone)');
         if (status) query = query.eq('status', status);
         const { data } = await query;
         return data;
@@ -435,12 +435,12 @@ export class AiService {
         startDate.setDate(startDate.getDate() - days);
 
         // 1. Get Views
-        let viewsQuery = this.supabase.from('product_views').select('product_id').gte('created_at', startDate.toISOString());
+        let viewsQuery = (this.supabaseService as any).getClient().from('product_views').select('product_id').gte('created_at', startDate.toISOString());
         if (shopId) viewsQuery = viewsQuery.eq('shop_id', shopId);
         const { data: views } = await viewsQuery;
 
         // 2. Get Sales (Items)
-        let salesQuery = this.supabase
+        let salesQuery = (this.supabaseService as any).getClient()
             .from('sale_items')
             .select('product_id, quantity, products!inner(name, price)')
             .gte('created_at', startDate.toISOString());
@@ -493,7 +493,7 @@ export class AiService {
             const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
             // Query ALL products with details
-            let productsQuery = this.supabase.from('products').select('id, name, stock, price, cost_price, min_stock, category, type');
+            let productsQuery = (this.supabaseService as any).getClient().from('products').select('id, name, stock, price, cost_price, min_stock, category, type');
             if (shopId) productsQuery = productsQuery.eq('shop_id', shopId);
             const { data: products } = await productsQuery;
 
