@@ -29,24 +29,27 @@ export default function WebManagementPage() {
     const handleGenerateBanner = async () => {
         try {
             setGeneratingBanner(true)
-            console.log(`[AI] Generating banner via: ${API_URL}/ai/generate-banner`)
-            const res = await fetch(`${API_URL}/ai/generate-banner`, { 
+            const targetUrl = `${API_URL}/ai/generate-banner`;
+            console.log(`[AI] Requesting banner at: ${targetUrl}`)
+            
+            const res = await fetch(targetUrl, { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             })
             
-            if (!res.ok) throw new Error(`Server returned ${res.status}`)
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}));
+                throw new Error(errorData.message || `Erreur Serveur ${res.status}`);
+            }
             
             const data = await res.json()
             if (data.slogan) {
                 setSettings({ ...settings, promo_banner: data.slogan })
-                showToast("Nouveau slogan généré par l'IA !", "success")
-            } else if (data.message) {
-                throw new Error(data.message)
+                showToast("Nouveau slogan généré !", "success")
             }
         } catch (err: any) {
             console.error('[AI] Generation failed:', err)
-            showToast(`Erreur: ${err.message}`, "error")
+            showToast(`Erreur sur ${API_URL}: ${err.message}`, "error")
         } finally {
             setGeneratingBanner(false)
         }
@@ -75,17 +78,16 @@ export default function WebManagementPage() {
     useEffect(() => {
         const checkConnection = async () => {
             try {
-                const res = await fetch(`${API_URL}/ai/status`, { method: 'POST' });
+                const res = await fetch(`${API_URL}/ai/status`);
                 if (res.ok) {
                     const data = await res.json();
                     console.log("[AI] Backend Connection Verified:", data);
                 } else {
                     console.error("[AI] Backend returned error status:", res.status);
-                    showToast("Le backend est joignable mais retourne une erreur.", "warning");
+                    showToast(`Backend joignable (${res.status})`, "warning");
                 }
             } catch (err) {
                 console.error("[AI] Cannot connect to backend at:", API_URL);
-                showToast(`Impossible de contacter le backend sur ${API_URL}`, "error");
             }
         };
         
