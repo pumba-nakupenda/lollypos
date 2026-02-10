@@ -144,11 +144,11 @@ export default function Sidebar() {
 
     return (
         <>
-            {/* Mobile Toggle Button */}
-            <div className="lg:hidden fixed top-6 left-6 z-[70]">
+            {/* Mobile Toggle Button - Moved to bottom left for better accessibility */}
+            <div className="lg:hidden fixed bottom-8 left-8 z-[70]">
                 <button 
                     onClick={() => setIsMobileOpen(true)}
-                    className="p-3 bg-shop text-white rounded-xl shadow-lg shadow-shop/20 animate-in zoom-in duration-300"
+                    className="p-4 bg-shop/90 backdrop-blur-xl text-white rounded-2xl shadow-2xl shadow-shop/20 active:scale-90 transition-all border border-white/20"
                 >
                     <Menu className="w-6 h-6" />
                 </button>

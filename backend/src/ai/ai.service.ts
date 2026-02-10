@@ -25,128 +25,52 @@ export class AiService {
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
             
-            // Define tools for the AI
-            const tools = [
-                {
-                    functionDeclarations: [
-                        {
-                            name: 'create_product',
-                            description: 'Crée un nouveau produit dans la base de données.',
-                            parameters: {
-                                type: 'object',
-                                properties: {
-                                    name: { type: 'string', description: 'Nom du produit' },
-                                    price: { type: 'number', description: 'Prix de vente en FCFA' },
-                                    stock: { type: 'number', description: 'Quantité initiale en stock' },
-                                    cost_price: { type: 'number', description: 'Prix de revient (achat) en FCFA' },
-                                    category: { type: 'string', description: 'Catégorie du produit' },
-                                    shop_id: { type: 'number', description: 'ID de la boutique (1 pour Luxya, 2 pour Homtek)' },
-                                    type: { type: 'string', enum: ['product', 'service'], description: 'Type d\'article' },
-                                    is_featured: { type: 'boolean', description: 'Si le produit doit être sélectionné/mis en avant' }
-                                },
-                                required: ['name', 'price', 'stock', 'shop_id']
-                            }
-                        },
-                        {
-                            name: 'update_product',
-                            description: 'Met à jour un produit existant avec toutes les informations fournies.',
-                            parameters: {
-                                type: 'object',
-                                properties: {
-                                    id: { type: 'number', description: 'ID du produit à modifier' },
-                                    updates: {
-                                        type: 'object',
-                                        properties: {
-                                            name: { type: 'string' },
-                                            price: { type: 'number' },
-                                            stock: { type: 'number' },
-                                            cost_price: { type: 'number' },
-                                            category: { type: 'string' },
-                                            description: { type: 'string' },
-                                            image: { type: 'string' },
-                                            type: { type: 'string', enum: ['product', 'service'] },
-                                            show_on_pos: { type: 'boolean' },
-                                            show_on_website: { type: 'boolean' },
-                                            is_featured: { type: 'boolean', description: 'Sélectionner/Mettre en avant' },
-                                            expiry_date: { type: 'string', description: 'Date ISO' }
-                                        }
-                                    }
-                                },
-                                required: ['id', 'updates']
-                            }
-                        },
-                        {
-                            name: 'analyze_sales',
-                            description: 'Obtient une analyse détaillée des ventes pour une période donnée.',
-                            parameters: {
-                                type: 'object',
-                                properties: {
-                                    days: { type: 'number', description: 'Nombre de jours en arrière à analyser (ex: 7, 30, 90)' }
-                                },
-                                required: ['days']
-                            }
-                        },
-                        {
-                            name: 'get_top_products',
-                            description: 'Identifie les produits les plus vendus (volume et revenus).',
-                            parameters: {
-                                type: 'object',
-                                properties: {
-                                    limit: { type: 'number', description: 'Nombre de produits à lister' }
-                                }
-                            }
-                        },
-                        {
-                            name: 'get_financial_health',
-                            description: 'Calcule la santé financière : revenus vs dépenses vs marges.',
-                            parameters: {
-                                type: 'object',
-                                properties: {
-                                    days: { type: 'number', description: 'Période d\'analyse' }
-                                }
-                            }
-                        },
-                        {
-                            name: 'analyze_expenses',
-                            description: 'Analyse en profondeur les dépenses : par catégorie, récurrence et impact sur le profit.',
-                            parameters: {
-                                type: 'object',
-                                properties: {
-                                    days: { type: 'number', description: 'Période d\'analyse (ex: 30)' }
-                                }
-                            }
-                        },
-                        {
-                            name: 'analyze_conversion',
-                            description: 'Analyse le ratio Vues vs Ventes pour identifier les produits mal aimés ou trop chers.',
-                            parameters: {
-                                type: 'object',
-                                properties: {
-                                    days: { type: 'number', description: 'Période d\'analyse' }
-                                }
-                            }
-                        },
-                        {
-                            name: 'manage_debts',
-                            description: 'Liste les dettes clients en cours ou relance les impayés.',
-                            parameters: {
-                                type: 'object',
-                                properties: {
-                                    status: { type: 'string', enum: ['unpaid', 'partial', 'paid'] }
-                                }
-                            }
-                        }
-                    ]
-                }
-            ];
-
+            // Model for Chat
             this.model = this.genAI.getGenerativeModel({ 
                 model: 'gemini-2.0-flash',
-                tools: tools as any
+                tools: [] // Add tools if needed
             });
-        } else {
-            this.logger.warn('GOOGLE_GEMINI_API_KEY is not defined in environment variables');
         }
+    }
+
+    // NEW: Generate embedding for a text
+    async generateEmbedding(text: string): Promise<number[]> {
+        const model = this.genAI.getGenerativeModel({ model: "text-embedding-004" });
+        const result = await model.embedContent(text);
+        return result.embedding.values;
+    }
+
+    // NEW: RAG Search - Find relevant products
+    async findRelevantContext(query: string, shopId?: number, limit = 5) {
+        const embedding = await this.generateEmbedding(query);
+        
+        const { data, error } = await this.supabase.rpc('match_products', {
+            query_embedding: embedding,
+            match_threshold: 0.5,
+            match_count: limit,
+            p_shop_id: shopId
+        });
+
+        if (error) {
+            this.logger.error(`[RAG] Search error: ${error.message}`);
+            return [];
+        }
+        return data;
+    }
+
+    private async getQuickStats(shopId?: number) {
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 30);
+        
+        let salesQuery = this.supabase.from('sales').select('total_amount');
+        if (shopId) salesQuery = salesQuery.eq('shop_id', shopId);
+        const { data: sales } = await salesQuery.gte('created_at', startDate.toISOString());
+
+        return {
+            last_30_days_revenue: sales?.reduce((sum, s) => sum + Number(s.total_amount), 0) || 0,
+            sales_count: sales?.length || 0,
+            currency: 'FCFA'
+        };
     }
 
     private get supabase() {
@@ -155,112 +79,72 @@ export class AiService {
 
     async analyzeBusiness(userQuestion: string, shopId?: number) {
         if (!this.model) {
-            throw new Error('AI Service not initialized. Check your API Key.');
+            throw new Error('AI Service not initialized.');
         }
 
         const sessionKey = shopId ? `shop_${shopId}` : 'global';
-        this.logger.log(`[AI] Analyzing business for session: ${sessionKey}`);
-
+        
         try {
-            // 1. Fetch Business Context
-            const context = await this.getBusinessContext(shopId);
+            // 1. Context Gathering (RAG + Analytics)
+            const [relevantProducts, stats, topCustomers, debtStatus, marketing, competition] = await Promise.all([
+                this.findRelevantContext(userQuestion, shopId),
+                this.getQuickStats(shopId),
+                this.getTopCustomers(5, shopId),
+                this.getDebtsOverview(shopId),
+                this.getMarketingContext(shopId),
+                this.getCompetitiveIntelligence()
+            ]);
 
-            // 2. Build the system instruction
             const systemContext = `
-                Tu es l'Intelligence de Croissance (Growth Lead) du groupe LOLLY. Ton unique objectif est l'expansion et la rentabilité maximale de Luxya et Homtek.
+                Tu es l'Intelligence de Croissance LOLLY. Tu as accès aux ventes, dépenses, clients, marketing et tendances.
                 
-                CONTEXTE :
-                - DONNÉES RÉELLES : ${JSON.stringify(context)}
-                - MONNAIE : Franc CFA (FCFA).
-                - MARCHÉ : Sénégal (Dakar).
-
-                LIBERTÉ ABSOLUE D'ANALYSE :
-                - Ne te limite pas aux faits : spécule sur les opportunités, imagine des scénarios, et sois audacieux.
-                - N'hésite pas à remettre en question la stratégie actuelle.
-
-                STYLE : Passionné, brillant et percutant. 
-                UTILISE LE MARKDOWN : Titres (###), listes et **Gras**.
-                RÉPONS EN FRANÇAIS.
+                CONTEXTE RÉEL :
+                - PRODUITS PERTINENTS (RAG) : ${JSON.stringify(relevantProducts)}
+                - STATS 30J : ${JSON.stringify(stats)}
+                - TOP CLIENTS : ${JSON.stringify(topCustomers)}
+                - DETTES : ${JSON.stringify(debtStatus)}
+                - MARKETING : ${JSON.stringify(marketing)}
+                - CONCURRENCE : ${JSON.stringify(competition)}
+                
+                DONNÉES MARCHÉ (SÉNÉGAL/DAKAR) :
+                - Tendances : Forte demande Premium, Digitalisation (Wave/OM).
+                - Saisonnalité : Pics pendant les fêtes (Tabaski, Korité, Fin d'année).
+                
+                MISSION :
+                - Sois EXTRÊMEMENT CONCIS. 
+                - Analyse la corrélation Marketing/Ventes.
+                - Propose des actions pour dépasser la concurrence.
+                
+                STYLE : Incisif, expert.
             `;
 
-            // 3. Get or Start Chat Session with Persistent Memory
+            // 2. Chat Logic (Truncated History for Token Efficiency)
             let chat = this.chatSessions.get(sessionKey);
             if (!chat) {
-                // LOAD HISTORY FROM SUPABASE
-                const { data: dbHistory } = await this.supabase
-                    .from('ai_chat_history')
-                    .select('role, content')
-                    .eq('session_key', sessionKey)
-                    .order('created_at', { ascending: true })
-                    .limit(20);
-
                 const history = [
-                    { role: 'user', parts: [{ text: "Initialisation du système avec le contexte LOLLY." }] },
-                    { role: 'model', parts: [{ text: "Compris. Je suis l'intelligence de croissance de LOLLY. Prêt à agir." }] }
+                    { role: 'user', parts: [{ text: "Initialisation LOLLY Intelligence." }] },
+                    { role: 'model', parts: [{ text: "Système prêt. Analyse en cours." }] }
                 ];
-
-                if (dbHistory && dbHistory.length > 0) {
-                    dbHistory.forEach(msg => {
-                        history.push({ role: msg.role, parts: [{ text: msg.content }] });
-                    });
-                }
-
                 chat = this.model.startChat({ history });
                 this.chatSessions.set(sessionKey, chat);
             }
 
-            // 4. Save User Message to DB
-            await this.supabase.from('ai_chat_history').insert({
+            // 3. Persistent History (Background)
+            this.supabase.from('ai_chat_history').insert({
                 session_key: sessionKey,
                 role: 'user',
                 content: userQuestion
-            });
+            }).then();
 
             const result = await chat.sendMessage(`CONTEXTE MIS À JOUR : ${systemContext}\n\nQUESTION : ${userQuestion}`);
             const response = await result.response;
-            let finalAnswer = "";
-            
-            const call = response.functionCalls()?.[0];
-            if (call) {
-                const { name, args } = call;
-                this.logger.log(`[AI] Executing tool: ${name}`);
-                
-                let toolResult;
-                if (name === 'create_product') {
-                    toolResult = await this.productsService.create(args as any);
-                } else if (name === 'update_product') {
-                    toolResult = await this.productsService.update((args as any).id, (args as any).updates);
-                } else if (name === 'analyze_sales') {
-                    toolResult = await this.getDetailedSalesAnalytics((args as any).days, shopId);
-                } else if (name === 'get_top_products') {
-                    toolResult = await this.getTopProducts((args as any).limit || 5, shopId);
-                } else if (name === 'get_financial_health') {
-                    toolResult = await this.getFinancialHealth((args as any).days || 30, shopId);
-                } else if (name === 'analyze_expenses') {
-                    toolResult = await this.getDetailedExpenseAnalytics((args as any).days || 30, shopId);
-                } else if (name === 'analyze_conversion') {
-                    toolResult = await this.getConversionAnalytics((args as any).days || 30, shopId);
-                } else if (name === 'manage_debts') {
-                    toolResult = await this.getDebts((args as any).status, shopId);
-                }
+            const finalAnswer = response.text();
 
-                const result2 = await chat.sendMessage([{
-                    functionResponse: {
-                        name,
-                        response: { content: 'Succès', data: toolResult }
-                    }
-                }]);
-                finalAnswer = result2.response.text();
-            } else {
-                finalAnswer = response.text();
-            }
-
-            // 5. Save Model Response to DB
-            await this.supabase.from('ai_chat_history').insert({
+            this.supabase.from('ai_chat_history').insert({
                 session_key: sessionKey,
                 role: 'model',
                 content: finalAnswer
-            });
+            }).then();
 
             return finalAnswer;
         } catch (error) {
@@ -268,6 +152,39 @@ export class AiService {
             this.chatSessions.delete(sessionKey);
             throw error;
         }
+    }
+
+    private async getTopCustomers(limit: number, shopId?: number) {
+        let query = this.supabase.from('sales').select('customer_name, total_amount');
+        if (shopId) query = query.eq('shop_id', shopId);
+        
+        const { data } = await query;
+        if (!data) return [];
+
+        const aggregated = data.reduce((acc, s) => {
+            const name = s.customer_name || 'Anonyme';
+            acc[name] = (acc[name] || 0) + Number(s.total_amount);
+            return acc;
+        }, {});
+
+        return Object.entries(aggregated)
+            .sort(([, a]: any, [, b]: any) => b - a)
+            .slice(0, limit)
+            .map(([name, total]) => ({ name, total_revenue: total }));
+    }
+
+    private async getDebtsOverview(shopId?: number) {
+        let query = this.supabase.from('debts').select('amount, remaining_amount, status');
+        // Debts aren't directly shop_id linked in some schemas, verify if needed.
+        // Assuming global for now or linked via customers
+        const { data } = await query;
+        if (!data) return { total: 0, pending: 0 };
+
+        return {
+            total_debt: data.reduce((sum, d) => sum + Number(d.amount), 0),
+            remaining_to_collect: data.reduce((sum, d) => sum + Number(d.remaining_amount), 0),
+            count: data.length
+        };
     }
 
     async suggestProductPhoto(productName: string) {

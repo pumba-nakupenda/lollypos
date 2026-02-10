@@ -30,6 +30,7 @@ import { createClient } from "@/utils/supabase/server";
 import Sidebar from "@/components/Sidebar";
 import GlobalLoader from "@/components/GlobalLoader";
 import AiFloatingButton from "@/components/AiFloatingButton";
+import { headers } from 'next/headers';
 
 export default async function RootLayout({
   children,
@@ -37,6 +38,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const supabase = await createClient();
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || '';
   
   let user = null;
   try {
@@ -73,6 +76,7 @@ export default async function RootLayout({
   }
 
   const isCashier = initialProfile?.role === 'cashier';
+  const showAi = !isCashier && pathname !== '/login';
 
   return (
     <html lang="fr" className="dark">
@@ -89,7 +93,7 @@ export default async function RootLayout({
                   <main className={`flex-1 min-w-0 overflow-y-auto ${isCashier ? 'w-full' : ''}`}>
                     {children}
                   </main>
-                  {!isCashier && <AiFloatingButton />}
+                  {showAi && <AiFloatingButton />}
                 </div>
               </ShopProvider>
             </UserProvider>

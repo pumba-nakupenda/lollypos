@@ -37,7 +37,7 @@ export default function AiFloatingButton() {
             id: 'welcome',
             role: 'assistant',
             content: "Bonjour ! Je suis **Lolly AI**. Sélectionnez un produit ci-dessous pour le modifier rapidement, ou posez-moi une question générale.",
-            timestamp: new Date()
+            timestamp: new Date(2024, 0, 1) // Static date to avoid hydration mismatch
         }
     ]);
 

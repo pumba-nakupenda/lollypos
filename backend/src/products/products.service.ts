@@ -1,13 +1,18 @@
 
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { SupabaseService } from '../supabase.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class ProductsService {
     private readonly logger = new Logger(ProductsService.name);
-    constructor(private readonly supabaseService: SupabaseService) { }
+    constructor(
+        private readonly supabaseService: SupabaseService,
+        @Inject(forwardRef(() => AiService))
+        private readonly aiService: AiService,
+    ) { }
 
     private get supabase() {
         return this.supabaseService.getClient();
@@ -16,6 +21,10 @@ export class ProductsService {
     async create(createProductDto: CreateProductDto) {
         this.logger.log(`[PRODUCTS] Creating "${createProductDto.name}" for shop ${createProductDto.shop_id}`);
         try {
+            // Generate Embedding for RAG
+            const embeddingText = `${createProductDto.name} ${createProductDto.description || ''} ${createProductDto.category || ''}`;
+            const embedding = await this.aiService.generateEmbedding(embeddingText);
+
             const { data, error } = await this.supabase
                 .from('products')
                 .insert([{
@@ -33,9 +42,10 @@ export class ProductsService {
                     video_url: createProductDto.video_url,
                     expiry_date: createProductDto.expiry_date,
                     type: createProductDto.type || 'product',
-                    show_on_pos: createProductDto.show_on_pos !== false, // Default to true
-                    show_on_website: createProductDto.show_on_website !== false, // Default to true
-                    is_featured: createProductDto.is_featured || false
+                    show_on_pos: createProductDto.show_on_pos !== false,
+                    show_on_website: createProductDto.show_on_website !== false,
+                    is_featured: createProductDto.is_featured || false,
+                    embedding: embedding
                 }])
                 .select()
                 .single();
@@ -85,26 +95,18 @@ export class ProductsService {
     async update(id: number, updateProductDto: UpdateProductDto) {
         this.logger.log(`[PRODUCTS] Updating product ID: ${id}`);
         try {
+            const updates: any = { ...updateProductDto };
+            
+            // Re-generate embedding if key info changed
+            if (updateProductDto.name || updateProductDto.description || updateProductDto.category) {
+                const current = await this.findOne(id);
+                const embeddingText = `${updateProductDto.name || current.name} ${updateProductDto.description || current.description || ''} ${updateProductDto.category || current.category || ''}`;
+                updates.embedding = await this.aiService.generateEmbedding(embeddingText);
+            }
+
             const { data, error } = await this.supabase
                 .from('products')
-                .update({
-                    name: updateProductDto.name,
-                    description: updateProductDto.description,
-                    price: updateProductDto.price,
-                    cost_price: updateProductDto.cost_price,
-                    promo_price: updateProductDto.promo_price,
-                    stock: updateProductDto.stock,
-                    min_stock: updateProductDto.min_stock,
-                    category: updateProductDto.category,
-                    image: updateProductDto.image,
-                    images: updateProductDto.images,
-                    video_url: updateProductDto.video_url,
-                    expiry_date: updateProductDto.expiry_date,
-                    type: updateProductDto.type,
-                    show_on_pos: updateProductDto.show_on_pos,
-                    show_on_website: updateProductDto.show_on_website,
-                    is_featured: updateProductDto.is_featured
-                })
+                .update(updates)
                 .eq('id', id)
                 .select()
                 .single();
