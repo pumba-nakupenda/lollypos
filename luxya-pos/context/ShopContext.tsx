@@ -40,21 +40,32 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
 
     // Fencing Logic: Determine available shops for this user
     const isAdmin = profile?.role === 'admin'
-    const availableShops = isAdmin 
-        ? shops 
-        : (profile?.shop_ids && profile.shop_ids.length > 0 
+    const authorizedShops = profile?.shop_ids && profile.shop_ids.length > 0 
             ? shops.filter(s => profile.shop_ids?.includes(s.id)) 
-            : (profile?.shop_id ? shops.filter(s => s.id === profile.shop_id) : []))
+            : (profile?.shop_id ? shops.filter(s => s.id === profile.shop_id) : [])
 
-    const isRestricted = !isAdmin && availableShops.length > 0
+    // NEW: If user has multiple shops, add a local "Global View" for them
+    const availableShops = [...authorizedShops]
+    if (isAdmin || authorizedShops.length > 1) {
+        availableShops.unshift(globalShop)
+    }
+
+    const isRestricted = !isAdmin && authorizedShops.length > 0
 
     // Inject CSS variables
     useEffect(() => {
         if (activeShop) {
             const root = document.documentElement;
-            root.style.setProperty('--shop-primary', activeShop.colors.primary);
-            root.style.setProperty('--shop-secondary', activeShop.colors.secondary);
-            root.style.setProperty('--shop-accent', activeShop.colors.accent);
+            // Handle theme for "Toutes les boutiques" (ID 0)
+            if (activeShop.id === 0) {
+                root.style.setProperty('--shop-primary', "239 84% 67%");
+                root.style.setProperty('--shop-secondary', "43 100% 70%");
+                root.style.setProperty('--shop-accent', "239 84% 67%");
+            } else {
+                root.style.setProperty('--shop-primary', activeShop.colors.primary);
+                root.style.setProperty('--shop-secondary', activeShop.colors.secondary);
+                root.style.setProperty('--shop-accent', activeShop.colors.accent);
+            }
         }
     }, [activeShop])
 
@@ -64,20 +75,23 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         const shopIdParam = searchParams.get('shopId')
         let currentShop: Shop | undefined
 
-        // SECURITY: If restricted, force selection into authorized shops only
+        // SECURITY: If restricted, force selection into authorized shops (or their local global view)
         if (isRestricted) {
-            const isAuthorized = shopIdParam && availableShops.some(s => s.id.toString() === shopIdParam)
+            const isAuthorized = shopIdParam === '0' 
+                ? authorizedShops.length > 1 // Global view authorized if multiple shops
+                : authorizedShops.some(s => s.id.toString() === shopIdParam)
+
             if (!isAuthorized) {
-                const defaultShop = availableShops[0]
+                const defaultShop = authorizedShops.length > 1 ? globalShop : authorizedShops[0]
                 const params = new URLSearchParams(searchParams.toString())
                 params.set('shopId', defaultShop.id.toString())
                 router.replace(`${pathname}?${params.toString()}`)
                 return
             }
-            currentShop = shops.find(s => s.id === parseInt(shopIdParam!))
+            currentShop = shopIdParam === '0' ? globalShop : shops.find(s => s.id === parseInt(shopIdParam!))
         } 
         
-        // Non-restricted logic (Admins or Global users)
+        // Non-restricted logic (Admins)
         if (!currentShop && shopIdParam) {
             if (shopIdParam === '0') currentShop = globalShop
             else currentShop = shops.find(s => s.id === +shopIdParam)
@@ -85,13 +99,14 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
 
         if (!currentShop) {
             const savedShopId = localStorage.getItem('activeShopId')
-            if (savedShopId === '0' && !isRestricted) currentShop = globalShop
+            if (savedShopId === '0' && (isAdmin || authorizedShops.length > 1)) currentShop = globalShop
             else if (savedShopId) {
-                currentShop = availableShops.find(s => s.id === +savedShopId)
+                currentShop = authorizedShops.find(s => s.id === +savedShopId)
             }
         }
 
-        const finalShop = currentShop || (isRestricted ? availableShops[0] : globalShop)
+        const defaultFinal = (isRestricted && authorizedShops.length > 1) ? globalShop : (isRestricted ? authorizedShops[0] : globalShop)
+        const finalShop = currentShop || defaultFinal
         setActiveShopState(finalShop)
 
         if (shopIdParam !== finalShop.id.toString()) {
@@ -101,11 +116,13 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         }
 
         setLoading(false)
-    }, [searchParams, pathname, router, profile, userLoading, isRestricted, availableShops])
+    }, [searchParams, pathname, router, profile, userLoading, isRestricted, authorizedShops])
 
     const setActiveShop = (shop: Shop) => {
-        // Only allow switching to authorized shops
-        if (isRestricted && !availableShops.some(s => s.id === shop.id)) return 
+        // Only allow switching to authorized shops or global if allowed
+        const canAccessGlobal = isAdmin || authorizedShops.length > 1
+        if (shop.id === 0 && !canAccessGlobal) return
+        if (shop.id !== 0 && isRestricted && !authorizedShops.some(s => s.id === shop.id)) return 
         
         setLoading(true) 
         setActiveShopState(shop)
