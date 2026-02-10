@@ -599,6 +599,59 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Responsive Edit User Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)} />
+                    <div className="relative glass-card w-full max-w-md p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsEditModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                        <div className="flex items-center space-x-4 mb-8">
+                            <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center"><Edit className="w-6 h-6 text-shop" /></div>
+                            <div>
+                                <h2 className="text-xl font-black uppercase tracking-tight leading-none">Modifier Accès</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase mt-1">{editingUser?.email}</p>
+                            </div>
+                        </div>
+                        <form onSubmit={handleUpdateUser} className="space-y-5">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nouvel Email (Optionnel)</label>
+                                <div className="relative">
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input type="email" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nouveau Mot de passe (Laisser vide si inchangé)</label>
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input type="password" placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={editData.password} onChange={e => setEditData({ ...editData, password: e.target.value })} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Rôle</label>
+                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-[10px] font-black uppercase outline-none focus:border-shop/50 appearance-none bg-black" value={editData.role} onChange={e => setEditData({ ...editData, role: e.target.value })}>
+                                        <option value="cashier">Caissier</option>
+                                        <option value="manager">Manager</option>
+                                        <option value="admin">Admin</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Boutique</label>
+                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-[10px] font-black uppercase outline-none focus:border-shop/50 appearance-none bg-black" value={editData.shopId || ''} onChange={e => setEditData({ ...editData, shopId: e.target.value ? parseInt(e.target.value) : null })}>
+                                        <option value="">Global</option>
+                                        {shops.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" disabled={updating} className="w-full py-4 bg-shop text-white font-black uppercase tracking-widest rounded-2xl hover:scale-[1.02] transition-all shadow-xl disabled:opacity-50">
+                                {updating ? 'Mise à jour...' : 'Sauvegarder les changements'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
