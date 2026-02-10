@@ -9,6 +9,7 @@ export interface UserProfile {
     email: string | null
     role: UserRole
     shop_id: number | null
+    shop_ids?: number[]
     has_stock_access?: boolean
 }
 

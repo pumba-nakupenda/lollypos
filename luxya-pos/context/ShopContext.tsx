@@ -39,97 +39,89 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true)
 
     // Fencing Logic: Determine available shops for this user
-    const isAdmin = profile?.role === 'admin'
-    const authorizedShops = profile?.shop_ids && profile.shop_ids.length > 0 
+    const isAdmin = React.useMemo(() => profile?.role === 'admin', [profile?.role])
+    
+    const authorizedShops = React.useMemo(() => {
+        if (!profile) return []
+        const restricted = profile.shop_ids && profile.shop_ids.length > 0 
             ? shops.filter(s => profile.shop_ids?.includes(s.id)) 
-            : (profile?.shop_id ? shops.filter(s => s.id === profile.shop_id) : [])
+            : (profile.shop_id ? shops.filter(s => s.id === profile.shop_id) : [])
+        
+        // If admin and no specific shops assigned, they see EVERYTHING
+        if (profile.role === 'admin' && restricted.length === 0) return shops
+        return restricted
+    }, [profile])
 
     // NEW: If user has multiple shops, add a local "Global View" for them
-    const availableShops = [...authorizedShops]
-    if (isAdmin || authorizedShops.length > 1) {
-        availableShops.unshift(globalShop)
-    }
+    const availableShops = React.useMemo(() => {
+        const list = [...authorizedShops]
+        // Show Global View ONLY for admins or if they have more than 2 shops
+        if (isAdmin || authorizedShops.length > 2) {
+            list.unshift(globalShop)
+        }
+        return list
+    }, [isAdmin, authorizedShops])
 
-    const isRestricted = !isAdmin && authorizedShops.length > 0
+    const isRestricted = React.useMemo(() => !isAdmin && authorizedShops.length > 0, [isAdmin, authorizedShops])
 
     // Inject CSS variables
     useEffect(() => {
         if (activeShop) {
             const root = document.documentElement;
-            // Handle theme for "Toutes les boutiques" (ID 0)
-            if (activeShop.id === 0) {
-                root.style.setProperty('--shop-primary', "239 84% 67%");
-                root.style.setProperty('--shop-secondary', "43 100% 70%");
-                root.style.setProperty('--shop-accent', "239 84% 67%");
-            } else {
-                root.style.setProperty('--shop-primary', activeShop.colors.primary);
-                root.style.setProperty('--shop-secondary', activeShop.colors.secondary);
-                root.style.setProperty('--shop-accent', activeShop.colors.accent);
-            }
+            const colors = activeShop.id === 0 ? globalShop.colors : activeShop.colors;
+            root.style.setProperty('--shop-primary', colors.primary);
+            root.style.setProperty('--shop-secondary', colors.secondary);
+            root.style.setProperty('--shop-accent', colors.accent);
         }
     }, [activeShop])
 
     useEffect(() => {
-        if (userLoading) return 
+        if (userLoading || !profile) return 
 
         const shopIdParam = searchParams.get('shopId')
         let currentShop: Shop | undefined
 
-        // SECURITY: If restricted, force selection into authorized shops (or their local global view)
-        if (isRestricted) {
-            const isAuthorized = shopIdParam === '0' 
-                ? authorizedShops.length > 1 // Global view authorized if multiple shops
-                : authorizedShops.some(s => s.id.toString() === shopIdParam)
-
-            if (!isAuthorized) {
-                const defaultShop = authorizedShops.length > 1 ? globalShop : authorizedShops[0]
-                const params = new URLSearchParams(searchParams.toString())
-                params.set('shopId', defaultShop.id.toString())
-                router.replace(`${pathname}?${params.toString()}`)
-                return
-            }
-            currentShop = shopIdParam === '0' ? globalShop : shops.find(s => s.id === parseInt(shopIdParam!))
-        } 
-        
-        // Non-restricted logic (Admins)
-        if (!currentShop && shopIdParam) {
-            if (shopIdParam === '0') currentShop = globalShop
-            else currentShop = shops.find(s => s.id === +shopIdParam)
+        // Try to match URL param first
+        if (shopIdParam !== null) {
+            currentShop = availableShops.find(s => s.id.toString() === shopIdParam)
         }
 
+        // If no valid param, try localStorage
         if (!currentShop) {
             const savedShopId = localStorage.getItem('activeShopId')
-            if (savedShopId === '0' && (isAdmin || authorizedShops.length > 1)) currentShop = globalShop
-            else if (savedShopId) {
-                currentShop = authorizedShops.find(s => s.id === +savedShopId)
+            if (savedShopId !== null) {
+                currentShop = availableShops.find(s => s.id.toString() === savedShopId)
             }
         }
 
-        const defaultFinal = (isRestricted && authorizedShops.length > 1) ? globalShop : (isRestricted ? authorizedShops[0] : globalShop)
-        const finalShop = currentShop || defaultFinal
-        setActiveShopState(finalShop)
+        // Final fallback: Use the first available shop (which is globalShop if allowed, or the first authorized one)
+        const finalShop = currentShop || availableShops[0] || globalShop
 
-        if (shopIdParam !== finalShop.id.toString()) {
-            const params = new URLSearchParams(searchParams.toString())
-            params.set('shopId', finalShop.id.toString())
-            router.replace(`${pathname}?${params.toString()}`)
+        // Only update if different to avoid loops/flicker
+        if (!activeShop || activeShop.id !== finalShop.id) {
+            setActiveShopState(finalShop)
+            if (shopIdParam !== finalShop.id.toString()) {
+                const params = new URLSearchParams(searchParams.toString())
+                params.set('shopId', finalShop.id.toString())
+                router.replace(`${pathname}?${params.toString()}`, { scroll: false })
+            }
         }
 
         setLoading(false)
-    }, [searchParams, pathname, router, profile, userLoading, isRestricted, authorizedShops])
+    }, [searchParams, pathname, router, profile, userLoading, isRestricted, authorizedShops, availableShops, activeShop])
 
     const setActiveShop = (shop: Shop) => {
-        // Only allow switching to authorized shops or global if allowed
-        const canAccessGlobal = isAdmin || authorizedShops.length > 1
-        if (shop.id === 0 && !canAccessGlobal) return
-        if (shop.id !== 0 && isRestricted && !authorizedShops.some(s => s.id === shop.id)) return 
+        if (activeShop?.id === shop.id) return
         
-        setLoading(true) 
+        // Only allow switching to authorized shops or global if allowed
+        const canAccess = availableShops.some(s => s.id === shop.id)
+        if (!canAccess) return
+        
         setActiveShopState(shop)
         localStorage.setItem('activeShopId', shop.id.toString())
         const params = new URLSearchParams(searchParams.toString())
         params.set('shopId', shop.id.toString())
-        router.push(`${pathname}?${params.toString()}`)
+        router.push(`${pathname}?${params.toString()}`, { scroll: false })
     }
 
     const showLoader = (loading || userLoading) && pathname !== '/login'

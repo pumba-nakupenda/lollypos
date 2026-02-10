@@ -123,7 +123,13 @@ export default function SalesTerminal() {
     const subTotalHT = totalAmount / 1.18;
     const change = receivedAmount ? parseFloat(receivedAmount) - totalAmount : 0;
 
+    const isGlobalView = activeShop?.id === 0;
+
     const handleCheckout = async () => {
+        if (isGlobalView) {
+            showToast("Action impossible en vue globale. Sélectionnez une boutique.", "error");
+            return;
+        }
         setIsCheckingOut(true);
         const payload = isAgency ? {
             type: docType,

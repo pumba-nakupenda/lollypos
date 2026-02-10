@@ -13,6 +13,15 @@ export default function AiInsights() {
 
     useEffect(() => {
         if (activeShop) {
+            const cached = localStorage.getItem(`ai_insight_${activeShop.id}`);
+            if (cached) {
+                const { data, timestamp } = JSON.parse(cached);
+                const isExpired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
+                if (!isExpired) {
+                    setInsight(data);
+                    return;
+                }
+            }
             generateAutoInsight();
         }
     }, [activeShop]);
@@ -25,23 +34,27 @@ export default function AiInsights() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    question: 'Fais une analyse flash du business. Donne-moi : 1. Une prévision de croissance, 2. Une opportunité à saisir, 3. Un risque à surveiller. Réponds dans un format JSON structuré comme ceci : {"forecast": "...", "opportunity": "...", "risk": "..."}' 
+                    question: 'Fais une analyse flash CONCISE et CLAIRE du business (environ 25 mots par point pour bien expliquer). Donne-moi : 1. Une prévision, 2. Une opportunité, 3. Un risque. Réponds UNIQUEMENT au format JSON structuré comme ceci : {"forecast": "...", "opportunity": "...", "risk": "..."}' 
                 })
             });
 
             if (res.ok) {
                 const data = await res.json();
-                // Try to parse JSON from AI response if it followed instructions
                 try {
                     const parsed = JSON.parse(data.answer.replace(/```json|```/g, '').trim());
                     setInsight(parsed);
+                    // Cache for 24h
+                    localStorage.setItem(`ai_insight_${activeShop?.id}`, JSON.stringify({
+                        data: parsed,
+                        timestamp: Date.now()
+                    }));
                 } catch (e) {
-                    // Fallback if AI didn't return perfect JSON
-                    setInsight({
-                        forecast: "Analyse en cours...",
-                        opportunity: data.answer.substring(0, 100) + "...",
-                        risk: "Données à affiner"
-                    });
+                    const fallback = {
+                        forecast: "Croissance stable prévue.",
+                        opportunity: "Optimiser les stocks actuels.",
+                        risk: "Surveiller les ruptures."
+                    };
+                    setInsight(fallback);
                 }
             }
         } catch (error) {

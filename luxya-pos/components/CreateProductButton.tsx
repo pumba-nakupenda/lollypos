@@ -190,7 +190,7 @@ export default function CreateProductButton() {
                                         <div className="space-y-2 md:col-span-2">
                                             <CustomDropdown 
                                                 label="Boutique de destination"
-                                                options={shops.map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5"/> }))}
+                                                options={shops.filter(s => s.id !== 0).map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5"/> }))}
                                                 value={selectedShopId}
                                                 onChange={setSelectedShopId}
                                             />
