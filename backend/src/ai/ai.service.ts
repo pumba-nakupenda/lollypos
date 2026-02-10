@@ -423,9 +423,16 @@ export class AiService {
             return acc;
         }, {});
 
-        const saleCounts = (salesItems || []).reduce((acc, s) => {
-            if (s.product_id) {
-                if (!acc[s.product_id]) acc[s.product_id] = { name: s.products.name, qty: 0, price: s.products.price };
+        const saleCounts = (salesItems || []).reduce((acc, s: any) => {
+            if (s.product_id && s.products) {
+                const product = Array.isArray(s.products) ? s.products[0] : s.products;
+                if (!acc[s.product_id]) {
+                    acc[s.product_id] = { 
+                        name: product?.name || 'Produit inconnu', 
+                        qty: 0, 
+                        price: product?.price || 0 
+                    };
+                }
                 acc[s.product_id].qty += s.quantity;
             }
             return acc;
