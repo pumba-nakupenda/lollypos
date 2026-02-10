@@ -1,0 +1,19 @@
+export declare class CreateProductDto {
+    name: string;
+    description?: string;
+    price: number;
+    cost_price?: number;
+    promo_price?: number;
+    stock: number;
+    min_stock?: number;
+    category?: string;
+    shop_id: number;
+    image?: string;
+    images?: string[];
+    video_url?: string;
+    expiry_date?: string;
+    type?: 'product' | 'service';
+    show_on_pos?: boolean;
+    show_on_website?: boolean;
+    is_featured?: boolean;
+}

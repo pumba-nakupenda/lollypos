@@ -1,0 +1,10 @@
+
+export class CreateSaleDto {
+    totalAmount: number;
+    paymentMethod: string;
+    items: {
+        productId: number;
+        quantity: number;
+        price: number;
+    }[];
+}
