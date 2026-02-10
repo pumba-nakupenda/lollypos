@@ -127,7 +127,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                         <PlayCircle className="w-8 h-8 text-white" />
                                     </button>
                                 )}
-                                {gallery.filter(img => img && img !== "").map((img: string, idx: number) => (
+                                {gallery.filter((img: string) => img && img !== "").map((img: string, idx: number) => (
                                     <button 
                                         key={idx} 
                                         onClick={() => setActiveImage(img)}
