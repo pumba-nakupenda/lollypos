@@ -58,7 +58,7 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { userId, role, shopId, hasStockAccess, password, email } = await req.json()
+    const { userId, role, shopId, shopIds, hasStockAccess, password, email } = await req.json()
 
     // 1. Update Auth if password or email is provided
     if (password || email) {
@@ -78,6 +78,7 @@ export async function PATCH(req: Request) {
     const updateData: any = {}
     if (role !== undefined) updateData.role = role
     if (shopId !== undefined) updateData.shop_id = shopId
+    if (shopIds !== undefined) updateData.shop_ids = shopIds
     if (hasStockAccess !== undefined) updateData.has_stock_access = hasStockAccess
     if (email !== undefined) updateData.email = email
 

@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     }
 
     // 2. Extract new user data
-    const { email, password, role, shopId, hasStockAccess } = await req.json()
+    const { email, password, role, shopId, shopIds, hasStockAccess } = await req.json()
 
     if (!email || !password) {
         return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
@@ -55,6 +55,7 @@ export async function POST(req: Request) {
                 email,
                 role: role || 'cashier',
                 shop_id: shopId || null,
+                shop_ids: shopIds || [],
                 has_stock_access: hasStockAccess || false
             })
 
