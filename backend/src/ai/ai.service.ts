@@ -114,42 +114,52 @@ export class AiService {
     }
 
     async generatePromoBanner() {
-        if (!this.model) throw new Error('AI Service not initialized.');
+        if (!this.model) {
+            this.logger.error("AI Model not initialized. Check API Key.");
+            throw new Error('Service AI non initialisé. Vérifiez la clé API.');
+        }
 
-        const [stats, topProducts, marketing] = await Promise.all([
-            this.getQuickStats(),
-            this.getTopProducts(10),
-            this.getMarketingContext()
-        ]);
-
-        const prompt = `
-            Tu es le Responsable Marketing de LOLLY SHOP (Sénégal). 
-            Tu dois générer UN SEUL slogan percutant pour le bandeau défilant du site e-commerce.
-            
-            DONNÉES ACTUELLES :
-            - Top Ventes : ${topProducts.length > 0 ? JSON.stringify(topProducts.map(p => p.name)) : "Nouveautés de saison"}
-            - Stats 30j : ${stats.sales_count} ventes.
-            - Contexte : Nous sommes en Février (Ambiance Post-Saint-Valentin / Pré-Ramadan).
-            
-            RÈGLES :
-            1. Un seul slogan court (max 15 mots).
-            2. Écris tout en MAJUSCULES.
-            3. Inclus des emojis pertinents (étincelles, sac, tech).
-            4. Le ton doit être PREMIUM, INCITATIF et SÉNÉGALAIS (Dakar Style).
-            5. Varie entre Luxya (Beauté) et Homtek (Tech).
-            
-            RÉPONSE (SLOGAN UNIQUEMENT) :
-        `;
+        this.logger.log("[AI Banner] Starting generation...");
 
         try {
-            this.logger.log(`[AI Banner] Requesting slogan from Gemini...`);
+            // Get marketing context (existing slogans etc)
+            const marketing = await this.getMarketingContext();
+
+            // Simple product list for context (fallback to generic if empty)
+            const { data: products } = await this.supabaseService.getAdminClient()
+                .from('products')
+                .select('name, category')
+                .limit(10);
+
+            const productsContext = products && products.length > 0 
+                ? `Produits phares : ${products.map(p => p.name).join(', ')}`
+                : "Promotions de saison (Luxya Beauté & Homtek Tech)";
+
+            const prompt = `
+                Tu es le Responsable Marketing de LOLLY SHOP (Sénégal). 
+                Génère UN SEUL slogan percutant pour le bandeau défilant.
+                
+                CONTEXTE :
+                - ${productsContext}
+                - Boutique : Luxya (Cosmétiques, Sacs) & Homtek (Informatique, Bureau)
+                
+                RÈGLES :
+                1. Un seul slogan court (max 12 mots).
+                2. TOUT EN MAJUSCULES.
+                3. Ajoute des emojis (✨, 💻, 👜).
+                4. Ton PREMIUM et INCITATIF.
+                
+                RÉPONSE (SLOGAN UNIQUEMENT) :
+            `;
+
+            this.logger.log(`[AI Banner] Requesting from Gemini...`);
             const result = await this.model.generateContent(prompt);
             const response = await result.response;
             const slogan = response.text().trim().replace(/\"/g, '');
 
-            if (!slogan) throw new Error("L'IA a renvoyé un slogan vide");
+            if (!slogan) throw new Error("Slogan généré vide");
 
-            // Update Supabase site_settings using ADMIN client to bypass RLS
+            // Update using ADMIN client
             const updatedContent = { ...marketing, promo_banner: slogan };
             const { error: supabaseError } = await this.supabaseService.getAdminClient()
                 .from('site_settings')
@@ -159,15 +169,12 @@ export class AiService {
                     updated_at: new Date() 
                 }, { onConflict: 'name' });
 
-            if (supabaseError) {
-                this.logger.error(`[AI Banner] Supabase Update Error: ${supabaseError.message}`);
-                throw new Error(`Erreur Supabase: ${supabaseError.message}`);
-            }
+            if (supabaseError) throw new Error(`Supabase: ${supabaseError.message}`);
 
-            this.logger.log(`[AI Banner] Successfully updated slogan: ${slogan}`);
+            this.logger.log(`[AI Banner] Success: ${slogan}`);
             return { slogan };
         } catch (error) {
-            this.logger.error(`[AI Banner] Error: ${error.message}`);
+            this.logger.error(`[AI Banner] Failed: ${error.message}`);
             throw error;
         }
     }
