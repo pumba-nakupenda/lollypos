@@ -73,6 +73,73 @@ export class AiService {
         };
     }
 
+    private async getMarketingContext(shopId?: number) {
+        const { data } = await this.supabase
+            .from('site_settings')
+            .select('content')
+            .eq('name', 'lolly_shop_config')
+            .maybeSingle();
+        return data?.content || {};
+    }
+
+    private async getCompetitiveIntelligence() {
+        return {
+            competitors: ["Marchés locaux (Dakar)", "Instagram Sellers", "Jumia (Tech)"],
+            advantages: ["Qualité certifiée", "Livraison Express", "Service Client WhatsApp"]
+        };
+    }
+
+    async generatePromoBanner() {
+        if (!this.model) throw new Error('AI Service not initialized.');
+
+        const [stats, topProducts, marketing] = await Promise.all([
+            this.getQuickStats(),
+            this.getTopProducts(10),
+            this.getMarketingContext()
+        ]);
+
+        const prompt = `
+            Tu es le Responsable Marketing de LOLLY SHOP (Sénégal). 
+            Tu dois générer UN SEUL slogan percutant pour le bandeau défilant du site e-commerce.
+            
+            DONNÉES ACTUELLES :
+            - Top Ventes : ${JSON.stringify(topProducts.map(p => p.name))}
+            - Stats 30j : ${stats.sales_count} ventes.
+            - Contexte : Nous sommes en Février (Ambiance Post-Saint-Valentin / Pré-Ramadan).
+            
+            RÈGLES :
+            1. Un seul slogan court (max 15 mots).
+            2. Écris tout en MAJUSCULES.
+            3. Inclus des emojis pertinents (étincelles, sac, tech).
+            4. Le ton doit être PREMIUM, INCITATIF et SÉNÉGALAIS (Dakar Style).
+            5. Varie entre Luxya (Beauté) et Homtek (Tech).
+            
+            EXEMPLES :
+            - NOUVEL ARRIVAGE LUXYA : L'EXCELLENCE DE LA BEAUTÉ À DAKAR ⚡
+            - HOMTEK TECH : LES DERNIÈRES INNOVATIONS AU MEILLEUR PRIX 💻
+            
+            RÉPONSE (SLOGAN UNIQUEMENT) :
+        `;
+
+        try {
+            const result = await this.model.generateContent(prompt);
+            const response = await result.response;
+            const slogan = response.text().trim().replace(/\"/g, '');
+
+            // Update Supabase site_settings
+            const updatedContent = { ...marketing, promo_banner: slogan };
+            await this.supabase
+                .from('site_settings')
+                .update({ content: updatedContent })
+                .eq('name', 'lolly_shop_config');
+
+            return { slogan };
+        } catch (error) {
+            this.logger.error(`[AI Banner] Error: ${error.message}`);
+            throw error;
+        }
+    }
+
     private get supabase() {
         return this.supabaseService.getClient();
     }

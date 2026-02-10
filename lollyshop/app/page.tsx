@@ -173,7 +173,7 @@ export default async function Home(props: {
         <div className="flex items-center justify-center space-x-12 animate-marquee whitespace-nowrap">
             {[1,2,3,4,5].map(i => (
                 <span key={i} className="text-[10px] font-black uppercase tracking-[0.3em] flex items-center">
-                    <Sparkles className="w-3 h-3 mr-2" /> OFFRES DE FÉVRIER : JUSQU'À -50% SUR UNE SÉLECTION <Sparkles className="w-3 h-3 ml-2" />
+                    <Sparkles className="w-3 h-3 mr-2" /> {siteSettings?.promo_banner || "BIENVENUE CHEZ LOLLY SHOP : L'EXCELLENCE AU SÉNÉGAL"} <Sparkles className="w-3 h-3 ml-2" />
                 </span>
             ))}
         </div>

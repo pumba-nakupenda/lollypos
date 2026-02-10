@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Globe, Save, Image as ImageIcon, MessageCircle, Type, Layout, RefreshCw, Plus, Trash2, Upload, X } from 'lucide-react'
+import { Globe, Save, Image as ImageIcon, MessageCircle, Type, Layout, RefreshCw, Plus, Trash2, Upload, X, Sparkles } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
 
@@ -11,9 +11,12 @@ export default function WebManagementPage() {
     const [saving, setSaveLoading] = useState(false)
     const [uploadingId, setUploadingId] = useState<number | null>(null)
     
+    const [generatingBanner, setGeneratingBanner] = useState(false)
+    
     const [settings, setSettings] = useState<any>({
         hero_title: "Lolly Shop",
         hero_subtitle: "L'excellence de Luxya & Homtek",
+        promo_banner: "BIENVENUE CHEZ LOLLY SHOP : L'EXCELLENCE AU SÉNÉGAL",
         whatsapp_number: "221772354747",
         address: "Fass delorme 13x22",
         slides: [
@@ -21,6 +24,22 @@ export default function WebManagementPage() {
             { id: 2, title: "Le Futur Digital", subtitle: "Homtek Tech", image: "https://images.unsplash.com/photo-1498049794561-7780e7231661", brand: "HOMTEK", color: "#0055ff" }
         ]
     })
+
+    const handleGenerateBanner = async () => {
+        try {
+            setGeneratingBanner(true)
+            const res = await fetch('http://127.0.0.1:3005/ai/generate-banner', { method: 'POST' })
+            const data = await res.json()
+            if (data.slogan) {
+                setSettings({ ...settings, promo_banner: data.slogan })
+                showToast("Nouveau slogan généré par l'IA !", "success")
+            }
+        } catch (err) {
+            showToast("Erreur lors de la génération IA", "error")
+        } finally {
+            setGeneratingBanner(false)
+        }
+    }
 
     const fetchSettings = async () => {
         try {
@@ -214,6 +233,32 @@ export default function WebManagementPage() {
                 </div>
 
                 <div className="space-y-6 sm:space-y-8">
+                    <div className="glass-panel p-6 sm:p-8 rounded-[32px] sm:rounded-[48px] border-shop/20 bg-shop/5">
+                        <div className="flex items-center justify-between mb-6 sm:mb-8 border-b border-shop/10 pb-6">
+                            <div className="flex items-center space-x-3">
+                                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-shop" />
+                                <h3 className="text-base sm:text-lg font-black uppercase tracking-tighter">Bandeau Promo</h3>
+                            </div>
+                            <button 
+                                onClick={handleGenerateBanner}
+                                disabled={generatingBanner}
+                                className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-shop text-white rounded-xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                            >
+                                {generatingBanner ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                                <span>IA Générer</span>
+                            </button>
+                        </div>
+                        <textarea 
+                            value={settings.promo_banner || ""} 
+                            onChange={e => setSettings({...settings, promo_banner: e.target.value})}
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-[10px] font-bold uppercase tracking-widest outline-none focus:border-shop/50 text-white min-h-[80px]"
+                            placeholder="MESSAGE DU BANDEAU DÉFILANT..."
+                        />
+                        <p className="text-[7px] font-bold text-muted-foreground uppercase tracking-widest mt-4">
+                            L'IA génère des slogans basés sur vos ventes et tendances actuelles.
+                        </p>
+                    </div>
+
                     <div className="glass-panel p-6 sm:p-8 rounded-[32px] sm:rounded-[48px] border-white/5 bg-white/[0.01]">
                         <div className="flex items-center space-x-3 mb-6 sm:mb-8 border-b border-white/5 pb-6">
                             <Type className="w-5 h-5 sm:w-6 sm:h-6 text-shop" />

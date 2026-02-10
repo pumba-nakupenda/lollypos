@@ -19,4 +19,9 @@ export class AiController {
     async suggestPhoto(@Body('name') name: string) {
         return this.aiService.suggestProductPhoto(name);
     }
+
+    @Post('generate-banner')
+    async generateBanner() {
+        return this.aiService.generatePromoBanner();
+    }
 }
