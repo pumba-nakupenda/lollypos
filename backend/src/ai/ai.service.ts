@@ -2,6 +2,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { SupabaseService } from '../supabase.service';
 import { ProductsService } from '../products/products.service';
 import { SalesService } from '../sales/sales.service';
@@ -33,6 +34,17 @@ export class AiService {
             this.logger.log('AI Service initialized successfully with Gemini API Key.');
         } else {
             this.logger.error('CRITICAL: GOOGLE_GEMINI_API_KEY is missing from environment!');
+        }
+    }
+
+    @Cron(CronExpression.EVERY_MONDAY_AT_8AM)
+    async handleWeeklyBannerUpdate() {
+        this.logger.log('[AI Schedule] Starting weekly banner update...');
+        try {
+            await this.generatePromoBanner();
+            this.logger.log('[AI Schedule] Weekly banner updated successfully.');
+        } catch (error) {
+            this.logger.error(`[AI Schedule] Failed to update weekly banner: ${error.message}`);
         }
     }
 
