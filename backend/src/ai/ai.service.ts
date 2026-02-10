@@ -30,6 +30,9 @@ export class AiService {
                 model: 'gemini-2.0-flash',
                 tools: [] // Add tools if needed
             });
+            this.logger.log('AI Service initialized successfully with Gemini API Key.');
+        } else {
+            this.logger.error('CRITICAL: GOOGLE_GEMINI_API_KEY is missing from environment!');
         }
     }
 
@@ -126,12 +129,15 @@ export class AiService {
             const response = await result.response;
             const slogan = response.text().trim().replace(/\"/g, '');
 
-            // Update Supabase site_settings
+            // Update Supabase site_settings using ADMIN client to bypass RLS
             const updatedContent = { ...marketing, promo_banner: slogan };
-            await this.supabase
+            await this.supabaseService.getAdminClient()
                 .from('site_settings')
-                .update({ content: updatedContent })
-                .eq('name', 'lolly_shop_config');
+                .upsert({ 
+                    name: 'lolly_shop_config', 
+                    content: updatedContent, 
+                    updated_at: new Date() 
+                }, { onConflict: 'name' });
 
             return { slogan };
         } catch (error) {
@@ -304,25 +310,31 @@ export class AiService {
     }
 
     private async getTopProducts(limit: number, shopId?: number) {
-        const { data: items } = await this.supabase
-            .from('sale_items')
-            .select('quantity, price, products!inner(name, shop_id)');
-        
-        if (!items) return [];
+        try {
+            const { data: items, error } = await this.supabase
+                .from('sale_items')
+                .select('quantity, price, products!inner(name, shop_id)');
+            
+            if (error || !items || items.length === 0) return [];
 
-        const filtered = shopId ? items.filter((i: any) => i.products.shop_id === shopId) : items;
+            const filtered = shopId ? items.filter((i: any) => i.products?.shop_id === shopId) : items;
+            if (filtered.length === 0) return [];
 
-        const aggregated = filtered.reduce((acc, i: any) => {
-            const name = i.products.name;
-            if (!acc[name]) acc[name] = { name, quantity: 0, revenue: 0 };
-            acc[name].quantity += i.quantity;
-            acc[name].revenue += (i.quantity * i.price);
-            return acc;
-        }, {});
+            const aggregated = filtered.reduce((acc, i: any) => {
+                const name = i.products?.name || 'Produit inconnu';
+                if (!acc[name]) acc[name] = { name, quantity: 0, revenue: 0 };
+                acc[name].quantity += i.quantity;
+                acc[name].revenue += (i.quantity * i.price);
+                return acc;
+            }, {});
 
-        return Object.values(aggregated)
-            .sort((a: any, b: any) => b.revenue - a.revenue)
-            .slice(0, limit);
+            return Object.values(aggregated)
+                .sort((a: any, b: any) => b.revenue - a.revenue)
+                .slice(0, limit);
+        } catch (e) {
+            this.logger.warn(`[AI] Failed to get top products, proceeding with empty list.`);
+            return [];
+        }
     }
 
     private async getFinancialHealth(days: number, shopId?: number) {
