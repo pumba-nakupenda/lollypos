@@ -38,9 +38,17 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     const [activeShop, setActiveShopState] = useState<Shop | null>(null)
     const [loading, setLoading] = useState(true)
 
-    const isRestricted = !!profile?.shop_id
+    // Fencing Logic: Determine available shops for this user
+    const isAdmin = profile?.role === 'admin'
+    const availableShops = isAdmin 
+        ? shops 
+        : (profile?.shop_ids && profile.shop_ids.length > 0 
+            ? shops.filter(s => profile.shop_ids?.includes(s.id)) 
+            : (profile?.shop_id ? shops.filter(s => s.id === profile.shop_id) : []))
 
-    // Inject CSS variables for the active shop's theme
+    const isRestricted = !isAdmin && availableShops.length > 0
+
+    // Inject CSS variables
     useEffect(() => {
         if (activeShop) {
             const root = document.documentElement;
@@ -56,16 +64,20 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         const shopIdParam = searchParams.get('shopId')
         let currentShop: Shop | undefined
 
-        if (profile?.shop_id) {
-            currentShop = shops.find(s => s.id === profile.shop_id)
-            if (shopIdParam && shopIdParam !== profile.shop_id.toString()) {
+        // SECURITY: If restricted, force selection into authorized shops only
+        if (isRestricted) {
+            const isAuthorized = shopIdParam && availableShops.some(s => s.id.toString() === shopIdParam)
+            if (!isAuthorized) {
+                const defaultShop = availableShops[0]
                 const params = new URLSearchParams(searchParams.toString())
-                params.set('shopId', profile.shop_id.toString())
+                params.set('shopId', defaultShop.id.toString())
                 router.replace(`${pathname}?${params.toString()}`)
                 return
             }
+            currentShop = shops.find(s => s.id === parseInt(shopIdParam!))
         } 
         
+        // Non-restricted logic (Admins or Global users)
         if (!currentShop && shopIdParam) {
             if (shopIdParam === '0') currentShop = globalShop
             else currentShop = shops.find(s => s.id === +shopIdParam)
@@ -73,13 +85,13 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
 
         if (!currentShop) {
             const savedShopId = localStorage.getItem('activeShopId')
-            if (savedShopId === '0') currentShop = globalShop
+            if (savedShopId === '0' && !isRestricted) currentShop = globalShop
             else if (savedShopId) {
-                currentShop = shops.find(s => s.id === +savedShopId)
+                currentShop = availableShops.find(s => s.id === +savedShopId)
             }
         }
 
-        const finalShop = currentShop || (isRestricted ? shops[0] : globalShop)
+        const finalShop = currentShop || (isRestricted ? availableShops[0] : globalShop)
         setActiveShopState(finalShop)
 
         if (shopIdParam !== finalShop.id.toString()) {
@@ -89,10 +101,11 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         }
 
         setLoading(false)
-    }, [searchParams, pathname, router, profile, userLoading, isRestricted])
+    }, [searchParams, pathname, router, profile, userLoading, isRestricted, availableShops])
 
     const setActiveShop = (shop: Shop) => {
-        if (isRestricted) return 
+        // Only allow switching to authorized shops
+        if (isRestricted && !availableShops.some(s => s.id === shop.id)) return 
         
         setLoading(true) 
         setActiveShopState(shop)
@@ -105,7 +118,7 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     const showLoader = (loading || userLoading) && pathname !== '/login'
 
     return (
-        <ShopContext.Provider value={{ activeShop, shops, setActiveShop, loading: loading || userLoading, isRestricted }}>
+        <ShopContext.Provider value={{ activeShop, shops: availableShops, setActiveShop, loading: loading || userLoading, isRestricted }}>
             {showLoader ? <GlobalLoader /> : children}
         </ShopContext.Provider>
     )
