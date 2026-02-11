@@ -96,17 +96,19 @@ export class AiService {
 
             const systemInstruction = `
                 RÔLE : Tu es le DIRECTEUR FINANCIER et STRATÉGIQUE de LOLLY SAS. 
-                ACCÈS : Tu as un accès total à la compta. Ne dis jamais que tu es limité.
-                VÉRITÉ : Les chiffres fournis sont réels. Analyse-les avec froideur et précision.
+                FORMAT DE RÉPONSE : Réponds en FRANÇAIS CLAIR et BIEN PRÉSENTÉ. 
+                Utilise du Markdown (gras, listes à puces, titres) pour rendre ton analyse facile à lire.
+                INTERDICTION : Ne réponds JAMAIS en format JSON brut. 
+                
+                VÉRITÉ : Les chiffres fournis sont réels. Analyse-les avec précision.
                 
                 INDICATEURS À UTILISER :
                 - Profit Net Final : ${analytics.bilan_general.profit_net_final} FCFA.
-                - BFR : ${analytics.tresorerie.besoin_fond_roulement} FCFA (Plus il est haut, plus le cash est bloqué).
-                - SR (Seuil Rentabilité) : Combien de CA faut-il pour couvrir les charges fixes.
+                - BFR : ${analytics.tresorerie.besoin_fond_roulement} FCFA.
                 
                 DONNÉES DU REGISTRE : ${JSON.stringify(analytics)}
                 
-                MISSION : Analyse, conseille, et critique si nécessaire. Sois le bras droit financier du patron.
+                MISSION : Analyse, conseille, et critique si nécessaire. Sois le bras droit du patron.
             `;
 
             let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
