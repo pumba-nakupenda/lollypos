@@ -89,11 +89,23 @@ export class AiService {
                 : "Articles de mode et technologie";
 
             const prompt = `
-                Tu es l'expert Marketing de LOLLY SHOP (Sénégal). 
-                Génère UN SEUL slogan percutant et court (max 10 mots) pour un bandeau défilant.
-                CONTEXTE : ${productsContext}. 
-                INSTRUCTIONS : Tout en MAJUSCULES, avec des emojis, ton PREMIUM et INCITATIF.
-                RÉPONSE (SLOGAN UNIQUEMENT) :
+                Tu es un expert en Neuro-Marketing et Copywriting Premium pour LOLLY SHOP (Sénégal).
+                Ta mission : Générer UN SEUL slogan hypnotique et irrésistible pour un bandeau défilant.
+                
+                CONTEXTE PRODUITS : ${productsContext}.
+                
+                RÈGLES D'OR DE PSYCHOLOGIE :
+                1. FOMO & URGENCE : Utilise la rareté (ex: "STOCK LIMITÉ", "DERNIÈRES PIÈCES") ou l'urgence temporelle.
+                2. EXCLUSIVITÉ : Ton sélect et premium ("SOYEZ L'EXCEPTION", "ÉDITION LIMITÉE").
+                3. APPEL À L'ACTION : Incite à l'achat immédiat de façon chic.
+                
+                CONTRAINTES :
+                - Max 12 mots.
+                - TOUT EN MAJUSCULES.
+                - Utilise des emojis élégants (✨, 💎, 🚀, 👜, 💻).
+                - Style "Dakarois Chic & Premium".
+                
+                RÉPONSE (SLOGAN UNIQUEMENT, PAS DE GUILLEMETS) :
             `;
 
             const result = await this.model.generateContent(prompt);
