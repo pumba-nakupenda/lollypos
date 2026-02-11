@@ -117,8 +117,8 @@ export default function AiFloatingButton() {
 
     return (
         <>
-            {/* The Trigger Button - Moved to right-8 */}
-            <div className="fixed bottom-8 right-8 z-[100]">
+            {/* The Trigger Button - Moved to left on mobile to avoid blocking actions */}
+            <div className="fixed bottom-8 left-8 lg:left-auto lg:right-8 z-[100]">
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className={`
@@ -130,11 +130,11 @@ export default function AiFloatingButton() {
                 </button>
             </div>
 
-            {/* The Chat Window - Moved to right-8 */}
+            {/* The Chat Window - Also aligned left on mobile */}
             {isOpen && (
                 <Portal>
                     <div className={`
-                        fixed bottom-28 right-8 z-[200] w-[450px] max-w-[calc(100vw-4rem)] bg-[#0a0a0c] border border-white/10 rounded-[32px] shadow-2xl overflow-hidden transition-all duration-500 flex flex-col
+                        fixed bottom-28 left-8 lg:left-auto lg:right-8 z-[200] w-[450px] max-w-[calc(100vw-4rem)] bg-[#0a0a0c] border border-white/10 rounded-[32px] shadow-2xl overflow-hidden transition-all duration-500 flex flex-col
                         ${isMinimized ? 'h-16' : 'h-[650px] max-h-[calc(100vh-12rem)]'}
                     `}>
                         {/* Header */}

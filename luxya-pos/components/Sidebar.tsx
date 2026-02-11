@@ -21,7 +21,8 @@ import {
     CreditCard,
     Truck,
     Tag,
-    Lock
+    Lock,
+    RefreshCw
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { useShop } from '@/context/ShopContext'
@@ -32,6 +33,7 @@ const navItems = [
     { name: 'Caisse POS', href: '/sales', icon: ShoppingBag },
     { name: 'Lolly AI', href: '/ai', icon: Sparkles, roles: ['admin', 'manager'] },
     { name: 'Inventaire', href: '/inventory', icon: Package, roles: ['admin', 'manager'] },
+    { name: 'Inventaire Rapide', href: '/inventory/quick', icon: RefreshCw, roles: ['admin', 'manager'] },
     { name: 'Clients', href: '/customers', icon: Users, roles: ['admin', 'manager'] },
     { name: 'Dettes', href: '/debts', icon: CreditCard, roles: ['admin', 'manager'] },
     { name: 'Depenses', href: '/expenses', icon: Receipt, roles: ['admin', 'manager'] },
@@ -153,11 +155,11 @@ export default function Sidebar() {
 
     return (
         <>
-            {/* Mobile Toggle Button - Moved to bottom left for better accessibility */}
-            <div className="lg:hidden fixed bottom-8 left-8 z-[70]">
+            {/* Mobile Toggle Button - Moved to top left to avoid overlap with AI button */}
+            <div className="lg:hidden fixed top-6 left-6 z-[70]">
                 <button 
                     onClick={() => setIsMobileOpen(true)}
-                    className="p-4 bg-shop/90 backdrop-blur-xl text-white rounded-2xl shadow-2xl shadow-shop/20 active:scale-90 transition-all border border-white/20"
+                    className="p-3.5 bg-shop text-white rounded-2xl shadow-2xl shadow-shop/40 active:scale-90 transition-all border border-white/10"
                 >
                     <Menu className="w-6 h-6" />
                 </button>

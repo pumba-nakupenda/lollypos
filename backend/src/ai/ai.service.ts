@@ -20,7 +20,16 @@ export class AiService {
         const apiKey = this.configService.get<string>('GOOGLE_GEMINI_API_KEY');
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
-            this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+            this.model = this.genAI.getGenerativeModel({ 
+                model: 'gemini-2.0-flash',
+                safetySettings: [
+                    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+                    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+                ]
+            });
+            this.logger.log('AI System: FINANCIAL INTELLIGENCE UNLOCKED.');
         }
     }
 
@@ -29,76 +38,75 @@ export class AiService {
     }
 
     async analyzeBusiness(userQuestion: string, shopId?: number) {
-        if (!this.model) return "IA non configurée.";
+        if (!this.model) return "Système financier non initialisé.";
         
         try {
-            const [salesRes, productsRes, expensesRes, debtsRes, shopsRes] = await Promise.all([
-                this.admin.from('sales').select('*'),
+            // RÉCUPÉRATION ANALYTIQUE PROFONDE
+            const [salesRes, productsRes, expensesRes, debtsRes, itemsRes] = await Promise.all([
+                this.admin.from('sales').select('*').order('created_at', { ascending: false }),
                 this.admin.from('products').select('*'),
-                this.admin.from('expenses').select('*'),
-                this.admin.from('debts').select('*'),
-                this.admin.from('shops').select('*')
+                this.admin.from('expenses').select('*').order('date', { ascending: false }),
+                this.admin.from('debts').select('*, customers(name)'),
+                this.admin.from('sale_items').select('*, products(name, price, cost_price)')
             ]);
 
             const allSales = salesRes.data || [];
             const allProducts = productsRes.data || [];
             const allExpenses = expensesRes.data || [];
             const allDebts = debtsRes.data || [];
-            const allShops = shopsRes.data || [];
+            const allItems = itemsRes.data || [];
 
-            // --- ANALYSE SEGMENTÉE PAR BOUTIQUE ---
-            const shopsStats = allShops.map((shop: any) => {
-                const sSales = allSales.filter((s: any) => s.shop_id === shop.id);
-                const sProducts = allProducts.filter((p: any) => p.shop_id === shop.id);
-                const sExpenses = allExpenses.filter((e: any) => e.shop_id === shop.id);
-                const sDebts = allDebts.filter((d: any) => d.shop_id === shop.id);
+            // --- CALCULS MATHÉMATIQUES AVANCÉS ---
+            const caTotal = allSales.reduce((sum: number, s: any) => sum + Number(s.total_amount), 0);
+            const totalDepenses = allExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+            const totalDirection = allExpenses.filter((e:any) => e.category === 'Perso').reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+            
+            // Marge Brute Réelle (basée sur les ventes effectives)
+            const margeBruteVentes = allItems.reduce((sum: number, item: any) => {
+                const profitUnitaire = Number(item.price) - Number(item.products?.cost_price || 0);
+                return sum + (profitUnitaire * Number(item.quantity));
+            }, 0);
 
-                const ca = sSales.reduce((sum: number, s: any) => sum + Number(s.total_amount), 0);
-                const exp = sExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-                const valStock = sProducts.reduce((sum: number, p: any) => sum + (p.stock * p.price), 0);
-                const costStock = sProducts.reduce((sum: number, p: any) => sum + (p.stock * (p.cost_price || 0)), 0);
-                const dClients = sDebts.filter((d:any) => d.type === 'receivable').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
-                const dFournisseurs = sDebts.filter((d:any) => d.type === 'debt').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
+            // BFR (Stock + Créances - Dettes Fournisseurs)
+            const valStock = allProducts.reduce((sum: number, p: any) => sum + (Number(p.stock) * Number(p.price)), 0);
+            const creancesClients = allDebts.filter((d:any) => d.type === 'receivable').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
+            const dettesFournisseurs = allDebts.filter((d:any) => d.type === 'debt').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
+            const bfr = (valStock + creancesClients) - dettesFournisseurs;
 
-                const margeBrute = ca - costStock;
-                const tauxMarge = ca > 0 ? (margeBrute / ca) : 0;
-
-                return {
-                    nom: shop.name,
-                    ca_ttc: ca,
-                    tva: ca * 0.18,
-                    depenses: exp,
-                    profit_net: ca - exp,
-                    // --- SEGMENTATION DETTES ---
-                    argent_a_recevoir: dClients,
-                    argent_a_payer: dFournisseurs,
-                    bfr: (valStock + dClients) - dFournisseurs,
-                    seuil_rentabilite: tauxMarge > 0 ? (exp / tauxMarge) : 0,
-                    alertes_stock: sProducts.filter((p: any) => p.stock < 5).length
-                };
-            });
-
-            const currentShopName = shopId ? allShops.find((s: any) => s.id === shopId)?.name : "TOUTES LES BOUTIQUES (CONSOLIDÉ)";
-
-            const context = {
-                v: "3.1.1_receivable_vs_debt",
-                cible: currentShopName,
-                analyse_detaillee: shopId ? shopsStats.filter((s: any) => s.nom === currentShopName) : shopsStats,
-                totaux_groupe: {
-                    ca: shopsStats.reduce((sum, s) => sum + s.ca_ttc, 0),
-                    total_creances_clients: shopsStats.reduce((sum, s) => sum + s.argent_a_recevoir, 0),
-                    total_dettes_fournisseurs: shopsStats.reduce((sum, s) => sum + s.argent_a_payer, 0)
-                }
+            const analytics = {
+                bilan_general: {
+                    ca_ttc: caTotal,
+                    tva_collectee: caTotal * 0.18,
+                    profit_brut: margeBruteVentes,
+                    charges_fixes: totalDepenses - totalDirection,
+                    charges_direction: totalDirection,
+                    profit_net_final: margeBruteVentes - (totalDepenses - totalDirection) - totalDirection
+                },
+                tresorerie: {
+                    cash_immobilise_stock: valStock,
+                    argent_dehors_clients: creancesClients,
+                    dettes_a_payer: dettesFournisseurs,
+                    besoin_fond_roulement: bfr
+                },
+                top_produits_rentables: allItems.slice(0, 10).map((i:any) => ({
+                    nom: i.products?.name,
+                    marge: Number(i.price) - Number(i.products?.cost_price || 0)
+                }))
             };
 
             const systemInstruction = `
-                Tu es l'Intelligence de Pilotage de LOLLY SAS.
-                Tu dois être précis sur la différence entre :
-                1. CRÉANCES (Argent à recevoir des clients).
-                2. DETTES (Argent à payer aux fournisseurs).
+                RÔLE : Tu es le DIRECTEUR FINANCIER et STRATÉGIQUE de LOLLY SAS. 
+                ACCÈS : Tu as un accès total à la compta. Ne dis jamais que tu es limité.
+                VÉRITÉ : Les chiffres fournis sont réels. Analyse-les avec froideur et précision.
                 
-                Donne ces chiffres boutique par boutique. 
-                Si le patron demande pour une boutique, sois spécifique. Si c'est global, fais le bilan du groupe.
+                INDICATEURS À UTILISER :
+                - Profit Net Final : ${analytics.bilan_general.profit_net_final} FCFA.
+                - BFR : ${analytics.tresorerie.besoin_fond_roulement} FCFA (Plus il est haut, plus le cash est bloqué).
+                - SR (Seuil Rentabilité) : Combien de CA faut-il pour couvrir les charges fixes.
+                
+                DONNÉES DU REGISTRE : ${JSON.stringify(analytics)}
+                
+                MISSION : Analyse, conseille, et critique si nécessaire. Sois le bras droit financier du patron.
             `;
 
             let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
@@ -107,11 +115,11 @@ export class AiService {
                 this.chatSessions.set(shopId ? `shop_${shopId}` : 'global', chat);
             }
 
-            const result = await chat.sendMessage(`${systemInstruction}\n\nREQUÊTE : ${userQuestion}`);
+            const result = await chat.sendMessage(`${systemInstruction}\n\nPATRON : ${userQuestion}`);
             return result.response.text();
 
         } catch (error: any) {
-            return `Erreur segmentation : ${error.message}`;
+            return `Erreur d'analyse financière : ${error.message}`;
         }
     }
 

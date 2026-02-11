@@ -93,6 +93,10 @@ export default function SalesTerminal() {
     };
 
     const addToCart = (product: any) => {
+        if (product.stock <= 0 && product.type !== 'service') {
+            showToast("Produit épuisé !", "warning");
+            return;
+        }
         const existing = cart.find(item => item.id === product.id);
         if (existing) {
             setCart(cart.map(item => 
@@ -198,9 +202,28 @@ export default function SalesTerminal() {
         }
     };
 
-    const handleViewReceipt = (sale: any) => {
-        setLastSale(sale);
-        setIsReceiptOpen(true);
+    const handleViewReceipt = async (sale: any) => {
+        try {
+            // On récupère les articles pour cette vente spécifique
+            const res = await fetch(`${API_URL}/sales/${sale.id}/items`);
+            if (res.ok) {
+                const items = await res.json();
+                // On prépare les données pour la modal
+                setLastSale({
+                    ...sale,
+                    items: items.map((i: any) => ({
+                        name: i.products?.name || i.description || 'Article inconnu',
+                        quantity: i.quantity,
+                        price: i.price
+                    }))
+                });
+                setIsReceiptOpen(true);
+            } else {
+                showToast("Impossible de charger les articles", "error");
+            }
+        } catch (e) {
+            showToast("Erreur de récupération des détails", "error");
+        }
     };
 
     const handleDeleteSale = async (id: string) => {
@@ -225,6 +248,10 @@ export default function SalesTerminal() {
     };
 
     const addProductToAgency = (p: any) => {
+        if (p.stock <= 0 && p.type !== 'service') {
+            showToast(`${p.name} est épuisé !`, "warning");
+            return;
+        }
         setAgencyLines([...agencyLines, { id: Date.now(), name: p.name, quantity: 1, price: p.price, product_id: p.id }]);
     };
 
@@ -317,43 +344,47 @@ export default function SalesTerminal() {
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-8 pb-32">
-                                            {filteredProducts.map(p => (
-                                                <button 
-                                                    key={p.id}
-                                                    onClick={() => addToCart(p)}
-                                                    className="group relative bg-white/[0.03] border border-white/5 rounded-[32px] sm:rounded-[40px] p-4 sm:p-6 text-left hover:bg-white/[0.08] hover:border-shop/30 hover:scale-[1.02] active:scale-95 transition-all duration-500 overflow-hidden shadow-lg"
-                                                >
-                                                    <div className="relative aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden mb-4 sm:mb-6 bg-black/20">
-                                                        {p.image ? (
-                                                            <Image src={p.image} alt={p.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center">
-                                                                <LayoutDashboard className="w-8 h-8 text-white/10" />
-                                                            </div>
-                                                        )}
-                                                        <div className="absolute top-3 right-3">
-                                                            <ExpiryBadge expiryDate={p.expiry_date} />
-                                                        </div>
-                                                    </div>
-                                                    <div className="space-y-1 sm:space-y-2">
-                                                        <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-shop transition-colors">{p.category}</p>
-                                                        <h3 className="font-bold text-xs sm:text-sm text-white line-clamp-1">{p.name}</h3>
-                                                        <div className="flex items-center justify-between pt-2 sm:pt-4">
-                                                            <p className="text-sm sm:text-lg font-black text-white">{Number(p.price).toLocaleString()} <span className="text-[10px] text-muted-foreground ml-1">CFA</span></p>
-                                                            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-shop group-hover:text-white transition-all">
-                                                                <Plus className="w-4 h-4" />
+                                            {filteredProducts.map(p => {
+                                                const isOutOfStock = p.stock <= 0 && p.type !== 'service';
+                                                return (
+                                                    <button 
+                                                        key={p.id}
+                                                        onClick={() => addToCart(p)}
+                                                        disabled={isOutOfStock}
+                                                        className={`group relative bg-white/[0.03] border border-white/5 rounded-[32px] sm:rounded-[40px] p-4 sm:p-6 text-left hover:bg-white/[0.08] hover:border-shop/30 hover:scale-[1.02] active:scale-95 transition-all duration-500 overflow-hidden shadow-lg ${isOutOfStock ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
+                                                    >
+                                                        <div className="relative aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden mb-4 sm:mb-6 bg-black/20">
+                                                            {p.image ? (
+                                                                <Image src={p.image} alt={p.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center">
+                                                                    <LayoutDashboard className="w-8 h-8 text-white/10" />
+                                                                </div>
+                                                            )}
+                                                            <div className="absolute top-3 right-3">
+                                                                <ExpiryBadge expiryDate={p.expiry_date} />
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="absolute top-4 left-4">
-                                                        <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border backdrop-blur-md ${
-                                                            p.stock <= 5 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'
-                                                        }`}>
-                                                            Stock: {p.stock}
+                                                        <div className="space-y-1 sm:space-y-2">
+                                                            <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-shop transition-colors">{p.category}</p>
+                                                            <h3 className="font-bold text-xs sm:text-sm text-white line-clamp-1">{p.name}</h3>
+                                                            <div className="flex items-center justify-between pt-2 sm:pt-4">
+                                                                <p className="text-sm sm:text-lg font-black text-white">{Number(p.price).toLocaleString()} <span className="text-[10px] text-muted-foreground ml-1">CFA</span></p>
+                                                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-shop group-hover:text-white transition-all">
+                                                                    <Plus className="w-4 h-4" />
+                                                                </div>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </button>
-                                            ))}
+                                                        <div className="absolute top-4 left-4">
+                                                            <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border backdrop-blur-md ${
+                                                                p.stock <= 5 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'
+                                                            }`}>
+                                                                Stock: {p.stock}
+                                                            </div>
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

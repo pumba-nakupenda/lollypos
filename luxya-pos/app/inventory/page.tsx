@@ -61,8 +61,8 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
 
   return (
     <div className="min-h-screen pb-20">
-      {/* Refined Header - Increased z-index to avoid modal trapping issues */}
-      <header className="glass-panel sticky top-2 sm:top-4 z-[70] mx-2 sm:mx-4 rounded-2xl sm:rounded-[24px] shadow-xl border-white/5">
+      {/* Refined Header - Lowered z-index to let global menu button stay on top */}
+      <header className="glass-panel sticky top-2 sm:top-4 z-50 mx-2 sm:mx-4 rounded-2xl sm:rounded-[24px] shadow-xl border-white/5">
         <div className="max-w-7xl mx-auto py-3 sm:py-4 px-4 sm:px-8 flex justify-between items-center">
           <div className="flex items-center space-x-3 sm:space-x-6">
             <Link href="/" className="p-2 sm:p-2.5 glass-card rounded-xl text-muted-foreground hover:text-shop transition-all">
@@ -78,6 +78,13 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
+            <Link 
+              href="/inventory/quick"
+              className="hidden sm:flex items-center px-4 py-2 bg-white/5 text-shop border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-shop/10 transition-all"
+            >
+              <Plus className="w-3.5 h-3.5 mr-2" />
+              Inventaire Rapide
+            </Link>
             <div className="hidden md:block">
                <ShopSelector />
             </div>
