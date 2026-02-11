@@ -89,13 +89,17 @@ export default function DebtsPage() {
                 shop_id: activeShop?.id
             }])
 
-            if (error) throw error
+            if (error) {
+                console.error('Debt Creation Error:', error);
+                throw error;
+            }
             showToast(newEntry.type === 'receivable' ? "Créance client ajoutée !" : "Dette fournisseur enregistrée !", "success")
             setIsModalOpen(false)
             setNewEntry({ customer_id: '', creditor_name: '', total_amount: '', paid_amount: '0', due_date: '', type: 'receivable' })
             fetchDebts()
-        } catch (err) {
-            showToast("Erreur lors de la création", "error")
+        } catch (err: any) {
+            console.error('Debt Creation Catch:', err);
+            showToast(`Erreur : ${err.message || 'Impossible de créer'}`, "error")
         } finally {
             setCreating(false)
         }

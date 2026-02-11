@@ -218,8 +218,8 @@ export default function DashboardContent({ user }: { user: any }) {
                 {/* Expiry Alert Banner */}
                 <ExpiryAlertBanner shopId={activeShop?.id} />
 
-                {/* 0. AI GROWTH INSIGHTS */}
-                <AiInsights />
+                {/* 0. AI GROWTH INSIGHTS - Only for Global View */}
+                {(!activeShop || activeShop.id === 0) && <AiInsights />}
 
                 {/* 1. KEY METRICS */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
