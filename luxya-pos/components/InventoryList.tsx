@@ -1,21 +1,72 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
-import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink } from 'lucide-react'
+import React, { useState, useMemo, useRef } from 'react'
+import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink, Plus, Camera, Loader2, PlusCircle, DollarSign } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import EditProductModal from './EditProductModal'
 import CustomDropdown from './CustomDropdown'
 import ExpiryBadge from './ExpiryBadge'
 import { SITE_URL, API_URL } from '@/utils/api'
+import { createClient } from '@/utils/supabase/client'
+import { useShop } from '@/context/ShopContext'
+import { useToast } from '@/context/ToastContext'
 
 interface InventoryListProps {
     products: any[]
 }
 
 export default function InventoryList({ products }: InventoryListProps) {
+    const { activeShop } = useShop()
+    const { showToast } = useToast()
+    const supabase = createClient()
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
+
+    // Quick Creation State
+    const [isQuickModalOpen, setIsQuickModalOpen] = useState(false)
+    const [isCreating, setIsCreating] = useState(false)
+    const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: '1', category: 'Général', image: '' })
+    const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+            setIsCreating(true);
+            const fileName = `${Date.now()}-${file.name}`;
+            const { error: uploadError } = await supabase.storage.from('products').upload(`products/${fileName}`, file);
+            if (uploadError) throw uploadError;
+            const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(`products/${fileName}`);
+            setNewProduct({ ...newProduct, image: publicUrl });
+            showToast("Photo chargée", "success");
+        } catch (err) { showToast("Erreur photo", "error"); } finally { setIsCreating(false); }
+    };
+
+    const handleCreateQuick = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsCreating(true);
+        try {
+            const res = await fetch(`${API_URL}/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: newProduct.name,
+                    price: parseFloat(newProduct.price),
+                    stock: parseInt(newProduct.stock),
+                    category: newProduct.category,
+                    image: newProduct.image,
+                    shopId: activeShop?.id || 1
+                })
+            });
+            if (res.ok) {
+                showToast("Produit ajouté !", "success");
+                setIsQuickModalOpen(false);
+                setNewProduct({ name: '', price: '', stock: '1', category: 'Général', image: '' });
+                window.location.reload();
+            }
+        } catch (err) { showToast("Erreur de création", "error"); } finally { setIsCreating(false); }
+    };
 
     const siteUrl = SITE_URL; // Base URL for lollyshop
 
@@ -128,6 +179,13 @@ export default function InventoryList({ products }: InventoryListProps) {
                     value={stockStatus}
                     onChange={setStockStatus}
                 />
+
+                <button 
+                    onClick={() => setIsQuickModalOpen(true)}
+                    className="flex items-center justify-center px-6 py-3.5 bg-shop text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-shop/20"
+                >
+                    <PlusCircle className="w-4 h-4 mr-2" /> Ajout Rapide
+                </button>
             </div>
 
             {/* Product List */}
@@ -234,6 +292,39 @@ export default function InventoryList({ products }: InventoryListProps) {
                     isOpen={isModalOpen}
                     onClose={() => setIsModalOpen(false)}
                 />
+            )}
+
+            {/* Modal de Création Rapide */}
+            {isQuickModalOpen && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 backdrop-blur-xl bg-black/40">
+                    <div className="relative glass-card w-full max-w-md p-8 sm:p-10 rounded-[48px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsQuickModalOpen(false)} className="absolute top-8 right-8 p-2 hover:bg-white/5 rounded-full"><X/></button>
+                        <h2 className="text-2xl font-black uppercase mb-8 flex items-center tracking-tighter italic">Ajout <span className="text-shop ml-2">Express.</span></h2>
+                        <form onSubmit={handleCreateQuick} className="space-y-6">
+                            <div 
+                                onClick={() => fileInputRef.current?.click()} 
+                                className="h-40 bg-white/5 rounded-[32px] border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden active:bg-white/10 cursor-pointer transition-all"
+                            >
+                                {newProduct.image ? <img src={newProduct.image} className="w-full h-full object-cover" /> : <><Camera className="text-muted-foreground mb-2 w-8 h-8"/><p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Prendre / Charger Photo</p></>}
+                                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
+                            </div>
+                            <input required placeholder="Nom du produit" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="relative">
+                                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input required type="number" placeholder="Prix" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                                </div>
+                                <div className="relative">
+                                    <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input required type="number" placeholder="Stock" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
+                                </div>
+                            </div>
+                            <button type="submit" disabled={isCreating} className="w-full py-5 bg-white text-black hover:bg-shop hover:text-white font-black uppercase rounded-[24px] shadow-xl transition-all active:scale-95">
+                                {isCreating ? <Loader2 className="animate-spin mx-auto"/> : "Valider l'ajout"}
+                            </button>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     )
