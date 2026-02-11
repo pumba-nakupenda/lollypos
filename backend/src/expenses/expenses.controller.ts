@@ -31,4 +31,20 @@ export class ExpensesController {
   remove(@Param('id') id: string) {
     return this.expensesService.remove(+id);
   }
+
+  // --- GESTION DES CATÉGORIES ---
+  @Get('categories/list')
+  getCategories(@Query('shopId') shopId: string, @Query('isPersonal') isPersonal: string) {
+    return this.expensesService.findAllCategories(+shopId, isPersonal === 'true');
+  }
+
+  @Post('categories')
+  createCategory(@Body() body: { name: string, shopId: number, isPersonal: boolean }) {
+    return this.expensesService.createCategory(body.name, body.shopId, body.isPersonal);
+  }
+
+  @Delete('categories/:id')
+  deleteCategory(@Param('id') id: string) {
+    return this.expensesService.deleteCategory(+id);
+  }
 }

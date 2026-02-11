@@ -160,4 +160,46 @@ export class ExpensesService implements OnModuleInit {
     if (error) throw error;
     return { success: true };
   }
+
+  // --- LOGIQUE DES CATÉGORIES ---
+  async findAllCategories(shopId: number, isPersonal: boolean) {
+    const { data, error } = await this.supabase
+      .from('expense_categories')
+      .select('*')
+      .eq('shop_id', shopId)
+      .eq('is_personal', isPersonal);
+    if (error) throw error;
+    return data;
+  }
+
+  async createCategory(name: string, shopId: number, isPersonal: boolean) {
+    this.logger.log(`[CATEGORIES] Creating category: ${name} for shop ${shopId} (Personal: ${isPersonal})`);
+    try {
+      const { data, error } = await this.supabase
+        .from('expense_categories')
+        .insert({ name, shop_id: shopId, is_personal: isPersonal })
+        .select()
+        .single();
+      
+      if (error) {
+        this.logger.error(`[CATEGORIES] Insert error: ${error.message}`);
+        throw error;
+      }
+      
+      this.logger.log(`[CATEGORIES] Success! Created ID: ${data.id}`);
+      return data;
+    } catch (err) {
+      this.logger.error(`[CATEGORIES] Critical failure: ${err.message}`);
+      throw err;
+    }
+  }
+
+  async deleteCategory(id: number) {
+    const { error } = await this.supabase
+      .from('expense_categories')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    return { success: true };
+  }
 }
