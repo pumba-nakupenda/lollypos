@@ -21,7 +21,7 @@ export class SupabaseService implements OnModuleInit {
     const supabaseKey = this.configService.get<string>('SUPABASE_KEY');
     const serviceKey = this.configService.get<string>('SUPABASE_SERVICE_ROLE_KEY');
 
-    this.logger.log(`Initializing Supabase with URL: ${supabaseUrl ? 'Defined' : 'UNDEFINED'}`);
+    this.logger.log(`Supabase Config Check: URL=${supabaseUrl ? 'OK' : 'MISSING'}, AnonKey=${supabaseKey ? 'OK' : 'MISSING'}, ServiceKey=${serviceKey ? 'OK' : 'MISSING'}`);
 
     if (!supabaseUrl || !supabaseKey) {
       this.logger.error('CRITICAL: Supabase URL or Key is missing from environment variables!');

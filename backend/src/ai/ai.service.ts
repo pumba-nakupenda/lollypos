@@ -68,7 +68,66 @@ export class AiService {
             return new Array(768).fill(0);
         }
     }
+    @Cron('0 8 * * 1')
+    async handleWeeklyBannerUpdate() {
+        this.logger.log('[AI Schedule] Mise à jour hebdomadaire du bandeau...');
+        await this.generatePromoBanner();
+    }
+
     async suggestProductPhoto(p: string) { return { urls: [] }; }
-    async generatePromoBanner() { return { slogan: "" }; }
+    async generatePromoBanner() {
+        if (!this.model) {
+            this.logger.error("AI Model not initialized for Banner");
+            return { slogan: "BIENVENUE CHEZ LOLLY SHOP ✨" };
+        }
+
+        try {
+            this.logger.log("[AI Banner] Génération d'un nouveau slogan...");
+            
+            // Récupérer quelques produits pour donner du contexte à l'IA
+            const { data: products } = await this.supabaseService.getAdminClient()
+                .from('products')
+                .select('name, category')
+                .limit(10);
+
+            const productsContext = products && products.length > 0 
+                ? `Produits : ${products.map(p => p.name).join(', ')}`
+                : "Articles de mode et technologie";
+
+            const prompt = `
+                Tu es l'expert Marketing de LOLLY SHOP (Sénégal). 
+                Génère UN SEUL slogan percutant et court (max 10 mots) pour un bandeau défilant.
+                CONTEXTE : ${productsContext}. 
+                INSTRUCTIONS : Tout en MAJUSCULES, avec des emojis, ton PREMIUM et INCITATIF.
+                RÉPONSE (SLOGAN UNIQUEMENT) :
+            `;
+
+            const result = await this.model.generateContent(prompt);
+            const slogan = (await result.response).text().trim().replace(/\"/g, '');
+
+            // Sauvegarder dans la configuration du site
+            const { data: currentSettings } = await this.supabaseService.getAdminClient()
+                .from('site_settings')
+                .select('content')
+                .eq('name', 'lolly_shop_config')
+                .maybeSingle();
+
+            const updatedContent = { ...(currentSettings?.content || {}), promo_banner: slogan };
+
+            await this.supabaseService.getAdminClient()
+                .from('site_settings')
+                .upsert({ 
+                    name: 'lolly_shop_config', 
+                    content: updatedContent, 
+                    updated_at: new Date() 
+                }, { onConflict: 'name' });
+
+            this.logger.log(`[AI Banner] Nouveau slogan : ${slogan}`);
+            return { slogan };
+        } catch (error: any) {
+            this.logger.error(`[AI Banner] Erreur : ${error.message}`);
+            return { slogan: "PROMOTIONS EXCEPTIONNELLES EN BOUTIQUE ! 🛍️" };
+        }
+    }
     async getStatus() { return { status: 'online' }; }
 }
