@@ -42,7 +42,8 @@ export default function WebManagementPage() {
                 showToast("Nouveau slogan généré !", "success")
             }
         } catch (err: any) {
-            showToast("La génération IA est indisponible.", "error")
+            console.error('[AI] Generation failed:', err)
+            showToast(`Erreur : ${err.message || "Indisponible"}`, "error")
         } finally {
             setGeneratingBanner(false)
         }

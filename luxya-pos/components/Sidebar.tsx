@@ -60,6 +60,15 @@ export default function Sidebar() {
         return item
     })
 
+    // NEW: Add Personal Expenses for Agency ONLY
+    if (activeShop?.id === 3 && (profile?.role === 'admin' || profile?.role === 'manager')) {
+        filteredItems.push({ 
+            name: 'Dépenses Perso', 
+            href: '/personal-expenses', 
+            icon: Tag 
+        });
+    }
+
     const SidebarContent = () => (
         <div className="flex flex-col h-full">
             {/* Logo Section */}

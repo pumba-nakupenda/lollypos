@@ -108,7 +108,7 @@ export class ExpensesService implements OnModuleInit {
     }
   }
 
-  async findAll(shopId?: number) {
+  async findAll(shopId?: number, category?: string) {
     let query = this.supabase
       .from('expenses')
       .select('*')
@@ -116,6 +116,13 @@ export class ExpensesService implements OnModuleInit {
 
     if (shopId) {
       query = query.eq('shop_id', shopId);
+    }
+
+    if (category) {
+      query = query.eq('category', category);
+    } else {
+      // Par défaut, on cache les dépenses Perso des listes classiques
+      query = query.neq('category', 'Perso');
     }
 
     const { data, error } = await query;
