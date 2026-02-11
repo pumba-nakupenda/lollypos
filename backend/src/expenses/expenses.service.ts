@@ -15,10 +15,9 @@ export class ExpensesService implements OnModuleInit {
     setInterval(() => this.processRecurringExpenses(), 1000 * 60 * 60 * 6);
   }
 
-  private get supabase() {
-    return this.supabaseService.getClient();
-  }
-
+      private get supabase() {
+          return (this.supabaseService as any).getAdminClient();
+      }
   async processRecurringExpenses() {
     this.logger.log('[EXPENSES ROBOT] Checking for due recurring expenses...');
     try {

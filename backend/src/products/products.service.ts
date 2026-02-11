@@ -15,7 +15,7 @@ export class ProductsService {
     ) { }
 
     private get supabase() {
-        return this.supabaseService.getClient();
+        return (this.supabaseService as any).getAdminClient();
     }
 
     async create(createProductDto: CreateProductDto) {

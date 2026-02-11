@@ -30,7 +30,7 @@ export default function AiAssistantPage() {
         {
             id: 'welcome',
             role: 'assistant',
-            content: "Bonjour ! Je suis **Lolly AI**, votre expert conseiller stratégique. J'ai analysé vos ventes, vos stocks et vos dépenses. Comment puis-je vous aider à faire grandir votre business aujourd'hui ?",
+            content: "Système Réinitialisé. **Lolly AI** est prêt. Posez-moi une question sur vos ventes ou vos stocks.",
             timestamp: new Date()
         }
     ]);
@@ -61,8 +61,13 @@ export default function AiAssistantPage() {
         setIsLoading(true);
 
         try {
-            const shopParam = activeShop && activeShop.id !== 0 ? `?shopId=${activeShop.id}` : '';
-            const res = await fetch(`${API_URL}/ai/analyze${shopParam}`, {
+            // Utilisation d'une URL propre sans shopParam si id est 0
+            const url = new URL(`${API_URL}/ai/analyze`);
+            if (activeShop && activeShop.id !== 0) {
+                url.searchParams.append('shopId', activeShop.id.toString());
+            }
+
+            const res = await fetch(url.toString(), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ question: text })
@@ -78,10 +83,19 @@ export default function AiAssistantPage() {
                 };
                 setMessages(prev => [...prev, assistantMessage]);
             } else {
-                throw new Error('Erreur API');
+                const errorData = await res.text();
+                const detail = `Status ${res.status} sur ${url.pathname}`;
+                console.error('AI API Error Details:', {
+                    status: res.status,
+                    statusText: res.statusText,
+                    body: errorData,
+                    url: url.toString()
+                });
+                throw new Error(detail);
             }
-        } catch (error) {
-            showToast("L'IA est temporairement indisponible. Vérifiez votre clé API.", "error");
+        } catch (error: any) {
+            console.error('AI Fetch Catch:', error);
+            showToast(`Erreur : ${error.message}`, "error");
         } finally {
             setIsLoading(false);
         }

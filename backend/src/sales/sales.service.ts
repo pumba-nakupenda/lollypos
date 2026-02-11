@@ -9,7 +9,7 @@ export class SalesService {
     constructor(private readonly supabaseService: SupabaseService) { }
 
     private get supabase() {
-        return this.supabaseService.getClient();
+        return (this.supabaseService as any).getAdminClient();
     }
 
     async create(createSaleDto: CreateSaleDto) {
