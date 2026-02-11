@@ -76,43 +76,52 @@ export class AiService {
         }
 
         try {
-            this.logger.log("[AI Banner] Génération d'un nouveau slogan...");
-            
-            // Récupérer quelques produits pour donner du contexte à l'IA
-            const { data: products } = await this.supabaseService.getAdminClient()
-                .from('products')
-                .select('name, category')
-                .limit(10);
+            this.logger.log("[AI Banner] Analyse des opportunités marketing...");
+            const adminClient = this.supabaseService.getAdminClient();
 
-            const productsContext = products && products.length > 0 
-                ? `Produits : ${products.map(p => p.name).join(', ')}`
-                : "Articles de mode et technologie";
+            // 1. Détection des ruptures imminentes (Urgence/FOMO)
+            const { data: lowStock } = await adminClient
+                .from('products')
+                .select('name, stock')
+                .lt('stock', 5)
+                .gt('stock', 0)
+                .limit(3);
+
+            // 2. Détection des meilleures offres (Promotion/Preuve sociale)
+            const { data: topOffers } = await adminClient
+                .from('products')
+                .select('name, price, promo_price')
+                .not('promo_price', 'is', null)
+                .limit(3);
+
+            const stockContext = lowStock?.length ? `ALERTE RUPTURE : ${lowStock.map(p => p.name).join(', ')} (moins de 5 dispos)` : "";
+            const offerContext = topOffers?.length ? `OFFRES SPÉCIALES : ${topOffers.map(p => p.name).join(', ')}` : "";
 
             const prompt = `
-                Tu es un expert en Neuro-Marketing et Copywriting Premium pour LOLLY SHOP (Sénégal).
-                Ta mission : Générer UN SEUL slogan hypnotique et irrésistible pour un bandeau défilant.
+                Tu es l'expert en Neuro-Marketing de LOLLY SHOP (Dakar). 
+                Génère UN SEUL slogan hypnotique et très court pour un bandeau.
                 
-                CONTEXTE PRODUITS : ${productsContext}.
+                DONNÉES BUSINESS RÉELLES :
+                - ${stockContext}
+                - ${offerContext}
                 
-                RÈGLES D'OR DE PSYCHOLOGIE :
-                1. FOMO & URGENCE : Utilise la rareté (ex: "STOCK LIMITÉ", "DERNIÈRES PIÈCES") ou l'urgence temporelle.
-                2. EXCLUSIVITÉ : Ton sélect et premium ("SOYEZ L'EXCEPTION", "ÉDITION LIMITÉE").
-                3. APPEL À L'ACTION : Incite à l'achat immédiat de façon chic.
+                MISSIONS : 
+                1. Crée un sentiment d'URGENCE absolue (FOMO) sur les stocks.
+                2. Valorise l'EXCLUSIVITÉ des offres.
                 
                 CONTRAINTES :
-                - Max 12 mots.
+                - Max 10 mots.
                 - TOUT EN MAJUSCULES.
-                - Utilise des emojis élégants (✨, 💎, 🚀, 👜, 💻).
-                - Style "Dakarois Chic & Premium".
+                - Emojis Premium (💎, 🚨, ✨).
+                - Ton Chic & Incitatif.
                 
-                RÉPONSE (SLOGAN UNIQUEMENT, PAS DE GUILLEMETS) :
+                RÉPONSE (SLOGAN UNIQUEMENT, SANS GUILLEMETS) :
             `;
 
             const result = await this.model.generateContent(prompt);
             const slogan = (await result.response).text().trim().replace(/\"/g, '');
 
-            // Sauvegarder dans la configuration du site
-            const { data: currentSettings } = await this.supabaseService.getAdminClient()
+            const { data: currentSettings } = await adminClient
                 .from('site_settings')
                 .select('content')
                 .eq('name', 'lolly_shop_config')
@@ -120,7 +129,7 @@ export class AiService {
 
             const updatedContent = { ...(currentSettings?.content || {}), promo_banner: slogan };
 
-            await this.supabaseService.getAdminClient()
+            await adminClient
                 .from('site_settings')
                 .upsert({ 
                     name: 'lolly_shop_config', 
@@ -128,11 +137,11 @@ export class AiService {
                     updated_at: new Date() 
                 }, { onConflict: 'name' });
 
-            this.logger.log(`[AI Banner] Nouveau slogan : ${slogan}`);
+            this.logger.log(`[AI Banner] Slogan généré : ${slogan}`);
             return { slogan };
         } catch (error: any) {
             this.logger.error(`[AI Banner] Erreur : ${error.message}`);
-            return { slogan: "PROMOTIONS EXCEPTIONNELLES EN BOUTIQUE ! 🛍️" };
+            return { slogan: "STOCKS LIMITÉS : PROFITEZ DE NOS OFFRES EXCLUSIVES ! ✨" };
         }
     }
     async getStatus() { return { status: 'online' }; }
