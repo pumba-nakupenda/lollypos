@@ -70,7 +70,8 @@ export class AiService {
                 analyse_par_boutique: segmentedData,
                 totaux_du_groupe: {
                     ca_total: segmentedData.reduce((sum, s) => sum + s.ca, 0),
-                    charges_totales: segmentedData.reduce((sum, s) => sum + s.charges, 0),
+                    // On additionne les charges des boutiques + les dépenses personnelles
+                    charges_totales: segmentedData.reduce((sum, s) => sum + s.charges, 0) + allExpenses.filter((e: any) => e.category === 'Perso').reduce((sum: number, e: any) => sum + Number(e.amount), 0),
                     valeur_stock_totale: segmentedData.reduce((sum, s) => sum + s.stock_valeur, 0),
                     profit_net_groupe: segmentedData.reduce((sum, s) => sum + (s.ca - s.charges), 0) - allExpenses.filter((e: any) => e.category === 'Perso').reduce((sum: number, e: any) => sum + Number(e.amount), 0)
                 },
