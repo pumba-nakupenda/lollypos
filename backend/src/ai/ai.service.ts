@@ -29,7 +29,7 @@ export class AiService {
                     { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
                 ]
             });
-            this.logger.log('AI System: GOD MODE UNLOCKED (Gemini 3).');
+            this.logger.log('AI System: VERSION ULTIME ACTIVÉE.');
         }
     }
 
@@ -41,72 +41,48 @@ export class AiService {
         if (!this.model) return "IA non configurée.";
         
         try {
-            this.logger.log(`[GOD MODE] Analyzing request...`);
+            console.log('[AI] Lancement de l\'analyse God Mode...');
 
-            // RÉCUPÉRATION BRUTE DE TOUTES LES DONNÉES (Plus fiable)
-            const [salesRes, productsRes, expensesRes, debtsRes, itemsRes] = await Promise.all([
-                this.admin.from('sales').select('*').limit(50),
+            // RÉCUPÉRATION TOTALE
+            const [salesRes, productsRes, expensesRes, debtsRes] = await Promise.all([
+                this.admin.from('sales').select('*'),
                 this.admin.from('products').select('*'),
                 this.admin.from('expenses').select('*'),
-                this.admin.from('debts').select('*, customers(name)'),
-                this.admin.from('sale_items').select('*, products(name)').limit(100)
+                this.admin.from('debts').select('*, customers(name)')
             ]);
 
             const allSales = salesRes.data || [];
             const allProducts = productsRes.data || [];
             const allExpenses = expensesRes.data || [];
             const allDebts = debtsRes.data || [];
-            const allItems = itemsRes.data || [];
 
-            // Filtrage par shop côté code (plus sûr que SQL dynamique parfois)
-            const fSales = shopId ? allSales.filter(s => s.shop_id === shopId) : allSales;
-            const fProducts = shopId ? allProducts.filter(p => p.shop_id === shopId) : allProducts;
-            const fExpenses = shopId ? allExpenses.filter(e => e.shop_id === shopId) : allExpenses;
+            console.log(`[AI] Données récupérées : ${allSales.length} ventes, ${allExpenses.length} dépenses.`);
 
             const context = {
-                vision: shopId ? `Boutique ${shopId}` : 'Globale',
-                statistiques: {
-                    ca_total: fSales.reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0),
-                    depenses_pro: fExpenses.filter(e => e.category !== 'Perso').reduce((sum, e) => sum + (Number(e.amount) || 0), 0),
-                    depenses_direction_type_b: fExpenses.filter(e => e.category === 'Perso').reduce((sum, e) => sum + (Number(e.amount) || 0), 0),
-                    dettes_total: allDebts.reduce((sum, d) => sum + (Number(d.remaining_amount) || 0), 0)
+                v: "VERSION_GOD_MODE_v3",
+                finance: {
+                    entrees: allSales.reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0),
+                    sorties: allExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0),
+                    dettes: allDebts.reduce((sum, d) => sum + (Number(d.remaining_amount) || 0), 0)
                 },
-                liste_dettes_detaillees: allDebts.filter(d => d.remaining_amount > 0).map(d => ({
-                    client: d.customers?.name || 'Inconnu',
-                    du: d.remaining_amount,
-                    date: d.created_at
-                })),
-                liste_depenses_recentes: fExpenses.slice(0, 20).map(e => ({
-                    objet: e.description,
-                    prix: e.amount,
-                    cat: e.category === 'Perso' ? 'DIRECTION_TYPE_B' : e.category
-                })),
-                inventaire: fProducts.map(p => ({ n: p.name, s: p.stock, p: p.price }))
+                detail_sorties: allExpenses.map(e => ({ desc: e.description, mnt: e.amount, type: e.category })),
+                detail_dettes: allDebts.filter(d => d.remaining_amount > 0).map(d => ({ client: d.customers?.name, du: d.remaining_amount })),
+                stock: allProducts.map(p => ({ n: p.name, s: p.stock }))
             };
 
-            const systemInstruction = `
-                RÈGLE CRITIQUE : Tu es l'Intelligence de Gestion de LOLLY SAS. 
-                Tu as ACCÈS TOTAL aux chiffres. Ne mens jamais en disant que tu n'as pas accès.
-                Les dépenses "DIRECTION_TYPE_B" sont les dépenses personnelles du patron. Traite-les avec respect mais analyse leur impact sur le cash.
+            const prompt = `
+                Tu es l'Intelligence de LOLLY SAS. 
+                TU AS ACCÈS À TOUT. NE DIS JAMAIS LE CONTRAIRE.
+                Voici les données du registre : ${JSON.stringify(context)}
                 
-                DONNÉES COMPTABLES :
-                ${JSON.stringify(context)}
-                
-                TON : Expert, bref, sans filtre. Réponds précisément à la question avec ces chiffres.
+                RÉPONDS DIRECTEMENT À : ${userQuestion}
             `;
 
-            let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
-            if (!chat) {
-                chat = this.model.startChat({ history: [] });
-                this.chatSessions.set(shopId ? `shop_${shopId}` : 'global', chat);
-            }
-
-            const result = await chat.sendMessage(`${systemInstruction}\n\nQUESTION DU PATRON : ${userQuestion}`);
+            const result = await this.model.generateContent(prompt);
             return result.response.text();
 
         } catch (error: any) {
-            this.logger.error(`Analysis crash: ${error.message}`);
-            return `Erreur technique : ${error.message}`;
+            return `Erreur : ${error.message}`;
         }
     }
 
@@ -119,17 +95,7 @@ export class AiService {
         } catch (e) { return new Array(768).fill(0); }
     }
 
-    async generatePromoBanner() {
-        try {
-            const { data: products } = await this.admin.from('products').select('name, stock').lt('stock', 5).limit(5);
-            const result = await this.model.generateContent(`Crée un slogan PREMIUM pour : ${products?.map(p => p.name).join(', ')}`);
-            const slogan = (await result.response).text().trim().replace(/\"/g, '');
-            const { data } = await this.admin.from('site_settings').select('content').eq('name', 'lolly_shop_config').maybeSingle();
-            await this.admin.from('site_settings').upsert({ name: 'lolly_shop_config', content: { ...(data?.content || {}), promo_banner: slogan }, updated_at: new Date() });
-            return { slogan };
-        } catch (e) { return { slogan: "OFFRES EXCLUSIVES LOLLY ✨" }; }
-    }
-
-    async suggestProductPhoto(p: string) { return { urls: [1,2,3,4].map(i => `https://loremflickr.com/800/800/${p.split(' ').join(',')}?lock=${i}`) }; }
-    async getStatus() { return { status: 'online', model: 'Gemini 3 Flash', analytical_power: 'MAX' }; }
+    async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES LOLLY ✨" }; }
+    async suggestProductPhoto(p: string) { return { urls: [] }; }
+    async getStatus() { return { status: 'online', version: 'v3_god_mode' }; }
 }
