@@ -68,12 +68,6 @@ export class AiService {
             return new Array(768).fill(0);
         }
     }
-    @Cron('0 8 * * 1')
-    async handleWeeklyBannerUpdate() {
-        this.logger.log('[AI Schedule] Mise à jour hebdomadaire du bandeau...');
-        await this.generatePromoBanner();
-    }
-
     async suggestProductPhoto(p: string) { return { urls: [] }; }
     async generatePromoBanner() {
         if (!this.model) {
