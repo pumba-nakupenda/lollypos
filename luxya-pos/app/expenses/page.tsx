@@ -83,7 +83,9 @@ export default function ExpensesPage() {
     const fetchExpenses = async () => {
         try {
             setLoading(true)
-            const url = activeShop ? `${API_URL}/expenses?shopId=${activeShop.id}` : `${API_URL}/expenses`
+            // On ajoute includePersonal=true si on est sur l'agence (3)
+            const includePersonal = activeShop?.id === 3 ? '&includePersonal=true' : ''
+            const url = activeShop ? `${API_URL}/expenses?shopId=${activeShop.id}${includePersonal}` : `${API_URL}/expenses`
             const res = await fetch(url)
             if (res.ok) {
                 const data = await res.json()

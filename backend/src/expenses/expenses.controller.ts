@@ -14,11 +14,13 @@ export class ExpensesController {
   @Get()
   findAll(
     @Query('shopId') shopId?: string,
-    @Query('category') category?: string
+    @Query('category') category?: string,
+    @Query('includePersonal') includePersonal?: string
   ) {
     return this.expensesService.findAll(
       shopId ? +shopId : undefined,
-      category
+      category,
+      includePersonal === 'true'
     );
   }
 
