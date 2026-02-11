@@ -13,15 +13,20 @@ export async function GET(request: Request) {
 
     try {
         const supabase = await createClient()
-        // For Agency (3), we include personal expenses in the analytics
+        const isGlobal = !shopId || shopId === 'all'
+        const isAgency = shopId === '3'
+        
+        let expensesUrl = `${API_URL}/expenses${query}`
+        if (isGlobal || isAgency) {
+            expensesUrl += (query ? '&' : '?') + 'includePersonal=true'
+        }
+        
         // Fetch from NestJS Backend and Supabase
-        const [salesRes, expensesRes, saleItemsRes, debtsRes, personalExpRes] = await Promise.all([
+        const [salesRes, expensesRes, saleItemsRes, debtsRes] = await Promise.all([
             fetch(`${API_URL}/sales${query}`, { cache: 'no-store' }),
-            fetch(`${API_URL}/expenses${query}`, { cache: 'no-store' }),
+            fetch(expensesUrl, { cache: 'no-store' }),
             fetch(`${API_URL}/sales/items${query}`, { cache: 'no-store' }),
-            supabase.from('debts').select('remaining_amount, status'),
-            // On récupère DIRECTEMENT les dépenses perso via Supabase Admin pour être sûr
-            shopId === '3' ? supabase.from('expenses').select('amount, date').eq('category', 'Perso') : Promise.resolve({ data: [] })
+            supabase.from('debts').select('remaining_amount, status')
         ])
 
         if (!salesRes.ok || !expensesRes.ok || !saleItemsRes.ok) {
@@ -32,18 +37,7 @@ export async function GET(request: Request) {
         let expenses = await expensesRes.json()
         let saleItems = await saleItemsRes.json()
         const debts = debtsRes.data || []
-        const personalExpenses = personalExpRes.data || []
 
-        // Fusionner les dépenses pro et perso pour l'agence
-        if (shopId === '3') {
-            expenses = [...expenses, ...personalExpenses]
-        }
-
-        // --- SPECIAL LOGIC FOR AGENCY (ID 3) ---
-        // For Agency, we might want to include 'Perso' expenses if they are fetched
-        // However, the standard API usually hides them. We need to make sure they are included in the calculation.
-        // Let's assume for now we want to see EVERYTHING in the analytics for Shop 3.
-        
         // --- Monthly Filtering Logic ---
         if (month && year) {
             sales = sales.filter((s: any) => {
