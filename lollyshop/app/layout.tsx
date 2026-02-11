@@ -2,12 +2,9 @@
 import type { Metadata } from "next";
 import { MuseoModerno, Roboto } from "next/font/google";
 import "./globals.css";
-import { CartProvider } from "@/context/CartContext";
-import { WishlistProvider } from "@/context/WishlistContext";
-import { ProductProvider } from "@/context/ProductContext";
-import { AiProvider } from "@/context/AiContext";
 import ShoppingAssistant from "@/components/ai/ShoppingAssistant";
 import MobileNav from "@/components/MobileNav";
+import { Providers } from "@/components/Providers";
 
 const museo = MuseoModerno({ 
   subsets: ["latin"],
@@ -87,17 +84,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${roboto.variable} ${museo.variable} font-sans antialiased`}>
-              <CartProvider>
-                <WishlistProvider>
-                  <ProductProvider>
-                    <AiProvider>
-                      {children}
-                      <ShoppingAssistant />
-                      <MobileNav />
-                    </AiProvider>
-                  </ProductProvider>
-                </WishlistProvider>
-              </CartProvider>
+              <Providers>
+                {children}
+                <ShoppingAssistant />
+                <MobileNav />
+              </Providers>
             </body>
     </html>
   );

@@ -169,11 +169,15 @@ export default async function Home(props: {
       
       <Initializer products={shopProducts} />
       {/* Promo Banner Top */}
-      <div className="bg-[#0055ff] text-white py-2 px-4 overflow-hidden relative">
+      <div className="bg-black text-white py-2 px-4 overflow-hidden relative">
         <div className="flex items-center justify-center space-x-12 animate-marquee whitespace-nowrap">
             {[1,2,3,4,5].map(i => (
-                <span key={i} className="text-[10px] font-black uppercase tracking-[0.3em] flex items-center">
-                    <Sparkles className="w-3 h-3 mr-2" /> {siteSettings?.promo_banner || "BIENVENUE CHEZ LOLLY SHOP : L'EXCELLENCE AU SÉNÉGAL"} <Sparkles className="w-3 h-3 ml-2" />
+                <span key={i} className="text-[9px] font-black uppercase tracking-[0.4em] flex items-center">
+                    <Sparkles className="w-3 h-3 mr-3 text-[#0055ff]" /> 
+                    {shopFilter === '1' ? 'LUXYA : VOTRE RITUEL BEAUTÉ PREMIUM EST ICI' : 
+                     shopFilter === '2' ? 'HOMTEK : LA TECHNOLOGIE DE DEMAIN DÈS AUJOURD\'HUI' :
+                     siteSettings?.promo_banner || "BIENVENUE CHEZ LOLLY SHOP : L'EXCELLENCE AU SÉNÉGAL"} 
+                    <Sparkles className="w-3 h-3 ml-3 text-[#0055ff]" />
                 </span>
             ))}
         </div>
@@ -183,7 +187,42 @@ export default async function Home(props: {
 
       {!isFiltering && <HeroCarousel slides={siteSettings?.slides || []} />}
 
-      <div className={`relative z-30 transition-all duration-700 ${isFiltering ? 'pt-32' : 'pt-0 -mt-14'}`}>
+      {/* NEW: Shop Universe Selector - Entry Points */}
+      {!isFiltering && (
+        <div className="container mx-auto px-6 -mt-10 relative z-40">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Luxya Entrance */}
+                <Link href="/?shop=1" className="group relative h-64 sm:h-80 rounded-[40px] overflow-hidden shadow-2xl transition-transform hover:scale-[1.02] active:scale-95 duration-500">
+                    <div className="absolute inset-0 bg-gradient-to-br from-pink-500/80 to-purple-900/90 z-10" />
+                    <Image src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1000" alt="Luxya Universe" fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+                    <div className="absolute inset-0 z-20 p-10 flex flex-col justify-end">
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-pink-200 mb-2">Univers Beauté</span>
+                        <h2 className="text-4xl sm:text-5xl font-black text-white uppercase tracking-tighter italic">Luxya<span className="text-pink-400">.</span></h2>
+                        <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-2">Maroquinerie & Cosmétiques Premium</p>
+                        <div className="mt-6 flex items-center text-white font-black text-[10px] uppercase tracking-widest">
+                            Explorer la collection <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Homtek Entrance */}
+                <Link href="/?shop=2" className="group relative h-64 sm:h-80 rounded-[40px] overflow-hidden shadow-2xl transition-transform hover:scale-[1.02] active:scale-95 duration-500">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#0055ff]/80 to-blue-900/90 z-10" />
+                    <Image src="https://images.unsplash.com/photo-1498049794561-7780e7231661?q=80&w=1000" alt="Homtek Universe" fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+                    <div className="absolute inset-0 z-20 p-10 flex flex-col justify-end">
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-blue-200 mb-2">Univers High-Tech</span>
+                        <h2 className="text-4xl sm:text-5xl font-black text-white uppercase tracking-tighter italic">Homtek<span className="text-[#0055ff]">.</span></h2>
+                        <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest mt-2">Informatique & Accessoires Bureau</p>
+                        <div className="mt-6 flex items-center text-white font-black text-[10px] uppercase tracking-widest">
+                            Voir le catalogue tech <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-2 transition-transform" />
+                        </div>
+                    </div>
+                </Link>
+            </div>
+        </div>
+      )}
+
+      <div className={`relative z-30 transition-all duration-700 ${isFiltering ? 'pt-32' : 'pt-20'} mb-10`}>
         <div className="container mx-auto px-6">
             <Suspense fallback={<div className="h-20 bg-white/50 animate-pulse rounded-3xl" />}>
                 <FilterBar categories={categories} resultsCount={filteredProducts.length} />
@@ -211,7 +250,7 @@ export default async function Home(props: {
             </div>
         ) : (
             <div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-8 gap-y-8 sm:gap-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
                     {filteredProducts.length > 0 ? filteredProducts.map((p: any) => (
                         <ProductCard key={p.id} product={p} />
                     )) : (
@@ -325,7 +364,7 @@ function UniverseSection({ title, subtitle, icon, products }: any) {
                 </Link>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-12">
                 {products.slice(0, 8).map((p: any) => (
                     <ProductCard key={p.id} product={p} />
                 ))}
