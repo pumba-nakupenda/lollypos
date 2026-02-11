@@ -444,7 +444,7 @@ export default function SalesTerminal() {
                                             <tr>
                                                 <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Client</th>
                                                 <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Date</th>
-                                                <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Mode</th>
+                                                <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest">{isAgency ? 'Type & N°' : 'Mode'}</th>
                                                 <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest text-right">Total</th>
                                                 <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest text-center">Ticket</th>
                                             </tr>
@@ -454,15 +454,24 @@ export default function SalesTerminal() {
                                                 <tr key={sale.id} className="hover:bg-white/[0.02] transition-colors group">
                                                     <td className="px-8 py-6">
                                                         <div className="flex items-center space-x-3">
-                                                            <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                                                            <div className={`w-2 h-2 rounded-full ${sale.type === 'quote' ? 'bg-orange-500' : 'bg-green-500'} shadow-[0_0_10px_rgba(34,197,94,0.5)]`} />
                                                             <span className="font-bold text-white uppercase text-xs">{sale.customer_name || 'Client Comptant'}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-8 py-6 text-[10px] font-bold text-muted-foreground uppercase">{new Date(sale.created_at).toLocaleString()}</td>
+                                                    <td className="px-8 py-6 text-[10px] font-bold text-muted-foreground uppercase">{new Date(sale.created_at).toLocaleDateString()}</td>
                                                     <td className="px-8 py-6">
-                                                        <span className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black uppercase text-white/60">
-                                                            {sale.payment_method}
-                                                        </span>
+                                                        <div className="flex flex-col">
+                                                            <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase w-fit ${
+                                                                sale.type === 'quote' ? 'bg-orange-500/20 text-orange-400' : 
+                                                                sale.type === 'delivery_note' ? 'bg-blue-500/20 text-blue-400' : 
+                                                                'bg-green-500/20 text-green-400'
+                                                            }`}>
+                                                                {sale.type === 'quote' ? 'Devis' : sale.type === 'delivery_note' ? 'Bon de Livraison' : 'Facture'}
+                                                            </span>
+                                                            {sale.invoice_number && (
+                                                                <span className="text-[9px] font-bold text-white/40 mt-1">{sale.invoice_number}</span>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                     <td className="px-8 py-6 text-right font-black text-shop text-sm">{Number(sale.total_amount).toLocaleString()}</td>
                                                     <td className="px-8 py-6 text-center">
