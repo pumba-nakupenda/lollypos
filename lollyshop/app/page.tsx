@@ -300,7 +300,7 @@ export default async function Home(props: {
                 <Link href="#" className="hover:text-black transition-colors">Support: {siteSettings?.whatsapp_number || '+221 77 235 47 47'}</Link>
             </div>
             <p className="text-[8px] font-black uppercase tracking-[0.5em] text-gray-300">
-                {siteSettings?.address || '© 2026 LOLLY GROUP SENEGAL • Dakar'}
+                {siteSettings?.address || '© 2026 LOLLY SAS • Dakar'}
             </p>
         </div>
       </footer>

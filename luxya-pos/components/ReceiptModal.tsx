@@ -282,7 +282,7 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
                                 </tr>
                                 <tr>
                                     <td style={{ padding: '10px 0 0 0', verticalAlign: 'top' }}>
-                                        <strong style={{ fontSize: '18px', display: 'block', marginBottom: '5px' }}>LOLLY GROUP SENEGAL</strong>
+                                        <strong style={{ fontSize: '18px', display: 'block', marginBottom: '5px' }}>LOLLY SAS</strong>
                                         <div style={{ color: '#666', lineHeight: '1.5', fontSize: '13px' }}>
                                             Fass delorme 13x22<br/>
                                             +221 77 235 47 47<br/>
