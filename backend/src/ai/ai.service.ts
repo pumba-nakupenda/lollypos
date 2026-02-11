@@ -21,9 +21,9 @@ export class AiService {
         const apiKey = this.configService.get<string>('GOOGLE_GEMINI_API_KEY');
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
-            // On utilise le modèle sans les réglages de sécurité qui font planter le build
-            this.model = this.genAI.getGenerativeModel({ model: 'gemini-3-flash' });
-            this.logger.log('AI System: Gemini 3 Ready.');
+            // Utilisation du nom de modèle technique stable
+            this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+            this.logger.log('AI System: Gemini 2.0 Flash Ready.');
         }
     }
 
