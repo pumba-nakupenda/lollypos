@@ -33,11 +33,12 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
     if (!isOpen) return null
 
     return (
-        <div className="fixed inset-0 z-[200] overflow-hidden">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose} />
+        <div className="fixed inset-0 z-[200] pointer-events-none">
+            {/* Overlay ultra léger sans flou */}
+            <div className="absolute inset-0 bg-black/5 pointer-events-auto" onClick={onClose} />
             
-            <div className="absolute inset-y-0 right-0 max-w-full flex">
-                <div className="w-screen max-w-md bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col">
+            <div className="absolute inset-y-0 right-0 max-w-full flex pointer-events-auto">
+                <div className="w-screen max-w-md bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.1)] animate-in slide-in-from-right duration-500 flex flex-col">
                     
                     {/* Amazon-Style Sub-Header */}
                     <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-100">
@@ -61,6 +62,13 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                             className="w-full mt-4 py-4 bg-[#fde700] text-black rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#f5d600] transition-all shadow-md active:scale-95 disabled:opacity-50"
                         >
                             Passer la commande
+                        </button>
+
+                        <button 
+                            onClick={onClose}
+                            className="w-full mt-2 py-3 bg-white text-gray-500 border border-gray-200 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-gray-50 transition-all active:scale-95"
+                        >
+                            Continuer mes achats
                         </button>
                     </div>
 

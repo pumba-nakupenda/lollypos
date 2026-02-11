@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useState } from 'react';
@@ -10,9 +9,10 @@ import ProductDetailsModal from './ProductDetailsModal';
 import { API_URL } from '@/utils/api';
 
 export default function ProductCard({ product }: { product: any }) {
-    const { addToCart, setIsCartOpen } = useCart();
+    const { addToCart } = useCart();
     const { toggleWishlist, isInWishlist } = useWishlist();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [added, setAdded] = useState(false);
 
     const trackView = async () => {
         try {
@@ -33,13 +33,14 @@ export default function ProductCard({ product }: { product: any }) {
         e.stopPropagation();
         if (!isOutOfStock) {
             addToCart(product);
-            setIsCartOpen(true); // Ouvrir le panier comme sur Amazon pour confirmer
+            setAdded(true);
+            setTimeout(() => setAdded(false), 2000);
             trackView();
         }
     };
     
     const shopName = product.shop_id === 1 ? "Luxya" : "Homtek";
-    const shopColor = product.shop_id === 1 ? "text-pink-500" : "text-blue-600";
+    const shopColor = product.shop_id === 1 ? "text-pink-500" : "text-lolly";
     const hasPromo = product.promo_price && product.promo_price > 0 && Number(product.promo_price) < Number(product.price);
     const isFavorite = isInWishlist(product.id);
 
@@ -47,95 +48,96 @@ export default function ProductCard({ product }: { product: any }) {
     const isLowStock = stock > 0 && stock <= 5;
     const isOutOfStock = stock <= 0 && product.type !== 'service';
 
-    const discountPercent = hasPromo 
-        ? Math.round(((Number(product.price) - Number(product.promo_price)) / Number(product.price)) * 100)
-        : 0;
-    
-    const savingAmount = hasPromo ? Number(product.price) - Number(product.promo_price) : 0;
-
     return (
         <>
-            <div className="group bg-white flex flex-col h-full border border-gray-100 hover:shadow-2xl transition-all duration-500 rounded-[24px] overflow-hidden relative">
+            <div className="bg-white flex flex-col h-full hover:shadow-lg transition-all duration-300 rounded-lg overflow-hidden border border-gray-200/60 relative group">
                 
                 {/* Image Container */}
-                <div className="relative aspect-square overflow-hidden bg-gray-50 cursor-pointer" onClick={handleOpenModal}>
+                <div className="relative aspect-square overflow-hidden bg-white p-4 cursor-pointer" onClick={handleOpenModal}>
                     {product.image ? (
-                        <Image src={product.image} alt={product.name} fill className="object-cover transition-transform duration-1000 group-hover:scale-105" />
+                        <Image 
+                            src={product.image} 
+                            alt={product.name} 
+                            fill 
+                            className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" 
+                        />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-200"><ShoppingBag className="w-12 h-12" /></div>
+                        <div className="w-full h-full flex items-center justify-center text-gray-100"><ShoppingBag className="w-16 h-16" /></div>
                     )}
 
-                    {/* Wishlist Button */}
+                    {/* Quick Fav */}
                     <button 
                         onClick={(e) => { e.stopPropagation(); toggleWishlist(product); }}
-                        className={`absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg z-20 ${isFavorite ? 'bg-pink-500 text-white' : 'bg-white/90 text-gray-400 hover:text-pink-500'}`}
+                        className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all z-20 ${isFavorite ? 'bg-pink-500 text-white shadow-lg' : 'bg-white/80 text-gray-300 hover:text-pink-500 hover:shadow-md'}`}
                     >
-                        <Heart className={`w-5 h-5 ${isFavorite ? 'fill-white' : ''}`} />
+                        <Heart className={`w-4 h-4 ${isFavorite ? 'fill-white' : ''}`} />
                     </button>
 
-                    {/* Promo Badge */}
+                    {/* Badges Area */}
                     {hasPromo && (
-                        <div className="absolute top-4 left-0 z-20 bg-red-600 text-white px-3 py-1 text-[10px] font-black uppercase rounded-r-lg shadow-lg">
-                            -{discountPercent}%
-                        </div>
-                    )}
-
-                    {isOutOfStock && (
-                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] flex items-center justify-center z-10">
-                            <span className="px-4 py-2 bg-black text-white text-[10px] font-black uppercase rounded-full">Épuisé</span>
+                        <div className="absolute top-2 left-0 z-20 bg-red-600 text-white px-2 py-0.5 text-[9px] font-black uppercase rounded-r shadow-md">
+                            Offre Limitée
                         </div>
                     )}
                 </div>
 
-                {/* Info Container */}
-                <div className="p-5 flex flex-col flex-1 space-y-3">
-                    <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                            <span className={`text-[9px] font-black uppercase tracking-widest ${shopColor}`}>{shopName}</span>
-                            <div className="flex text-yellow-400"><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /><Star className="w-3 h-3 fill-current" /></div>
+                {/* Content Area */}
+                <div className="p-4 flex flex-col flex-1">
+                    <div className="flex-1 space-y-1.5">
+                        <div className="flex items-center space-x-2">
+                            <span className={`text-[8px] font-black uppercase tracking-widest ${shopColor}`}>{shopName}</span>
+                            <div className="flex text-[#FF9900]"><Star className="w-2.5 h-2.5 fill-current" /><Star className="w-2.5 h-2.5 fill-current" /><Star className="w-2.5 h-2.5 fill-current" /><Star className="w-2.5 h-2.5 fill-current" /><Star className="w-2.5 h-2.5 fill-current" /></div>
                         </div>
-                        <h3 className="text-sm font-bold text-gray-900 line-clamp-2 leading-snug group-hover:text-[#0055ff] transition-colors uppercase tracking-tight">
+                        
+                        <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-lolly transition-colors h-9">
                             {product.name}
                         </h3>
-                    </div>
 
-                    {/* Price Area */}
-                    <div className="space-y-1">
-                        {hasPromo ? (
-                            <div>
-                                <div className="flex items-center space-x-2">
-                                    <span className="text-xl font-black text-red-600 tracking-tighter">{Number(product.promo_price).toLocaleString()} <span className="text-xs">CFA</span></span>
-                                    <span className="text-xs text-gray-400 line-through font-medium">{Number(product.price).toLocaleString()}</span>
+                        {/* Price Logic */}
+                        <div className="pt-1">
+                            {hasPromo ? (
+                                <div className="space-y-0.5">
+                                    <div className="flex items-baseline space-x-2">
+                                        <span className="text-lg font-black text-red-700 tracking-tight">{Number(product.promo_price).toLocaleString()} <span className="text-[10px]">CFA</span></span>
+                                        <span className="text-xs text-gray-400 line-through font-medium">{Number(product.price).toLocaleString()}</span>
+                                    </div>
+                                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Prix le plus bas 30j</p>
                                 </div>
-                                <p className="text-[10px] font-bold text-green-600">Économisez {savingAmount.toLocaleString()} CFA</p>
-                            </div>
-                        ) : (
-                            <p className="text-xl font-black text-gray-900 tracking-tighter">
-                                {Number(product.price).toLocaleString()} <span className="text-xs">CFA</span>
+                            ) : (
+                                <p className="text-lg font-black text-gray-900 tracking-tight">
+                                    {Number(product.price).toLocaleString()} <span className="text-[10px]">CFA</span>
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Social Proof & Logistics */}
+                        <div className="space-y-1 pt-1">
+                            <p className="text-[10px] font-medium text-green-700 flex items-center">
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> Livraison Express Dakar
                             </p>
-                        )}
+                            {isLowStock ? (
+                                <p className="text-[10px] font-black text-red-600 uppercase flex items-center">
+                                    <Flame className="w-3 h-3 mr-1" /> Il n'en reste plus que {stock}
+                                </p>
+                            ) : (
+                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Stock Disponible</p>
+                            )}
+                        </div>
                     </div>
 
-                    {/* Delivery & Stock Info */}
-                    <div className="space-y-1 pb-2">
-                        <p className="text-[10px] font-medium text-gray-500 flex items-center">
-                            <CheckCircle2 className="w-3 h-3 mr-1 text-green-500" /> Livraison demain à Dakar
-                        </p>
-                        {isLowStock && (
-                            <p className="text-[10px] font-black text-orange-600 uppercase flex items-center">
-                                <Flame className="w-3 h-3 mr-1 animate-pulse" /> Plus que {stock} en stock !
-                            </p>
-                        )}
+                    {/* Primary Button */}
+                    <div className="mt-4 pt-3 border-t border-gray-100">
+                        <button 
+                            onClick={handleAddToCart}
+                            disabled={isOutOfStock}
+                            className={`w-full py-2.5 rounded-md font-black uppercase text-[10px] tracking-widest transition-all ${
+                                isOutOfStock ? 'bg-gray-100 text-gray-400' : 
+                                added ? 'bg-green-600 text-white shadow-inner' : 'bg-[#fde700] text-black hover:bg-[#f5d600] shadow-sm active:scale-95'
+                            }`}
+                        >
+                            {isOutOfStock ? 'Épuisé' : added ? 'Ajouté !' : 'Ajouter au panier'}
+                        </button>
                     </div>
-
-                    {/* Amazon-Style Action Button */}
-                    <button 
-                        onClick={handleAddToCart}
-                        disabled={isOutOfStock}
-                        className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${isOutOfStock ? 'bg-gray-100 text-gray-400' : 'bg-[#fde700] text-black hover:bg-[#f5d600] shadow-md active:scale-95'}`}
-                    >
-                        Ajouter au panier
-                    </button>
                 </div>
             </div>
 

@@ -7,22 +7,24 @@
 
 .animate-marquee {
   display: inline-flex;
-  animation: marquee 20s linear infinite;
+  animation: marquee 30s linear infinite;
 }
 
-@keyframes progress-bar {
-  0% { transform: scale-x(0); }
-  100% { transform: scale-x(1); }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-.animate-progress-bar {
-  animation: progress-bar 6s linear infinite;
+.animate-float {
+  animation: float 4s ease-in-out infinite;
 }
 
 :root {
-  --background: #ffffff;
-  --foreground: #000000;
+  --background: #fafafa;
+  --foreground: #0f1111; /* Amazon dark blue/black */
   --lolly-blue: #0055ff;
+  --amazon-orange: #FF9900;
+  --amazon-yellow: #fde700;
 }
 
 @theme inline {
@@ -37,15 +39,25 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-roboto), ui-sans-serif, system-ui;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Lolly Utilities */
-.text-lolly {
-  color: var(--lolly-blue);
+/* Amazon-Style Containers */
+.amazon-container {
+  max-width: 1500px;
+  margin: 0 auto;
 }
 
-.bg-lolly {
-  background-color: var(--lolly-blue);
+.glass-card {
+  background: white;
+  border: 1px solid #e7e7e7;
+  border-radius: 8px; /* Moins arrondi, plus pro */
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
 }
 
 .brand-lolly {
@@ -53,4 +65,23 @@ body {
   font-weight: 900;
   font-style: italic;
   text-transform: uppercase;
+}
+
+/* Scrollbar Clean */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

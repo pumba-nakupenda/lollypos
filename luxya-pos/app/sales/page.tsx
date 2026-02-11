@@ -134,23 +134,28 @@ export default function SalesTerminal() {
         const payload = isAgency ? {
             type: docType,
             customer_name: customerName,
-            total_amount: totalAmount,
+            totalAmount: totalAmount,
             paid_amount: parseFloat(paidAmount),
-            shop_id: activeShop?.id,
-            items: agencyLines,
+            shopId: activeShop?.id,
+            items: agencyLines.map(l => ({
+                productId: l.product_id || 0,
+                quantity: l.quantity,
+                price: l.price,
+                name: l.name
+            })),
             with_tva: withTva,
             status: parseFloat(paidAmount) >= totalAmount ? 'paid' : (parseFloat(paidAmount) > 0 ? 'partial' : 'pending'),
             linked_doc_number: linkedDocNumber
         } : {
             customer_name: customerName || 'Client Comptant',
-            total_amount: totalAmount,
-            payment_method: paymentMethod,
-            shop_id: activeShop?.id,
+            totalAmount: totalAmount,
+            paymentMethod: paymentMethod,
+            shopId: activeShop?.id,
             created_at: new Date(saleDate).toISOString(),
             items: cart.map(item => ({
-                product_id: item.id,
+                productId: item.id,
                 quantity: item.quantity,
-                unit_price: item.price
+                price: item.price
             }))
         };
 
@@ -180,9 +185,14 @@ export default function SalesTerminal() {
                 setCustomerName('');
                 fetchHistory();
                 fetchProducts();
+            } else {
+                const errorData = await res.json();
+                console.error('Checkout Error Details:', errorData);
+                showToast(`Erreur : ${errorData.message || 'Le serveur a refusé la vente'}`, "error");
             }
-        } catch (e) {
-            showToast("Erreur lors de l'enregistrement", "error");
+        } catch (e: any) {
+            console.error('Checkout Network Error:', e);
+            showToast(`Erreur de connexion : ${e.message}`, "error");
         } finally {
             setIsCheckingOut(false);
         }
@@ -191,6 +201,19 @@ export default function SalesTerminal() {
     const handleViewReceipt = (sale: any) => {
         setLastSale(sale);
         setIsReceiptOpen(true);
+    };
+
+    const handleDeleteSale = async (id: string) => {
+        if (!confirm("Supprimer définitivement cet enregistrement ?")) return;
+        try {
+            const res = await fetch(`${API_URL}/sales/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                showToast("Enregistrement supprimé", "success");
+                fetchHistory();
+            }
+        } catch (e) {
+            showToast("Erreur lors de la suppression", "error");
+        }
     };
 
     const addAgencyLine = () => {
@@ -475,9 +498,14 @@ export default function SalesTerminal() {
                                                     </td>
                                                     <td className="px-8 py-6 text-right font-black text-shop text-sm">{Number(sale.total_amount).toLocaleString()}</td>
                                                     <td className="px-8 py-6 text-center">
-                                                        <button onClick={() => handleViewReceipt(sale)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-shop transition-all group-hover:scale-110">
-                                                            <Receipt className="w-4 h-4" />
-                                                        </button>
+                                                        <div className="flex items-center justify-center space-x-2">
+                                                            <button onClick={() => handleViewReceipt(sale)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-shop transition-all group-hover:scale-110">
+                                                                <Receipt className="w-4 h-4" />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteSale(sale.id)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-red-400 transition-all opacity-0 group-hover:opacity-100">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))}
@@ -497,7 +525,10 @@ export default function SalesTerminal() {
                         <div className="p-6 sm:p-8 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
                             <div>
                                 <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white">Panier</h2>
-                                <p className="text-[10px] text-muted-foreground uppercase font-black">{cart.length} Articles</p>
+                                <div className="flex items-center space-x-2">
+                                    <p className="text-[10px] text-muted-foreground uppercase font-black">{cart.length} Articles</p>
+                                    <button onClick={() => setCart([])} className="text-[8px] font-black text-red-400 uppercase hover:underline ml-2">Vider</button>
+                                </div>
                             </div>
                             <button onClick={() => setIsCartOpen(false)} className="lg:hidden p-2 bg-white/5 rounded-xl text-white"><X className="w-5 h-5" /></button>
                         </div>
