@@ -77,8 +77,8 @@ export default function SalesTerminal() {
 
     const fetchHistory = async () => {
         try {
-            const endpoint = activeShop?.id === 3 ? 'sales/agency' : 'sales';
-            const res = await fetch(`${API_URL}/${endpoint}?shopId=${activeShop?.id}`);
+            // L'endpoint est simplement 'sales', le filtrage se fait par shopId
+            const res = await fetch(`${API_URL}/sales?shopId=${activeShop?.id}`);
             if (res.ok) {
                 setAgencyHistory(await res.json());
             }
@@ -155,7 +155,7 @@ export default function SalesTerminal() {
         };
 
         try {
-            const endpoint = isAgency ? (editingDocId ? `sales/agency/${editingDocId}` : 'sales/agency') : 'sales';
+            const endpoint = editingDocId ? `sales/${editingDocId}` : 'sales';
             const method = editingDocId ? 'PATCH' : 'POST';
             
             const res = await fetch(`${API_URL}/${endpoint}`, {
