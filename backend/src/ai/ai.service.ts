@@ -1,4 +1,3 @@
-
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -22,7 +21,7 @@ export class AiService {
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
             this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-            this.logger.log('AI System: Gemini 2.0 Flash (Advanced Mode).');
+            this.logger.log('AI System: Gemini 2.0 Flash (Fixed Math Mode).');
         }
     }
 
@@ -34,7 +33,6 @@ export class AiService {
         if (!this.model) return "IA non configurée.";
         
         try {
-            // 1. RÉCUPÉRATION SEGMENTÉE DES DONNÉES
             const [salesRes, productsRes, expensesRes, debtsRes, shopsRes] = await Promise.all([
                 this.admin.from('sales').select('*'),
                 this.admin.from('products').select('*'),
@@ -44,48 +42,51 @@ export class AiService {
             ]);
 
             const allSales = salesRes.data || [];
-            const allProducts = productsRes.data || [];
             const allExpenses = expensesRes.data || [];
+            const allProducts = productsRes.data || [];
             const allDebts = debtsRes.data || [];
-            const allShops = shopsRes.data || [];
 
-            // 2. ORGANISATION SANS DOUBLONS STRICTE
-            const segmentedData = allShops.map((shop: any) => {
-                const sSales = allSales.filter((s: any) => s.shop_id === shop.id);
-                const sProducts = allProducts.filter((p: any) => p.shop_id === shop.id);
-                // ATTENTION : On exclut STRICTEMENT les dépenses 'Perso' des charges pro ici
-                const sExpenses = allExpenses.filter((e: any) => e.shop_id === shop.id && e.category !== 'Perso');
-                
-                return {
+            // CALCULS SANS DOUBLONS
+            // 1. On prend le total ABSOLU de toutes les dépenses enregistrées
+            const totalDepensesGlobal = allExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+            
+            // 2. On identifie la part de la direction (catégorie 'Perso')
+            const totalDirection = allExpenses
+                .filter((e: any) => e.category === 'Perso' || e.category === 'Personnel')
+                .reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+
+            // 3. Le reste, ce sont les charges d'exploitation pures
+            const totalExploitationPro = totalDepensesGlobal - totalDirection;
+
+            const context = {
+                v: "3.0.7_fixed_math",
+                bilan_groupe: {
+                    ca_total: allSales.reduce((sum: number, s: any) => sum + Number(s.total_amount), 0),
+                    total_sorties_argent: totalDepensesGlobal,
+                    repartition: {
+                        part_direction_perso: totalDirection,
+                        part_exploitation_pro: totalExploitationPro
+                    },
+                    profit_net_final: allSales.reduce((sum: number, s: any) => sum + Number(s.total_amount), 0) - totalDepensesGlobal,
+                    dettes_clients: allDebts.reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0)
+                },
+                detail_boutiques: shopsRes.data?.map((shop: any) => ({
                     nom: shop.name,
-                    ca: sSales.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0),
-                    charges_pro_uniquement: sExpenses.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0),
-                    stock_val: sProducts.reduce((sum: number, p: any) => sum + (Number(p.price) * Number(p.stock)), 0),
-                    alertes: sProducts.filter((p: any) => p.stock < 5).map((p: any) => p.name)
-                };
-            });
-
-            // On isole les dépenses perso à part
-            const personalExpenses = allExpenses.filter((e: any) => e.category === 'Perso');
-            const totalPersoDirection = personalExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-
-            const globalContext = {
-                id_v: "3.0.6",
-                cible: shopId ? allShops.find((s: any) => s.id === shopId)?.name : 'GROUPE CONSOLIDÉ',
-                detail_boutiques: segmentedData,
-                total_depenses_perso_direction: totalPersoDirection,
-                total_charges_professionnelles: segmentedData.reduce((sum, s) => sum + s.charges_pro_uniquement, 0),
-                profit_net_reel: segmentedData.reduce((sum, s) => sum + s.ca, 0) - segmentedData.reduce((sum, s) => sum + s.charges_pro_uniquement, 0) - totalPersoDirection,
-                dettes_a_recouvrer: allDebts.reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0)
+                    ca: allSales.filter((s: any) => s.shop_id === shop.id).reduce((sum: number, s: any) => sum + Number(s.total_amount), 0),
+                    stock: allProducts.filter((p: any) => p.shop_id === shop.id).reduce((sum: number, p: any) => sum + (p.stock * p.price), 0)
+                }))
             };
 
             const systemInstruction = `
-                Tu es l'Intelligence de Pilotage de LOLLY SAS. 
-                RÈGLE DE CALCUL : PROFIT RÉEL = CA - CHARGES PRO - DÉPENSES PERSO.
-                Ne compte JAMAIS les dépenses perso deux fois. 
-                Les dépenses "DIRECTION" (Perso) sont de ${totalPersoDirection} FCFA.
-                Les charges "PRO" sont de ${globalContext.total_charges_professionnelles} FCFA.
-                Le Profit Net Réel est donc de ${globalContext.profit_net_reel} FCFA.
+                Tu es l'Intelligence de Pilotage de LOLLY SAS.
+                CONSIGNE MATHÉMATIQUE : 
+                - Le TOTAL des dépenses est de ${totalDepensesGlobal} FCFA.
+                - Dans ce total, ${totalDirection} FCFA sont des dépenses de la DIRECTION (Perso).
+                - Les charges de fonctionnement PRO sont donc de ${totalExploitationPro} FCFA.
+                - Le PROFIT NET est CA (${context.bilan_groupe.ca_total}) - TOTAL DEPENSES (${totalDepensesGlobal}).
+                
+                NE COMPTE JAMAIS LES DEPENSES DE DIRECTION EN PLUS DU TOTAL. Elles sont déjà dedans.
+                Réponds de façon directe au patron.
             `;
 
             let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
@@ -113,5 +114,5 @@ export class AiService {
 
     async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES ✨" }; }
     async suggestProductPhoto(p: string) { return { urls: [] }; }
-    async getStatus() { return { status: 'online', mode: 'CLEAN_SEGMENTED' }; }
+    async getStatus() { return { status: 'online' }; }
 }
