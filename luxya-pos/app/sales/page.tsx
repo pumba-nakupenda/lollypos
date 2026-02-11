@@ -450,7 +450,7 @@ export default function SalesTerminal() {
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            {agencyHistory.map((sale) => (
+                                            {agencyHistory.filter(s => !isAgency || s.type === docType).map((sale) => (
                                                 <tr key={sale.id} className="hover:bg-white/[0.02] transition-colors group">
                                                     <td className="px-8 py-6">
                                                         <div className="flex items-center space-x-3">
