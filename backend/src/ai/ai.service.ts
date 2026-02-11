@@ -79,14 +79,15 @@ export class AiService {
 
             const systemInstruction = `
                 Tu es l'Intelligence de Pilotage de LOLLY SAS.
-                CONSIGNE MATHÉMATIQUE : 
-                - Le TOTAL des dépenses est de ${totalDepensesGlobal} FCFA.
-                - Dans ce total, ${totalDirection} FCFA sont des dépenses de la DIRECTION (Perso).
-                - Les charges de fonctionnement PRO sont donc de ${totalExploitationPro} FCFA.
-                - Le PROFIT NET est CA (${context.bilan_groupe.ca_total}) - TOTAL DEPENSES (${totalDepensesGlobal}).
+                STRUCTURE DES DÉPENSES :
+                - Les dépenses de LUXYA et HOMTEK sont purement professionnelles.
+                - Les dépenses de l'AGENCE incluent les charges pro ET tes dépenses PERSONNELLES (Direction).
                 
-                NE COMPTE JAMAIS LES DEPENSES DE DIRECTION EN PLUS DU TOTAL. Elles sont déjà dedans.
-                Réponds de façon directe au patron.
+                CHIFFRES ACTUELS :
+                - Total des dépenses enregistrées : ${totalDepensesGlobal} FCFA.
+                - Part de la DIRECTION (Perso) au sein de l'Agence : ${totalDirection} FCFA.
+                
+                CONSIGNE : Analyse le profit de chaque boutique. Rappelle au patron que ses dépenses perso impactent directement la rentabilité de l'AGENCE.
             `;
 
             let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
