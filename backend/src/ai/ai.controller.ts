@@ -36,4 +36,9 @@ export class AiController {
     async generateBanner() {
         return this.aiService.generatePromoBanner();
     }
+
+    @Get('forecast')
+    async getForecast(@Query('shopId') shopId?: string) {
+        return this.aiService.getForecast(shopId ? parseInt(shopId) : undefined);
+    }
 }

@@ -117,4 +117,23 @@ export class AiService {
     async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES ✨" }; }
     async suggestProductPhoto(p: string) { return { urls: [] }; }
     async getStatus() { return { status: 'online', mode: 'SEGMENTED_ADVISOR' }; }
+
+    // --- NOUVELLE FONCTION DE PRÉVISION ---
+    async getForecast(shopId?: number) {
+        try {
+            const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+            const { data: sales } = await this.admin
+                .from('sales')
+                .select('total_amount')
+                .gte('created_at', startDate)
+                .eq(shopId ? 'shop_id' : '', shopId || '');
+
+            const total = sales?.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0) || 0;
+            const avgDaily = total / 30;
+
+            const result = await this.model.generateContent(`Prédis le CA pour les 3 prochains jours. CA total 30j: ${total}. Moyenne: ${avgDaily}. Réponds uniquement en JSON: {"predictions": [nb1, nb2, nb3]}`);
+            const text = (await result.response).text().trim().replace(/```json|```/g, '');
+            return JSON.parse(text);
+        } catch (e) { return { predictions: [avgDaily || 10000, (avgDaily || 10000)*1.1, (avgDaily || 10000)*0.9] }; }
+    }
 }

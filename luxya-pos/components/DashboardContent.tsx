@@ -43,6 +43,7 @@ export default function DashboardContent({ user }: { user: any }) {
     // States for merged data
     const [analytics, setAnalytics] = useState<any>(null)
     const [sales, setSales] = useState<any[]>([])
+    const [aiForecast, setAiForecast] = useState<number[]>([0, 0, 0])
     const [loading, setLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState('Toutes')
 
@@ -67,15 +68,21 @@ export default function DashboardContent({ user }: { user: any }) {
             const shopId = (!activeShop || activeShop.id === 0) ? 'all' : activeShop.id
 
             // Fetch everything in parallel with month/year
-            const [analyticsRes, salesRes] = await Promise.all([
+            const [analyticsRes, salesRes, forecastRes] = await Promise.all([
                 fetch(`/api/analytics?shopId=${shopId}&category=${selectedCategory}&month=${selectedMonth}&year=${selectedYear}`),
-                fetch(`${API_URL}/sales?shopId=${shopId === 'all' ? '' : shopId}`)
+                fetch(`${API_URL}/sales?shopId=${shopId === 'all' ? '' : shopId}`),
+                fetch(`${API_URL}/ai/forecast?shopId=${shopId === 'all' ? '' : shopId}`)
             ])
 
             if (analyticsRes.ok && salesRes.ok) {
                 const aData = await analyticsRes.json()
                 const sData = await salesRes.json()
                 setAnalytics(aData)
+
+                if (forecastRes.ok) {
+                    const fData = await forecastRes.json()
+                    setAiForecast(fData.predictions || [0, 0, 0])
+                }
 
                 // Filter recent sales list to match the selected month too for consistency
                 const filteredRecentSales = sData.filter((s: any) => {
@@ -280,23 +287,26 @@ export default function DashboardContent({ user }: { user: any }) {
                             )
                         })}
                         {/* AI FORECAST PREVIEW */}
-                        {[1, 2, 3].map((i) => (
-                            <div key={`f-${i}`} className="flex-1 flex flex-col items-center group relative h-full justify-end opacity-40">
-                                <div className="flex w-full justify-center items-end h-full pb-1 sm:pb-2">
-                                    <div 
-                                        className="w-full border-2 border-shop border-dashed rounded-t-lg bg-shop/5 animate-in slide-in-from-bottom-full duration-1000" 
-                                        style={{ 
-                                            height: `${40 + (i * 10)}%`,
-                                            animationDelay: `${(trend.length + i) * 50}ms`,
-                                            animationFillMode: 'both'
-                                        }}
-                                    >
-                                        <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-shop/20 text-shop px-2 py-1 rounded text-[7px] font-black whitespace-nowrap">IA Prédit +{(150000 * i).toLocaleString()}</div>
+                        {aiForecast.map((value, i) => {
+                            const maxVal = Math.max(...trend.map((d: any) => Math.max(d.income, d.outcome)), ...aiForecast) || 1
+                            return (
+                                <div key={`f-${i}`} className="flex-1 flex flex-col items-center group relative h-full justify-end opacity-40">
+                                    <div className="flex w-full justify-center items-end h-full pb-1 sm:pb-2">
+                                        <div 
+                                            className="w-full border-2 border-shop border-dashed rounded-t-lg bg-shop/5 animate-in slide-in-from-bottom-full duration-1000" 
+                                            style={{ 
+                                                height: `${(value / maxVal) * 100}%`,
+                                                animationDelay: `${(trend.length + i) * 50}ms`,
+                                                animationFillMode: 'both'
+                                            }}
+                                        >
+                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-shop/20 text-shop px-2 py-1 rounded text-[7px] font-black whitespace-nowrap">IA Prédit +{value.toLocaleString()}</div>
+                                        </div>
                                     </div>
+                                    <span className="text-[7px] font-black text-shop/40 uppercase mt-1 sm:mt-2">J+{i+1}</span>
                                 </div>
-                                <span className="text-[7px] font-black text-shop/40 uppercase mt-1 sm:mt-2">J+{i}</span>
-                            </div>
-                        ))}
+                            )
+                        })}
                     </div>
                 </div>
 
