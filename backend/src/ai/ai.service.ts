@@ -49,43 +49,43 @@ export class AiService {
             const allDebts = debtsRes.data || [];
             const allShops = shopsRes.data || [];
 
-            // 2. ORGANISATION SANS DOUBLONS
+            // 2. ORGANISATION SANS DOUBLONS STRICTE
             const segmentedData = allShops.map((shop: any) => {
                 const sSales = allSales.filter((s: any) => s.shop_id === shop.id);
                 const sProducts = allProducts.filter((p: any) => p.shop_id === shop.id);
+                // ATTENTION : On exclut STRICTEMENT les dépenses 'Perso' des charges pro ici
                 const sExpenses = allExpenses.filter((e: any) => e.shop_id === shop.id && e.category !== 'Perso');
                 
                 return {
                     nom: shop.name,
                     ca: sSales.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0),
-                    charges_pro: sExpenses.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0),
+                    charges_pro_uniquement: sExpenses.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0),
                     stock_val: sProducts.reduce((sum: number, p: any) => sum + (Number(p.price) * Number(p.stock)), 0),
                     alertes: sProducts.filter((p: any) => p.stock < 5).map((p: any) => p.name)
                 };
             });
 
+            // On isole les dépenses perso à part
             const personalExpenses = allExpenses.filter((e: any) => e.category === 'Perso');
-            const totalPerso = personalExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+            const totalPersoDirection = personalExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
 
             const globalContext = {
-                id_v: "3.0.5",
+                id_v: "3.0.6",
                 cible: shopId ? allShops.find((s: any) => s.id === shopId)?.name : 'GROUPE CONSOLIDÉ',
                 detail_boutiques: segmentedData,
-                total_perso_direction: totalPerso,
-                total_dettes_clients: allDebts.reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0),
-                dettes_detail: allDebts.filter((d:any) => d.remaining_amount > 0).map((d:any) => ({ c: d.customers?.name, m: d.remaining_amount })),
-                // Liste brute des dépenses pour analyse précise
-                registre_depenses: allExpenses.map((e: any) => ({ d: e.description, v: e.amount, t: e.category === 'Perso' ? 'DIRECTION' : 'PRO' }))
+                total_depenses_perso_direction: totalPersoDirection,
+                total_charges_professionnelles: segmentedData.reduce((sum, s) => sum + s.charges_pro_uniquement, 0),
+                profit_net_reel: segmentedData.reduce((sum, s) => sum + s.ca, 0) - segmentedData.reduce((sum, s) => sum + s.charges_pro_uniquement, 0) - totalPersoDirection,
+                dettes_a_recouvrer: allDebts.reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0)
             };
 
             const systemInstruction = `
                 Tu es l'Intelligence de Pilotage de LOLLY SAS. 
-                TU AS ACCÈS À TOUT (PRO ET DIRECTION). NE DIS JAMAIS LE CONTRAIRE.
-                Les dépenses "DIRECTION" sont les dépenses personnelles du patron.
-                CONSIGNE : Analyse tout sans filtre. Sois l'associé du patron. Donne des chiffres exacts.
-                
-                DONNÉES DU REGISTRE :
-                ${JSON.stringify(globalContext)}
+                RÈGLE DE CALCUL : PROFIT RÉEL = CA - CHARGES PRO - DÉPENSES PERSO.
+                Ne compte JAMAIS les dépenses perso deux fois. 
+                Les dépenses "DIRECTION" (Perso) sont de ${totalPersoDirection} FCFA.
+                Les charges "PRO" sont de ${globalContext.total_charges_professionnelles} FCFA.
+                Le Profit Net Réel est donc de ${globalContext.profit_net_reel} FCFA.
             `;
 
             let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
