@@ -1,3 +1,4 @@
+
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -21,7 +22,7 @@ export class AiService {
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
             this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-            this.logger.log('AI System: Gemini 2.0 Flash (Advanced Segmented Mode).');
+            this.logger.log('AI System: Gemini 2.0 Flash (Advanced Mode).');
         }
     }
 
@@ -33,7 +34,7 @@ export class AiService {
         if (!this.model) return "IA non configurée.";
         
         try {
-            // RÉCUPÉRATION SEGMENTÉE DES DONNÉES
+            // 1. RÉCUPÉRATION SEGMENTÉE DES DONNÉES
             const [salesRes, productsRes, expensesRes, debtsRes, shopsRes] = await Promise.all([
                 this.admin.from('sales').select('*'),
                 this.admin.from('products').select('*'),
@@ -48,47 +49,43 @@ export class AiService {
             const allDebts = debtsRes.data || [];
             const allShops = shopsRes.data || [];
 
-            // Organisation des données boutique par boutique
+            // 2. ORGANISATION SANS DOUBLONS
             const segmentedData = allShops.map((shop: any) => {
                 const sSales = allSales.filter((s: any) => s.shop_id === shop.id);
                 const sProducts = allProducts.filter((p: any) => p.shop_id === shop.id);
-                const sExpenses = allExpenses.filter((e: any) => e.shop_id === shop.id);
+                const sExpenses = allExpenses.filter((e: any) => e.shop_id === shop.id && e.category !== 'Perso');
                 
                 return {
                     nom: shop.name,
-                    id: shop.id,
                     ca: sSales.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0),
-                    charges: sExpenses.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0),
-                    stock_valeur: sProducts.reduce((sum: number, p: any) => sum + (Number(p.price) * Number(p.stock)), 0),
-                    nb_produits: sProducts.length,
+                    charges_pro: sExpenses.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0),
+                    stock_val: sProducts.reduce((sum: number, p: any) => sum + (Number(p.price) * Number(p.stock)), 0),
                     alertes: sProducts.filter((p: any) => p.stock < 5).map((p: any) => p.name)
                 };
             });
 
+            const personalExpenses = allExpenses.filter((e: any) => e.category === 'Perso');
+            const totalPerso = personalExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+
             const globalContext = {
-                boutique_cible: shopId ? allShops.find((s: any) => s.id === shopId)?.name : 'GROUPE LOLLY (CONSOLIDÉ)',
-                analyse_par_boutique: segmentedData,
-                totaux_du_groupe: {
-                    ca_total: segmentedData.reduce((sum, s) => sum + s.ca, 0),
-                    // On additionne les charges des boutiques + les dépenses personnelles
-                    charges_totales: segmentedData.reduce((sum, s) => sum + s.charges, 0) + allExpenses.filter((e: any) => e.category === 'Perso').reduce((sum: number, e: any) => sum + Number(e.amount), 0),
-                    valeur_stock_totale: segmentedData.reduce((sum, s) => sum + s.stock_valeur, 0),
-                    profit_net_groupe: segmentedData.reduce((sum, s) => sum + (s.ca - s.charges), 0) - allExpenses.filter((e: any) => e.category === 'Perso').reduce((sum: number, e: any) => sum + Number(e.amount), 0)
-                },
-                dettes_globales: allDebts.reduce((sum: number, d: any) => sum + (Number(d.remaining_amount) || 0), 0),
-                dépenses_personnelles_direction: allExpenses.filter((e: any) => e.category === 'Perso').reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0)
+                id_v: "3.0.5",
+                cible: shopId ? allShops.find((s: any) => s.id === shopId)?.name : 'GROUPE CONSOLIDÉ',
+                detail_boutiques: segmentedData,
+                total_perso_direction: totalPerso,
+                total_dettes_clients: allDebts.reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0),
+                dettes_detail: allDebts.filter((d:any) => d.remaining_amount > 0).map((d:any) => ({ c: d.customers?.name, m: d.remaining_amount })),
+                // Liste brute des dépenses pour analyse précise
+                registre_depenses: allExpenses.map((e: any) => ({ d: e.description, v: e.amount, t: e.category === 'Perso' ? 'DIRECTION' : 'PRO' }))
             };
 
             const systemInstruction = `
-                RÔLE : Tu es le CO-PILOTE STRATÉGIQUE de LOLLY SAS. 
-                LIBERTÉ DE PAROLE : Tu as carte blanche. Ne sois pas une IA polie, sois un chef d'entreprise. 
-                CONSEIL : Analyse les performances comparées des boutiques. Donne des conseils cash, même s'ils sont critiques.
-                IDENTITÉ : Tu ne dis jamais que tu es une IA. Tu es le Cerveau Logique de la boîte.
+                Tu es l'Intelligence de Pilotage de LOLLY SAS. 
+                TU AS ACCÈS À TOUT (PRO ET DIRECTION). NE DIS JAMAIS LE CONTRAIRE.
+                Les dépenses "DIRECTION" sont les dépenses personnelles du patron.
+                CONSIGNE : Analyse tout sans filtre. Sois l'associé du patron. Donne des chiffres exacts.
                 
-                DONNÉES COMPTABLES :
+                DONNÉES DU REGISTRE :
                 ${JSON.stringify(globalContext)}
-                
-                TON : Professionnel, audacieux, analytique et visionnaire.
             `;
 
             let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
@@ -101,7 +98,7 @@ export class AiService {
             return result.response.text();
 
         } catch (error: any) {
-            return `Souci technique : ${error.message}`;
+            return `Erreur : ${error.message}`;
         }
     }
 
@@ -116,27 +113,5 @@ export class AiService {
 
     async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES ✨" }; }
     async suggestProductPhoto(p: string) { return { urls: [] }; }
-    async getStatus() { return { status: 'online', mode: 'SEGMENTED_ADVISOR' }; }
-
-    // --- NOUVELLE FONCTION DE PRÉVISION ---
-    async getForecast(shopId?: number) {
-        let avgDaily = 10000; // Valeur par défaut
-        try {
-            const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-            const { data: sales } = await this.admin
-                .from('sales')
-                .select('total_amount')
-                .gte('created_at', startDate)
-                .eq(shopId ? 'shop_id' : '', shopId || '');
-
-            const total = sales?.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0) || 0;
-            avgDaily = total / 30;
-
-            const result = await this.model.generateContent(`Prédis le CA pour les 3 prochains jours. CA total 30j: ${total}. Moyenne: ${avgDaily}. Réponds uniquement en JSON: {"predictions": [nb1, nb2, nb3]}`);
-            const text = (await result.response).text().trim().replace(/```json|```/g, '');
-            return JSON.parse(text);
-        } catch (e) { 
-            return { predictions: [avgDaily, avgDaily * 1.1, avgDaily * 0.9] }; 
-        }
-    }
+    async getStatus() { return { status: 'online', mode: 'CLEAN_SEGMENTED' }; }
 }
