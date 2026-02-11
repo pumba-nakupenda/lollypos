@@ -13,15 +13,6 @@ export default function AiInsights() {
 
     useEffect(() => {
         if (activeShop) {
-            const cached = localStorage.getItem(`ai_insight_${activeShop.id}`);
-            if (cached) {
-                const { data, timestamp } = JSON.parse(cached);
-                const isExpired = Date.now() - timestamp > 24 * 60 * 60 * 1000;
-                if (!isExpired) {
-                    setInsight(data);
-                    return;
-                }
-            }
             generateAutoInsight();
         }
     }, [activeShop]);
@@ -43,11 +34,6 @@ export default function AiInsights() {
                 try {
                     const parsed = JSON.parse(data.answer.replace(/```json|```/g, '').trim());
                     setInsight(parsed);
-                    // Cache for 24h
-                    localStorage.setItem(`ai_insight_${activeShop?.id}`, JSON.stringify({
-                        data: parsed,
-                        timestamp: Date.now()
-                    }));
                 } catch (e) {
                     const fallback = {
                         forecast: "Croissance stable prévue.",
