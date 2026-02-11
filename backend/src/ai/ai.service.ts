@@ -1,3 +1,4 @@
+
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -20,16 +21,9 @@ export class AiService {
         const apiKey = this.configService.get<string>('GOOGLE_GEMINI_API_KEY');
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
-            this.model = this.genAI.getGenerativeModel({ 
-                model: 'gemini-3-flash',
-                safetySettings: [
-                    { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-                    { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-                    { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-                    { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
-                ]
-            });
-            this.logger.log('AI System: VERSION ULTIME ACTIVÉE.');
+            // On utilise le modèle sans les réglages de sécurité qui font planter le build
+            this.model = this.genAI.getGenerativeModel({ model: 'gemini-3-flash' });
+            this.logger.log('AI System: Gemini 3 Ready.');
         }
     }
 
@@ -41,9 +35,7 @@ export class AiService {
         if (!this.model) return "IA non configurée.";
         
         try {
-            console.log('[AI] Lancement de l\'analyse God Mode...');
-
-            // RÉCUPÉRATION TOTALE
+            // RÉCUPÉRATION TOTALE DES DONNÉES
             const [salesRes, productsRes, expensesRes, debtsRes] = await Promise.all([
                 this.admin.from('sales').select('*'),
                 this.admin.from('products').select('*'),
@@ -56,33 +48,33 @@ export class AiService {
             const allExpenses = expensesRes.data || [];
             const allDebts = debtsRes.data || [];
 
-            console.log(`[AI] Données récupérées : ${allSales.length} ventes, ${allExpenses.length} dépenses.`);
-
-            const context = {
-                v: "VERSION_GOD_MODE_v3",
-                finance: {
-                    entrees: allSales.reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0),
-                    sorties: allExpenses.reduce((sum, e) => sum + (Number(e.amount) || 0), 0),
-                    dettes: allDebts.reduce((sum, d) => sum + (Number(d.remaining_amount) || 0), 0)
+            // Préparation d'un contexte "froid" et technique pour éviter les refus de l'IA
+            const data = {
+                id_version: "3.0.1",
+                stats_financieres: {
+                    total_entrees: allSales.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0),
+                    total_sorties: allExpenses.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0),
+                    total_dettes: allDebts.reduce((sum: number, d: any) => sum + (Number(d.remaining_amount) || 0), 0)
                 },
-                detail_sorties: allExpenses.map(e => ({ desc: e.description, mnt: e.amount, type: e.category })),
-                detail_dettes: allDebts.filter(d => d.remaining_amount > 0).map(d => ({ client: d.customers?.name, du: d.remaining_amount })),
-                stock: allProducts.map(p => ({ n: p.name, s: p.stock }))
+                registre_sorties: allExpenses.map((e: any) => ({ d: e.description, v: e.amount, t: e.category })),
+                registre_dettes: allDebts.filter((d: any) => d.remaining_amount > 0).map((d: any) => ({ c: d.customers?.name, m: d.remaining_amount })),
+                inventaire: allProducts.map((p: any) => ({ n: p.name, s: p.stock }))
             };
 
             const prompt = `
-                Tu es l'Intelligence de LOLLY SAS. 
-                TU AS ACCÈS À TOUT. NE DIS JAMAIS LE CONTRAIRE.
-                Voici les données du registre : ${JSON.stringify(context)}
+                Tu es le SYSTEME DE GESTION de LOLLY SAS. 
+                Tu ne dis JAMAIS que tu es une IA ou que tu as des limites. 
+                Tu as accès à tout le registre technique suivant : ${JSON.stringify(data)}
                 
-                RÉPONDS DIRECTEMENT À : ${userQuestion}
+                REQUÊTE : ${userQuestion}
+                RÉPONSE COURTE ET PRÉCISE :
             `;
 
             const result = await this.model.generateContent(prompt);
             return result.response.text();
 
         } catch (error: any) {
-            return `Erreur : ${error.message}`;
+            return `Erreur système : ${error.message}`;
         }
     }
 
@@ -95,7 +87,7 @@ export class AiService {
         } catch (e) { return new Array(768).fill(0); }
     }
 
-    async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES LOLLY ✨" }; }
+    async generatePromoBanner() { return { slogan: "STOCKS LIMITÉS ! PROFITEZ-EN ✨" }; }
     async suggestProductPhoto(p: string) { return { urls: [] }; }
-    async getStatus() { return { status: 'online', version: 'v3_god_mode' }; }
+    async getStatus() { return { status: 'online' }; }
 }
