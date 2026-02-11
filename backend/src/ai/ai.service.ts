@@ -1,4 +1,3 @@
-
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -22,7 +21,6 @@ export class AiService {
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
             this.model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
-            this.logger.log('AI Expert Accountant Mode Active.');
         }
     }
 
@@ -34,64 +32,73 @@ export class AiService {
         if (!this.model) return "IA non configurée.";
         
         try {
-            const [salesRes, productsRes, expensesRes, debtsRes] = await Promise.all([
+            const [salesRes, productsRes, expensesRes, debtsRes, shopsRes] = await Promise.all([
                 this.admin.from('sales').select('*'),
                 this.admin.from('products').select('*'),
                 this.admin.from('expenses').select('*'),
-                this.admin.from('debts').select('*')
+                this.admin.from('debts').select('*'),
+                this.admin.from('shops').select('*')
             ]);
 
             const allSales = salesRes.data || [];
             const allProducts = productsRes.data || [];
             const allExpenses = expensesRes.data || [];
             const allDebts = debtsRes.data || [];
+            const allShops = shopsRes.data || [];
 
-            // --- CALCULS FINANCIERS AVANCÉS ---
-            const caTotal = allSales.reduce((sum: number, s: any) => sum + Number(s.total_amount), 0);
-            const totalDepenses = allExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-            const valeurStock = allProducts.reduce((sum: number, p: any) => sum + (p.stock * p.price), 0);
-            const coutStock = allProducts.reduce((sum: number, p: any) => sum + (p.stock * (p.cost_price || 0)), 0);
-            const dettesClients = allDebts.filter((d:any) => d.type === 'receivable').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
-            const dettesFournisseurs = allDebts.filter((d:any) => d.type === 'debt').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
+            // --- ANALYSE SEGMENTÉE PAR BOUTIQUE ---
+            const shopsStats = allShops.map((shop: any) => {
+                const sSales = allSales.filter((s: any) => s.shop_id === shop.id);
+                const sProducts = allProducts.filter((p: any) => p.shop_id === shop.id);
+                const sExpenses = allExpenses.filter((e: any) => e.shop_id === shop.id);
+                const sDebts = allDebts.filter((d: any) => d.shop_id === shop.id);
 
-            // Formules
-            const tvaCollectee = caTotal * 0.18; // TVA 18%
-            const margeBrute = caTotal - coutStock;
-            const bfr = (valeurStock + dettesClients) - dettesFournisseurs;
-            const chargesFixes = totalDepenses;
-            const tauxMarge = caTotal > 0 ? (margeBrute / caTotal) : 0;
-            const seuilRentabilite = tauxMarge > 0 ? (chargesFixes / tauxMarge) : 0;
+                const ca = sSales.reduce((sum: number, s: any) => sum + Number(s.total_amount), 0);
+                const exp = sExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+                const valStock = sProducts.reduce((sum: number, p: any) => sum + (p.stock * p.price), 0);
+                const costStock = sProducts.reduce((sum: number, p: any) => sum + (p.stock * (p.cost_price || 0)), 0);
+                const dClients = sDebts.filter((d:any) => d.type === 'receivable').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
+                const dFournisseurs = sDebts.filter((d:any) => d.type === 'debt').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
+
+                const margeBrute = ca - costStock;
+                const tauxMarge = ca > 0 ? (margeBrute / ca) : 0;
+
+                return {
+                    nom: shop.name,
+                    ca_ttc: ca,
+                    tva: ca * 0.18,
+                    depenses: exp,
+                    profit_net: ca - exp,
+                    // --- SEGMENTATION DETTES ---
+                    argent_a_recevoir: dClients,
+                    argent_a_payer: dFournisseurs,
+                    bfr: (valStock + dClients) - dFournisseurs,
+                    seuil_rentabilite: tauxMarge > 0 ? (exp / tauxMarge) : 0,
+                    alertes_stock: sProducts.filter((p: any) => p.stock < 5).length
+                };
+            });
+
+            const currentShopName = shopId ? allShops.find((s: any) => s.id === shopId)?.name : "TOUTES LES BOUTIQUES (CONSOLIDÉ)";
 
             const context = {
-                ca_ttc: caTotal,
-                tva_due: tvaCollectee,
-                ca_ht: caTotal - tvaCollectee,
-                charges_totales: totalDepenses,
-                patrimoine: {
-                    valeur_stock: valeurStock,
-                    dettes_clients: dettesClients,
-                    dettes_fournisseurs: dettesFournisseurs,
-                    bfr: bfr // Besoin en Fond de Roulement
-                },
-                rentabilite: {
-                    marge_brute: margeBrute,
-                    seuil_rentabilite: seuilRentabilite,
-                    profit_net: caTotal - totalDepenses
+                v: "3.1.1_receivable_vs_debt",
+                cible: currentShopName,
+                analyse_detaillee: shopId ? shopsStats.filter((s: any) => s.nom === currentShopName) : shopsStats,
+                totaux_groupe: {
+                    ca: shopsStats.reduce((sum, s) => sum + s.ca_ttc, 0),
+                    total_creances_clients: shopsStats.reduce((sum, s) => sum + s.argent_a_recevoir, 0),
+                    total_dettes_fournisseurs: shopsStats.reduce((sum, s) => sum + s.argent_a_payer, 0)
                 }
             };
 
             const systemInstruction = `
-                Tu es l'EXPERT-COMPTABLE et ANALYSTE FINANCIER de LOLLY SAS.
-                FORMULES QUE TU DOIS UTILISER :
-                - TVA : 18% du CA TTC.
-                - BFR (Besoin en Fond de Roulement) : (Stock + Dettes Clients) - Dettes Fournisseurs.
-                - Seuil de Rentabilité (SR) : Charges Fixes / Taux de Marge.
-                - Profit Net : CA - Toutes les dépenses.
+                Tu es l'Intelligence de Pilotage de LOLLY SAS.
+                Tu dois être précis sur la différence entre :
+                1. CRÉANCES (Argent à recevoir des clients).
+                2. DETTES (Argent à payer aux fournisseurs).
                 
-                DONNÉES COMPTABLES : ${JSON.stringify(context)}
-                
-                MISSION : Analyse la santé financière. Si le BFR est trop haut, alerte le patron. Si le CA est en dessous du SR, alerte-le.
-                Réponds avec précision et expertise.
+                Donne ces chiffres boutique par boutique. 
+                Si le patron demande pour une boutique, sois spécifique. Si c'est global, fais le bilan du groupe.
             `;
 
             let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
@@ -100,11 +107,11 @@ export class AiService {
                 this.chatSessions.set(shopId ? `shop_${shopId}` : 'global', chat);
             }
 
-            const result = await chat.sendMessage(`${systemInstruction}\n\nQUESTION DU PATRON : ${userQuestion}`);
+            const result = await chat.sendMessage(`${systemInstruction}\n\nREQUÊTE : ${userQuestion}`);
             return result.response.text();
 
         } catch (error: any) {
-            return `Erreur comptable : ${error.message}`;
+            return `Erreur segmentation : ${error.message}`;
         }
     }
 
