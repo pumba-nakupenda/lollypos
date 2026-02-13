@@ -127,7 +127,7 @@ export default function QuickInventoryPage() {
             if (res.ok) {
                 showToast("Produit ajouté !", "success");
                 setIsModalOpen(false);
-                setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', expiry_date: '', image: '' });
+                setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', brand: '', expiry_date: '', image: '' });
                 setVariants([]);
                 fetchProducts();
             }

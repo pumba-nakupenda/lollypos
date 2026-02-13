@@ -105,6 +105,7 @@ export default function ProductCard({ product }: { product: any }) {
                         </div>
                         
                         <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-lolly transition-colors h-9">
+                            {product.brand && <span className="font-black uppercase text-[10px] text-gray-500 block mb-0.5 tracking-tight">{product.brand}</span>}
                             {product.name}
                         </h3>
 

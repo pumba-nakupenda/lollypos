@@ -181,7 +181,12 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                         {activeTab === 'details' ? (
                             <>
                                 <div className="mb-10">
-                                    <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-400 mb-4">{product.category || 'Collection Exclusive'}</p>
+                                    <div className="flex flex-col gap-1 mb-4">
+                                        {product.brand && (
+                                            <p className="text-shop font-black uppercase text-[12px] tracking-[0.2em]">Marque : {product.brand}</p>
+                                        )}
+                                        <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-400">{product.category || 'Collection Exclusive'}</p>
+                                    </div>
                                     <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-gray-900 leading-tight mb-6">
                                         {product.name}
                                     </h2>
