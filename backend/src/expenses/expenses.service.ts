@@ -112,7 +112,7 @@ export class ExpensesService implements OnModuleInit {
   async findAll(shopId?: number, category?: string, includePersonal?: boolean) {
     let query = this.supabase
       .from('expenses')
-      .select('*, profiles:created_by(email)')
+      .select('*, profiles!expenses_created_by_fkey(email)')
       .order('date', { ascending: false });
 
     if (shopId) {

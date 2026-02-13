@@ -89,7 +89,7 @@ export class SalesService {
     async findAll(shopId?: number) {
         let query = this.supabase
             .from('sales')
-            .select('*, profiles:created_by(email, role)')
+            .select('*, profiles!sales_created_by_fkey(email, role)')
             .order('created_at', { ascending: false });
 
         if (shopId) {

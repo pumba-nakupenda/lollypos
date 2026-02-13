@@ -68,7 +68,8 @@ export async function GET(request: Request) {
         const totalTVA = totalSalesTTC - totalSalesHT
 
         const totalCOGS = filteredItems.reduce((acc: number, item: any) => {
-            const cost = Number(item.products?.cost_price || 0)
+            const p = item.products?.name ? item.products : item.products?.[0];
+            const cost = Number(p?.cost_price || 0)
             return acc + (item.quantity * cost)
         }, 0)
 
@@ -104,7 +105,7 @@ export async function GET(request: Request) {
         // 4. Top Products
         const productStats: Record<string, { name: string, totalQuantity: number, totalRevenue: number }> = {}
         filteredItems?.forEach((item: any) => {
-            const p = item.products
+            const p = item.products?.name ? item.products : item.products?.[0];
             if (!p) return
             if (!productStats[p.name]) {
                 productStats[p.name] = { name: p.name, totalQuantity: 0, totalRevenue: 0 }
@@ -117,7 +118,10 @@ export async function GET(request: Request) {
             .sort((a, b) => b.totalRevenue - a.totalRevenue)
             .slice(0, 5)
 
-        const availableCategories = Array.from(new Set(saleItems.map((item: any) => item.products?.category || 'Général')))
+        const availableCategories = Array.from(new Set(saleItems.map((item: any) => {
+            const p = item.products?.name ? item.products : item.products?.[0];
+            return p?.category || 'Général';
+        })))
 
         return NextResponse.json({
             metrics: { 
