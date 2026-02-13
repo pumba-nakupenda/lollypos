@@ -82,7 +82,9 @@ export default function QuickInventoryPage() {
                     stock: parseInt(newProduct.stock),
                     category: newProduct.category,
                     image: newProduct.image,
-                    shopId: activeShop?.id // Format backend CamelCase
+                    shop_id: activeShop?.id,
+                    show_on_pos: true,
+                    show_on_website: true
                 })
             });
 
