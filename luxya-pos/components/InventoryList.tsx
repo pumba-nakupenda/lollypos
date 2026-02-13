@@ -11,6 +11,7 @@ import ManageCategoriesModal from './ManageCategoriesModal'
 import { SITE_URL, API_URL } from '@/utils/api'
 import { createClient } from '@/utils/supabase/client'
 import { useShop } from '@/context/ShopContext'
+import { useUser } from '@/context/UserContext'
 import { useToast } from '@/context/ToastContext'
 
 interface InventoryListProps {
@@ -19,6 +20,7 @@ interface InventoryListProps {
 
 export default function InventoryList({ products }: InventoryListProps) {
     const { activeShop } = useShop()
+    const { profile } = useUser()
     const { showToast } = useToast()
     const supabase = createClient()
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
