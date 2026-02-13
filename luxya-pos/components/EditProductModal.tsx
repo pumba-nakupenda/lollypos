@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { X, Package, Tag, Coins, Hash, Image as ImageIcon, Save, Trash2, ChevronDown, Tags, Sparkles, PlusCircle, Calendar, Plus, Upload, PlayCircle, Globe } from 'lucide-react'
 import { updateProduct } from '@/app/inventory/actions'
 import { useToast } from '@/context/ToastContext'
+import { useUser } from '@/context/UserContext'
 import Portal from './Portal'
 import CustomDropdown from './CustomDropdown'
 import ManageCategoriesModal from './ManageCategoriesModal'
@@ -17,6 +18,7 @@ interface EditProductModalProps {
 
 export default function EditProductModal({ product, isOpen, onClose }: EditProductModalProps) {
     const { showToast } = useToast()
+    const { profile } = useUser()
     const [loading, setLoading] = useState(false)
     const [preview, setPreview] = useState<string | null>(product.image)
     const [gallery, setGallery] = useState<string[]>(product.images || [])
