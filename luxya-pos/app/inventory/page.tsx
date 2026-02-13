@@ -24,7 +24,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
   // Role-based access control and shop restriction
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('role, shop_id, has_stock_access')
+    .select('role, shop_id, has_stock_access, is_super_admin')
     .eq('id', user.id)
     .maybeSingle();
 
