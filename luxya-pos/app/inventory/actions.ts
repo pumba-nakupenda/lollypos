@@ -31,6 +31,7 @@ export async function createProduct(formData: FormData) {
     const video_url = formData.get('video_url') as string | null
     const show_on_pos = formData.get('show_on_pos') === 'true'
     const show_on_website = formData.get('show_on_website') === 'true'
+    const variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : []
 
     // SECURITY: Force shopId from profile if restricted, otherwise take from form
     let shopId = Number(formData.get('shopId')) || 1
@@ -93,6 +94,7 @@ export async function createProduct(formData: FormData) {
         video_url,
         show_on_pos,
         show_on_website,
+        variants,
     }
 
     try {

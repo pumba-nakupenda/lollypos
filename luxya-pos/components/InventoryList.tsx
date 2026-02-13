@@ -294,8 +294,8 @@ export default function InventoryList({ products }: InventoryListProps) {
                                     {(product.shop_id === 1 || product.shop_id === 2) && (<a href={`${siteUrl}/?q=${encodeURIComponent(product.name)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-3 bg-white/5 border border-white/10 rounded-xl text-muted-foreground"><ExternalLink className="w-4 h-4" /></a>)}
                                 </div>
                                 <div className="flex gap-2">
-                                    <div className="p-3 bg-shop/10 border border-shop/20 rounded-xl text-shop"><Edit2 className="w-4 h-4" /></div>
-                                    <div onClick={(e) => handleDelete(e, product.id)} className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400"><Trash2 className="w-4 h-4" /></div>
+                                    <div className="p-3 bg-shop/10 border border-shop/20 rounded-xl text-shop" onClick={(e) => { e.stopPropagation(); handleEdit(product); }}><Edit2 className="w-4 h-4" /></div>
+                                    <div onClick={(e) => { e.stopPropagation(); handleDelete(e, product.id); }} className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400"><Trash2 className="w-4 h-4" /></div>
                                 </div>
                             </div>
                         </div>

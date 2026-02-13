@@ -18,14 +18,34 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
     const [activeImage, setActiveImage] = React.useState<string>(product.image);
     const [activeTab, setActiveTab] = React.useState<'details' | 'reviews'>('details');
 
+    // VARIANTS STATE
+    const [selectedColor, setSelectedColor] = React.useState<string>('');
+    const [selectedSize, setSelectedSize] = React.useState<string>('');
+
+    const colors = Array.from(new Set(product.variants?.map((v: any) => v.color).filter(Boolean))) as string[];
+    const sizes = Array.from(new Set(product.variants?.map((v: any) => v.size).filter(Boolean))) as string[];
+
     React.useEffect(() => {
         if (isOpen) {
             setActiveImage(product.image);
             setActiveTab('details');
+            setSelectedColor(colors[0] || '');
+            setSelectedSize(sizes[0] || '');
         }
     }, [isOpen, product.image]);
 
     if (!isOpen) return null;
+
+    const handleAddToCartWithVariant = () => {
+        const productWithVariant = {
+            ...product,
+            selectedColor,
+            selectedSize,
+            name: `${product.name}${selectedColor ? ` - ${selectedColor}` : ''}${selectedSize ? ` (${selectedSize})` : ''}`
+        };
+        addToCart(productWithVariant);
+        onClose();
+    };
 
     const gallery = product.images && product.images.length > 0 ? product.images : (product.image ? [product.image] : []);
     const related = getRelatedProducts(product.id, product.category);
@@ -194,6 +214,43 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                     </div>
                                 </div>
 
+                                {/* VARIANTS SELECTORS */}
+                                <div className="space-y-6 mb-10">
+                                    {colors.length > 0 && (
+                                        <div className="space-y-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Couleur : <span className="text-black">{selectedColor}</span></p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {colors.map(color => (
+                                                    <button 
+                                                        key={color}
+                                                        onClick={() => setSelectedColor(color)}
+                                                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${selectedColor === color ? 'bg-black text-white shadow-lg' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+                                                    >
+                                                        {color}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {sizes.length > 0 && (
+                                        <div className="space-y-3">
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Taille : <span className="text-black">{selectedSize}</span></p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {sizes.map(size => (
+                                                    <button 
+                                                        key={size}
+                                                        onClick={() => setSelectedSize(size)}
+                                                        className={`min-w-[48px] h-12 rounded-xl text-xs font-black uppercase transition-all border-2 flex items-center justify-center ${selectedSize === size ? 'border-black bg-black text-white shadow-lg' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-300'}`}
+                                                    >
+                                                        {size}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div className="mb-12">
                                     <h4 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-5 pb-3 border-b-2 border-gray-50">L'essentiel</h4>
                                     <p className="text-gray-600 text-sm leading-relaxed font-medium">
@@ -244,7 +301,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                         {/* Add to Cart & WhatsApp */}
                         <div className="flex flex-col gap-3 mt-auto">
                             <button 
-                                onClick={() => { addToCart(product); onClose(); }}
+                                onClick={handleAddToCartWithVariant}
                                 disabled={product.stock <= 0 && product.type !== 'service'}
                                 className="w-full py-5 bg-black text-white rounded-[24px] font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center hover:bg-[#0055ff] transition-all shadow-2xl active:scale-95 disabled:opacity-50"
                             >

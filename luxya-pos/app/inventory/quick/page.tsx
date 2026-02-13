@@ -41,6 +41,19 @@ export default function QuickInventoryPage() {
         expiry_date: '',
         image: '' 
     });
+    const [variants, setVariants] = useState<any[]>([]);
+    const [newVariant, setNewVariant] = useState({ color: '', size: '' });
+
+    const addVariant = () => {
+        if (!newVariant.color && !newVariant.size) return;
+        setVariants([...variants, { ...newVariant, id: Date.now() }]);
+        setNewVariant({ color: '', size: '' });
+    };
+
+    const removeVariant = (id: number) => {
+        setVariants(variants.filter(v => v.id !== id));
+    };
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -100,6 +113,7 @@ export default function QuickInventoryPage() {
                     category: newProduct.category,
                     expiry_date: newProduct.expiry_date || undefined,
                     image: newProduct.image,
+                    variants: variants,
                     shop_id: activeShop?.id,
                     created_by: profile?.id,
                     show_on_pos: true,
@@ -290,6 +304,24 @@ export default function QuickInventoryPage() {
                                     <div className="relative">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                         <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.expiry_date} onChange={e => setNewProduct({...newProduct, expiry_date: e.target.value})} />
+                                    </div>
+                                </div>
+
+                                {/* VARIATIONS - MOBILE OPTIMIZED */}
+                                <div className="space-y-4 p-5 bg-white/[0.02] rounded-3xl border border-white/5">
+                                    <p className="text-[10px] font-black uppercase text-shop tracking-widest">Variantes (Tailles / Couleurs)</p>
+                                    <div className="flex gap-2">
+                                        <input placeholder="Coul." className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs outline-none focus:border-shop/50" value={newVariant.color} onChange={e => setNewVariant({...newVariant, color: e.target.value})} />
+                                        <input placeholder="Taille" className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs outline-none focus:border-shop/50" value={newVariant.size} onChange={e => setNewVariant({...newVariant, size: e.target.value})} />
+                                        <button type="button" onClick={addVariant} className="px-4 bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest">OK</button>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {variants.map(v => (
+                                            <div key={v.id} className="flex items-center space-x-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
+                                                <span className="text-[9px] font-bold uppercase">{v.color} {v.size}</span>
+                                                <button type="button" onClick={() => removeVariant(v.id)} className="text-red-400"><X className="w-3 h-3"/></button>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

@@ -9,6 +9,7 @@ export class CreateProductDto {
     category?: string;
     shop_id: number;
     created_by?: string;
+    variants?: any[];
     image?: string;
     images?: string[];
     video_url?: string;

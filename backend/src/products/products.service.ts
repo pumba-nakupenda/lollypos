@@ -46,6 +46,7 @@ export class ProductsService {
                     show_on_pos: createProductDto.show_on_pos !== false,
                     show_on_website: createProductDto.show_on_website !== false,
                     is_featured: createProductDto.is_featured || false,
+                    variants: createProductDto.variants || [],
                     embedding: embedding
                 }])
                 .select()
