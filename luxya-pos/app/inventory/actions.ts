@@ -85,6 +85,7 @@ export async function createProduct(formData: FormData) {
         min_stock,
         category,
         shop_id: shopId,
+        created_by: user.id,
         image: imageUrl || (galleryUrls.length > 0 ? galleryUrls[0] : ''),
         images: galleryUrls,
         type,

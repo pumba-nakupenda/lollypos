@@ -143,6 +143,7 @@ export default function ExpensesPage() {
                     category: newExpense.category,
                     date: new Date(newExpense.date).toISOString(),
                     shopId: finalShopId,
+                    created_by: profile?.id,
                     is_recurring: newExpense.is_recurring,
                     frequency: newExpense.is_recurring ? newExpense.frequency : null
                 })
@@ -371,7 +372,12 @@ export default function ExpensesPage() {
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="font-bold text-sm text-white truncate uppercase">{exp.description}</p>
-                                                <p className="text-[8px] text-muted-foreground uppercase tracking-widest font-black opacity-50">Trans. #{exp.id}</p>
+                                                <div className="flex items-center space-x-2">
+                                                    <p className="text-[8px] text-muted-foreground uppercase tracking-widest font-black opacity-50">Trans. #{exp.id}</p>
+                                                    {exp.profiles?.email && (
+                                                        <span className="text-[7px] text-shop font-black uppercase tracking-widest">Saisi par: {exp.profiles.email.split('@')[0]}</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <div className="text-right flex flex-col items-end space-y-2">

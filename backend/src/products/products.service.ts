@@ -37,6 +37,7 @@ export class ProductsService {
                     min_stock: createProductDto.min_stock || 2,
                     category: createProductDto.category,
                     shop_id: createProductDto.shop_id,
+                    created_by: createProductDto.created_by,
                     image: createProductDto.image,
                     images: createProductDto.images || [],
                     video_url: createProductDto.video_url,

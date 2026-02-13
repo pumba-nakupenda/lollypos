@@ -44,6 +44,9 @@ export default function ProductCard({ product }: { product: any }) {
     const hasPromo = product.promo_price && product.promo_price > 0 && Number(product.promo_price) < Number(product.price);
     const isFavorite = isInWishlist(product.id);
 
+    const isNew = new Date(product.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const isBestSeller = product.sales_count > 10; // Seuil à ajuster
+
     const stock = Number(product.stock);
     const isLowStock = stock > 0 && stock <= 5;
     const isOutOfStock = stock <= 0 && product.type !== 'service';
@@ -74,11 +77,23 @@ export default function ProductCard({ product }: { product: any }) {
                     </button>
 
                     {/* Badges Area */}
-                    {hasPromo && (
-                        <div className="absolute top-2 left-0 z-20 bg-red-600 text-white px-2 py-0.5 text-[9px] font-black uppercase rounded-r shadow-md">
-                            Offre Limitée
-                        </div>
-                    )}
+                    <div className="absolute top-2 left-0 z-20 flex flex-col gap-1">
+                        {hasPromo && (
+                            <div className="bg-red-600 text-white px-2 py-0.5 text-[9px] font-black uppercase rounded-r shadow-md">
+                                Offre Limitée
+                            </div>
+                        )}
+                        {isBestSeller && (
+                            <div className="bg-[#e47911] text-white px-2 py-0.5 text-[9px] font-black uppercase rounded-r shadow-md">
+                                #1 Best Seller
+                            </div>
+                        )}
+                        {isNew && (
+                            <div className="bg-[#007185] text-white px-2 py-0.5 text-[9px] font-black uppercase rounded-r shadow-md">
+                                Nouveau
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Content Area */}

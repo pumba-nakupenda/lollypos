@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useMemo, useRef } from 'react'
-import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink, Plus, Camera, Loader2, PlusCircle, DollarSign } from 'lucide-react'
+import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink, Plus, Camera, Loader2, PlusCircle, DollarSign, TrendingUp } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import EditProductModal from './EditProductModal'
 import CustomDropdown from './CustomDropdown'
 import ExpiryBadge from './ExpiryBadge'
+import ManageCategoriesModal from './ManageCategoriesModal'
 import { SITE_URL, API_URL } from '@/utils/api'
 import { createClient } from '@/utils/supabase/client'
 import { useShop } from '@/context/ShopContext'
@@ -22,11 +23,20 @@ export default function InventoryList({ products }: InventoryListProps) {
     const supabase = createClient()
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isCatModalOpen, setIsCatModalOpen] = useState(false)
 
     // Quick Creation State
     const [isQuickModalOpen, setIsQuickModalOpen] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
-    const [newProduct, setNewProduct] = useState({ name: '', price: '', stock: '1', category: 'Général', image: '' })
+    const [newProduct, setNewProduct] = useState({ 
+        name: '', 
+        price: '', 
+        cost_price: '',
+        stock: '1', 
+        category: 'Général', 
+        expiry_date: '',
+        image: '' 
+    })
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,16 +63,21 @@ export default function InventoryList({ products }: InventoryListProps) {
                 body: JSON.stringify({
                     name: newProduct.name,
                     price: parseFloat(newProduct.price),
+                    cost_price: newProduct.cost_price ? parseFloat(newProduct.cost_price) : undefined,
                     stock: parseInt(newProduct.stock),
                     category: newProduct.category,
+                    expiry_date: newProduct.expiry_date || undefined,
                     image: newProduct.image,
-                    shopId: activeShop?.id || 1
+                    shop_id: activeShop?.id || 1,
+                    created_by: profile?.id,
+                    show_on_pos: true,
+                    show_on_website: true
                 })
             });
             if (res.ok) {
                 showToast("Produit ajouté !", "success");
                 setIsQuickModalOpen(false);
-                setNewProduct({ name: '', price: '', stock: '1', category: 'Général', image: '' });
+                setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', expiry_date: '', image: '' });
                 window.location.reload();
             }
         } catch (err) { showToast("Erreur de création", "error"); } finally { setIsCreating(false); }
@@ -308,17 +323,68 @@ export default function InventoryList({ products }: InventoryListProps) {
                                 {newProduct.image ? <img src={newProduct.image} className="w-full h-full object-cover" /> : <><Camera className="text-muted-foreground mb-2 w-8 h-8"/><p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Prendre / Charger Photo</p></>}
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
                             </div>
-                            <input required placeholder="Nom du produit" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="relative">
-                                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <input required type="number" placeholder="Prix" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+
+                            <div className="space-y-4">
+                                <input required placeholder="Nom du produit" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                                
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center px-1">
+                                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Catégorie</p>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setIsCatModalOpen(true)}
+                                            className="text-[10px] font-black uppercase text-shop hover:underline flex items-center"
+                                        >
+                                            <Edit2 className="w-3 h-3 mr-1"/> Gérer
+                                        </button>
+                                    </div>
+                                    
+                                    <div className="flex flex-wrap gap-2 mb-2 max-h-24 overflow-y-auto p-1 bg-white/[0.02] rounded-xl border border-white/5">
+                                        {categories.filter(c => c !== 'Toutes').map(cat => (
+                                            <button
+                                                key={cat}
+                                                type="button"
+                                                onClick={() => setNewProduct({...newProduct, category: cat})}
+                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                                                    newProduct.category === cat 
+                                                    ? 'bg-shop text-white shadow-lg shadow-shop/20' 
+                                                    : 'bg-white/5 text-muted-foreground border border-white/10 hover:border-shop/30'
+                                                }`}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="relative">
+                                        <Tags className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input placeholder="Nouvelle ou existante..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+                                    </div>
                                 </div>
-                                <div className="relative">
-                                    <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <input required type="number" placeholder="Stock" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input required type="number" placeholder="Stock" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
+                                    </div>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input required type="number" placeholder="Prix Vente" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="relative">
+                                        <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input type="number" placeholder="Prix Revient" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.cost_price} onChange={e => setNewProduct({...newProduct, cost_price: e.target.value})} />
+                                    </div>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.expiry_date} onChange={e => setNewProduct({...newProduct, expiry_date: e.target.value})} />
+                                    </div>
                                 </div>
                             </div>
+
                             <button type="submit" disabled={isCreating} className="w-full py-5 bg-white text-black hover:bg-shop hover:text-white font-black uppercase rounded-[24px] shadow-xl transition-all active:scale-95">
                                 {isCreating ? <Loader2 className="animate-spin mx-auto"/> : "Valider l'ajout"}
                             </button>
@@ -326,6 +392,14 @@ export default function InventoryList({ products }: InventoryListProps) {
                     </div>
                 </div>
             )}
+
+            <ManageCategoriesModal 
+                isOpen={isCatModalOpen}
+                onClose={() => setIsCatModalOpen(false)}
+                categories={categories}
+                shopId={activeShop?.id}
+                onRefresh={() => window.location.reload()}
+            />
         </div>
     )
 }

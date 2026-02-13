@@ -105,7 +105,6 @@ export default function SalesTerminal() {
         } else {
             setCart([...cart, { ...product, quantity: 1 }]);
         }
-        if (!isCartOpen && window.innerWidth >= 1024) setIsCartOpen(true);
     };
 
     const updateCartItemPrice = (id: number, newPrice: number) => {
@@ -141,6 +140,7 @@ export default function SalesTerminal() {
             totalAmount: totalAmount,
             paid_amount: parseFloat(paidAmount),
             shopId: activeShop?.id,
+            created_by: profile?.id,
             items: agencyLines.map(l => ({
                 productId: l.product_id || 0,
                 quantity: l.quantity,
@@ -155,6 +155,7 @@ export default function SalesTerminal() {
             totalAmount: totalAmount,
             paymentMethod: paymentMethod,
             shopId: activeShop?.id,
+            created_by: profile?.id,
             created_at: new Date(saleDate).toISOString(),
             items: cart.map(item => ({
                 productId: item.id,
@@ -255,10 +256,38 @@ export default function SalesTerminal() {
         setAgencyLines([...agencyLines, { id: Date.now(), name: p.name, quantity: 1, price: p.price, product_id: p.id }]);
     };
 
+    const handleTransformDocument = async (sale: any, targetType: 'invoice' | 'delivery_note') => {
+        try {
+            setLoading(true);
+            const res = await fetch(`${API_URL}/sales/${sale.id}/items`);
+            if (res.ok) {
+                const items = await res.json();
+                setDocType(targetType);
+                setCustomerName(sale.customer_name);
+                setWithTva(sale.with_tva);
+                setLinkedDocNumber(sale.invoice_number);
+                setAgencyLines(items.map((i: any) => ({
+                    id: Date.now() + Math.random(),
+                    name: i.products?.name || i.description || 'Article inconnu',
+                    quantity: i.quantity,
+                    price: i.price,
+                    product_id: i.product_id
+                })));
+                setEditingDocId(null); // On crée un NOUVEAU document
+                setActiveTab('shop'); // On retourne à l'éditeur
+                showToast(`Prêt pour conversion en ${targetType === 'invoice' ? 'Facture' : 'Bon de Livraison'}`, "success");
+            }
+        } catch (e) {
+            showToast("Erreur lors de la préparation de la conversion", "error");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="flex h-screen bg-background relative overflow-hidden">
             {/* Main Content Area */}
-            <div className={`flex-1 flex flex-col min-w-0 transition-all duration-500 ${isCartOpen ? 'lg:mr-[400px]' : ''}`}>
+            <div className="flex-1 flex flex-col min-w-0">
                 {/* Top Header */}
                 <header className="h-20 sm:h-24 bg-background/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 sm:px-10 z-30 sticky top-0">
                     <div className="flex items-center space-x-4 sm:space-x-8 overflow-hidden">
@@ -399,7 +428,16 @@ export default function SalesTerminal() {
                                                 </div>
                                                 <div>
                                                     <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter text-white font-museo">Édition Document</h2>
-                                                    <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Gestion des devis et factures</p>
+                                                    <div className="flex items-center space-x-2">
+                                                        <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                                            {linkedDocNumber ? `Lien avec : ${linkedDocNumber}` : 'Gestion des devis et factures'}
+                                                        </p>
+                                                        {linkedDocNumber && (
+                                                            <button onClick={() => setLinkedDocNumber(null)} className="text-red-400 hover:text-red-500">
+                                                                <X className="w-3 h-3" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="flex bg-white/5 p-1.5 rounded-[20px] border border-white/10 w-full md:w-auto">
@@ -509,7 +547,12 @@ export default function SalesTerminal() {
                                                     <td className="px-8 py-6">
                                                         <div className="flex items-center space-x-3">
                                                             <div className={`w-2 h-2 rounded-full ${sale.type === 'quote' ? 'bg-orange-500' : 'bg-green-500'} shadow-[0_0_10px_rgba(34,197,94,0.5)]`} />
-                                                            <span className="font-bold text-white uppercase text-xs">{sale.customer_name || 'Client Comptant'}</span>
+                                                            <div className="flex flex-col">
+                                                                <span className="font-bold text-white uppercase text-xs">{sale.customer_name || 'Client Comptant'}</span>
+                                                                {sale.profiles?.email && (
+                                                                    <span className="text-[7px] text-shop font-black uppercase tracking-widest mt-0.5">Par: {sale.profiles.email.split('@')[0]}</span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-8 py-6 text-[10px] font-bold text-muted-foreground uppercase">{new Date(sale.created_at).toLocaleDateString()}</td>
@@ -530,6 +573,24 @@ export default function SalesTerminal() {
                                                     <td className="px-8 py-6 text-right font-black text-shop text-sm">{Number(sale.total_amount).toLocaleString()}</td>
                                                     <td className="px-8 py-6 text-center">
                                                         <div className="flex items-center justify-center space-x-2">
+                                                            {isAgency && sale.type === 'quote' && (
+                                                                <button 
+                                                                    onClick={() => handleTransformDocument(sale, 'invoice')} 
+                                                                    title="Transformer en Facture"
+                                                                    className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
+                                                                >
+                                                                    <ArrowRight className="w-4 h-4" />
+                                                                </button>
+                                                            )}
+                                                            {isAgency && sale.type === 'invoice' && (
+                                                                <button 
+                                                                    onClick={() => handleTransformDocument(sale, 'delivery_note')} 
+                                                                    title="Transformer en Bon de Livraison"
+                                                                    className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white transition-all"
+                                                                >
+                                                                    <Truck className="w-4 h-4" />
+                                                                </button>
+                                                            )}
                                                             <button onClick={() => handleViewReceipt(sale)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-shop transition-all group-hover:scale-110">
                                                                 <Receipt className="w-4 h-4" />
                                                             </button>
@@ -551,7 +612,7 @@ export default function SalesTerminal() {
 
             {/* Sidebar Cart */}
             {!isAgency && (
-                <aside className={`fixed inset-y-0 right-0 z-[150] w-full sm:w-[420px] bg-[#0a0a0c] transition-transform duration-500 transform lg:relative lg:translate-x-0 lg:m-4 lg:rounded-[40px] lg:shadow-2xl ${isCartOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
+                <aside className={`fixed inset-y-0 right-0 z-[150] w-full sm:w-[420px] bg-[#0a0a0c] transition-transform duration-500 transform lg:static lg:translate-x-0 lg:w-[420px] lg:m-4 lg:rounded-[40px] lg:shadow-2xl ${isCartOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
                     <div className="flex flex-col h-full overflow-hidden lg:rounded-[40px] glass-panel border-none">
                         <div className="p-6 sm:p-8 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
                             <div>

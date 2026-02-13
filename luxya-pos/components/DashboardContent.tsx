@@ -259,28 +259,36 @@ export default function DashboardContent({ user }: { user: any }) {
                             </div>
                         </div>
                     </div>
-                    <div className="h-48 sm:h-56 flex items-end justify-between space-x-1.5 sm:space-x-4 px-1 sm:px-2 relative overflow-hidden">
+                    <div className="h-48 sm:h-56 flex items-end justify-between space-x-1.5 sm:space-x-4 px-1 sm:px-2 relative">
                         {trend.map((day: any, i: number) => {
-                            const maxVal = Math.max(...trend.map((d: any) => Math.max(d.income, d.outcome))) || 1
+                            const maxVal = Math.max(...trend.map((d: any) => Math.max(d.income, d.outcome)), ...aiForecast) || 1
                             return (
                                 <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                                     <div className="flex w-full justify-center items-end space-x-0.5 sm:space-x-1 h-full pb-1 sm:pb-2">
                                         <div 
-                                            className="w-full bg-shop/30 border-t border-shop/50 rounded-t-sm transition-all group-hover:bg-shop animate-in slide-in-from-bottom-full duration-1000" 
+                                            className="w-full bg-shop/30 border-t border-shop/50 rounded-t-sm transition-all group-hover:bg-shop animate-in slide-in-from-bottom-full duration-1000 relative" 
                                             style={{ 
                                                 height: `${(day.income / maxVal) * 100}%`,
                                                 animationDelay: `${i * 50}ms`,
                                                 animationFillMode: 'both'
                                             }} 
-                                        />
+                                        >
+                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md text-white px-2 py-1 rounded text-[9px] font-black whitespace-nowrap shadow-xl z-50 pointer-events-none border border-white/10 transition-all">
+                                                {day.income.toLocaleString()} CFA
+                                            </div>
+                                        </div>
                                         <div 
-                                            className="w-full bg-red-500/20 border-t border-red-500/30 rounded-t-sm transition-all group-hover:bg-red-500/50 animate-in slide-in-from-bottom-full duration-1000" 
+                                            className="w-full bg-red-500/20 border-t border-red-500/30 rounded-t-sm transition-all group-hover:bg-red-500/50 animate-in slide-in-from-bottom-full duration-1000 relative" 
                                             style={{ 
                                                 height: `${(day.outcome / maxVal) * 100}%`,
                                                 animationDelay: `${(i * 50) + 200}ms`,
                                                 animationFillMode: 'both'
                                             }} 
-                                        />
+                                        >
+                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-red-900/90 backdrop-blur-md text-white px-2 py-1 rounded text-[9px] font-black whitespace-nowrap shadow-xl z-50 pointer-events-none border border-white/10 transition-all">
+                                                -{day.outcome.toLocaleString()} CFA
+                                            </div>
+                                        </div>
                                     </div>
                                     <span className="text-[6px] sm:text-[8px] font-black text-muted-foreground uppercase opacity-50 mt-1 sm:mt-2">{day.date.split('-')[2]}</span>
                                 </div>
@@ -290,17 +298,20 @@ export default function DashboardContent({ user }: { user: any }) {
                         {aiForecast.map((value, i) => {
                             const maxVal = Math.max(...trend.map((d: any) => Math.max(d.income, d.outcome)), ...aiForecast) || 1
                             return (
-                                <div key={`f-${i}`} className="flex-1 flex flex-col items-center group relative h-full justify-end opacity-40">
+                                <div key={`f-${i}`} className="flex-1 flex flex-col items-center group relative h-full justify-end opacity-60">
                                     <div className="flex w-full justify-center items-end h-full pb-1 sm:pb-2">
                                         <div 
-                                            className="w-full border-2 border-shop border-dashed rounded-t-lg bg-shop/5 animate-in slide-in-from-bottom-full duration-1000" 
+                                            className="w-full border-2 border-shop border-dashed rounded-t-lg bg-shop/5 animate-in slide-in-from-bottom-full duration-1000 relative" 
                                             style={{ 
                                                 height: `${(value / maxVal) * 100}%`,
                                                 animationDelay: `${(trend.length + i) * 50}ms`,
                                                 animationFillMode: 'both'
                                             }}
                                         >
-                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-shop/20 text-shop px-2 py-1 rounded text-[7px] font-black whitespace-nowrap">IA Prédit +{value.toLocaleString()}</div>
+                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-12 left-1/2 -translate-x-1/2 bg-shop/90 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap shadow-2xl z-50 pointer-events-none border border-white/20 transition-all">
+                                                IA PRÉDIT<br/>
+                                                <span className="text-sm">+{Math.round(value).toLocaleString()} CFA</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <span className="text-[7px] font-black text-shop/40 uppercase mt-1 sm:mt-2">J+{i+1}</span>
@@ -397,7 +408,12 @@ export default function DashboardContent({ user }: { user: any }) {
                                                         </div>
                                                         <div>
                                                             <p className="font-bold text-xs sm:text-sm">{new Date(sale.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
-                                                            <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase opacity-50">{new Date(sale.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</p>
+                                                            <div className="flex items-center space-x-2">
+                                                                <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase opacity-50">{new Date(sale.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</p>
+                                                                {sale.profiles?.email && (
+                                                                    <p className="text-[7px] font-black text-shop uppercase tracking-widest bg-shop/5 px-1 rounded">Par: {sale.profiles.email.split('@')[0]}</p>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>

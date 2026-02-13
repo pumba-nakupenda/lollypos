@@ -8,6 +8,7 @@ export class CreateProductDto {
     min_stock?: number;
     category?: string;
     shop_id: number;
+    created_by?: string;
     image?: string;
     images?: string[];
     video_url?: string;

@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { ArrowRight, ShoppingBag, ShoppingCart, Laptop, Sparkles, Search, SlidersHorizontal, X, ChevronRight, Zap } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -57,8 +58,17 @@ export default async function Home(props: {
       getSiteSettings()
   ]);
 
-  const shopProducts = allProducts.filter((p: any) => (p.shop_id === 1 || p.shop_id === 2) && p.show_on_website !== false);
+  let shopProducts = allProducts.filter((p: any) => (p.shop_id === 1 || p.shop_id === 2) && p.show_on_website !== false);
   
+  // Sorting Logic
+  if (sort === 'newest') {
+      shopProducts = shopProducts.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } else if (sort === 'promo') {
+      shopProducts = shopProducts.filter((p: any) => p.promo_price && p.promo_price > 0 && p.promo_price < p.price);
+  } else if (sort === 'best') {
+      shopProducts = shopProducts.sort((a: any, b: any) => b.stock - a.stock);
+  }
+
   // Filtering Logic
   let filteredProducts = shopProducts.filter((p: any) => {
       const matchesSearch = p.name.toLowerCase().includes(query) || (p.category || "").toLowerCase().includes(query);
@@ -76,59 +86,85 @@ export default async function Home(props: {
 
   const productsForCategories = shopFilter === "all" ? shopProducts : shopProducts.filter((p: any) => p.shop_id.toString() === shopFilter);
   const categories = Array.from(new Set(productsForCategories.map((p: any) => p.category).filter(Boolean))) as string[];
-  const isFiltering = query || catFilter !== "all" || shopFilter !== "all" || priceFilter !== "all" || onlyInStock;
+  const isFiltering = query || catFilter !== "all" || shopFilter !== "all" || priceFilter !== "all" || onlyInStock || sort !== 'newest';
+
+  const event = siteSettings?.event || {
+      title: "Livraison Offerte",
+      description: "Gratuite sur tout Dakar ce week-end !",
+      image: "https://images.unsplash.com/photo-1590874102752-ce229799d529?q=80&w=1000",
+      link: "/?sort=best"
+  };
 
   return (
     <div className="min-h-screen bg-[#eaeded] text-black font-sans selection:bg-lolly selection:text-white">
       <Initializer products={shopProducts} />
       
-      <Navbar settings={siteSettings} />
+      <Navbar settings={siteSettings} categories={categories} />
 
-      {!isFiltering && (
+      {(!isFiltering && sort === 'newest') && (
           <div className="relative">
               <HeroCarousel slides={siteSettings?.slides || []} />
               
-              {/* Entrance Cards Overlay */}
-              <div className="max-w-[1500px] mx-auto px-4 lg:px-10 -mt-20 sm:-mt-40 relative z-40 pb-10">
+              <div className="max-w-[1500px] mx-auto px-4 lg:px-6 -mt-40 md:-mt-64 relative z-40 pb-10">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                       <UniverseEntry 
-                        title="Luxya" 
-                        sub="Beauté & Luxe" 
+                        title="Luxya Beauté" 
+                        sub="L'Univers de l'Élégance" 
                         id="1" 
                         img="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1000" 
-                        color="from-pink-500 to-purple-600"
+                        hexColor="#dc2626"
                       />
                       <UniverseEntry 
-                        title="Homtek" 
-                        sub="Tech & Office" 
+                        title="Homtek Tech" 
+                        sub="Innovation & Futur" 
                         id="2" 
                         img="https://images.unsplash.com/photo-1498049794561-7780e7231661?q=80&w=1000" 
-                        color="from-blue-500 to-blue-800"
+                        hexColor="#2563eb"
                       />
-                      <PromoEntry 
-                        title="Offres Flash" 
-                        desc="Jusqu'à -50%" 
-                        icon={<Zap className="w-10 h-10 text-[#FF9900]" />}
-                      />
-                      <PromoEntry 
-                        title="Livraison" 
-                        desc="Gratuite sur Dakar" 
-                        icon={<ShoppingBag className="w-10 h-10 text-lolly" />}
-                      />
+                      
+                      <div className="bg-white p-6 shadow-sm border border-gray-200">
+                          <h3 className="text-xl font-bold mb-4">Meilleures Ventes</h3>
+                          <div className="grid grid-cols-2 gap-3">
+                              {shopProducts.slice(0, 4).map((p: any) => (
+                                  <Link key={p.id} href={`/?q=${encodeURIComponent(p.name)}`} className="group block">
+                                      <div className="aspect-square relative mb-1 overflow-hidden bg-gray-50">
+                                          {p.image ? (
+                                              <Image src={p.image} alt={p.name} fill className="object-contain p-2 group-hover:scale-110 transition-transform" />
+                                          ) : (
+                                              <div className="w-full h-full flex items-center justify-center text-gray-200">
+                                                  <ShoppingBag className="w-6 h-6" />
+                                              </div>
+                                          )}
+                                      </div>
+                                      <p className="text-[10px] text-gray-600 line-clamp-1 truncate font-medium">{p.name}</p>
+                                  </Link>
+                              ))}
+                          </div>
+                          <Link href="/?sort=best" className="text-sm text-[#007185] hover:text-[#c45500] hover:underline mt-6 block">Voir toutes les offres</Link>
+                      </div>
+
+                      <div className="bg-white p-6 shadow-sm border border-gray-200">
+                          <h3 className="text-xl font-bold mb-4">{event.title}</h3>
+                          <div className="aspect-square relative mb-4 overflow-hidden rounded">
+                              <Image src={event.image} alt="Event" fill className="object-cover" />
+                          </div>
+                          <p className="text-xs text-gray-600 mb-4">{event.description}</p>
+                          <Link href={event.link || "#"} className="text-sm text-[#007185] hover:text-[#c45500] hover:underline block font-medium">Découvrir l'offre</Link>
+                      </div>
                   </div>
               </div>
           </div>
       )}
 
-      <main className="max-w-[1600px] mx-auto px-4 lg:px-10 py-6">
+      <main className="max-w-[1500px] mx-auto px-4 lg:px-6 py-6">
         
-        {/* Amazon-Style Navigation Breadcrumbs */}
         <div className="mb-6 flex items-center space-x-2 text-[10px] font-bold uppercase tracking-widest text-gray-500">
             <Link href="/" className="hover:text-black">Accueil</Link>
             {shopFilter !== 'all' && (
                 <>
                     <ChevronRight className="w-3 h-3" />
-                    <span className="text-black">{shopFilter === '1' ? 'Luxya' : 'Homtek'}</span>
+                    <div className={`w-3 h-3 rounded-sm ${shopFilter === '1' ? 'bg-red-600' : 'bg-blue-600'}`} />
+                    <span className="text-black font-bold">{shopFilter === '1' ? 'Luxya' : 'Homtek'}</span>
                 </>
             )}
             {catFilter !== 'all' && (
@@ -137,27 +173,61 @@ export default async function Home(props: {
                     <span className="text-black font-black text-lolly">{catFilter}</span>
                 </>
             )}
+            {sort !== 'newest' && (
+                <>
+                    <ChevronRight className="w-3 h-3" />
+                    <span className="text-black font-black uppercase text-lolly">{sort === 'promo' ? 'Promotions' : sort === 'best' ? 'Meilleures Ventes' : 'Nouveautés'}</span>
+                </>
+            )}
         </div>
 
-        {!isFiltering ? (
-            <div className="space-y-16">
+        {(!isFiltering && sort === 'newest') ? (
+            <div className="space-y-8">
                 <UniverseSection 
                     title="Luxya" 
-                    subtitle="Élégance & Soin" 
+                    subtitle="COLLECTION BEAUTÉ" 
                     shopId="1"
                     products={shopProducts.filter((p: any) => p.shop_id === 1)}
+                    hexColor="#dc2626"
                 />
+
+                {/* PROMINENT AMAZON EVENT BANNER */}
+                <div className="py-4">
+                    <Link href={event.link || "/?sort=best"} className="block relative w-full h-56 md:h-80 overflow-hidden rounded-lg shadow-xl group border-4 border-white">
+                        <Image 
+                            src={event.image || "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=2000"} 
+                            alt="Event" 
+                            fill 
+                            className="object-cover group-hover:scale-105 transition-transform duration-[3000ms]" 
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent flex flex-col justify-center px-8 md:px-16 text-white">
+                            <div className="bg-[#febd69] text-[#131921] px-3 py-1 rounded-sm w-fit font-black text-[10px] uppercase tracking-widest mb-4 shadow-lg">
+                                Événement Spécial
+                            </div>
+                            <h3 className="text-4xl md:text-7xl font-black uppercase italic leading-none tracking-tighter shadow-black drop-shadow-2xl">
+                                {event.title}
+                            </h3>
+                            <p className="text-base md:text-2xl font-bold opacity-100 mt-4 max-w-xl leading-tight">
+                                {event.description}
+                            </p>
+                            <div className="mt-8 bg-white text-black px-10 py-4 rounded-full w-fit font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-[#febd69] transition-colors">
+                                Profiter de l'offre
+                            </div>
+                        </div>
+                    </Link>
+                </div>
+
                 <UniverseSection 
                     title="Homtek" 
-                    subtitle="Performance Tech" 
+                    subtitle="COLLECTION TECH" 
                     shopId="2"
                     products={shopProducts.filter((p: any) => p.shop_id === 2)}
+                    hexColor="#2563eb"
                 />
             </div>
         ) : (
             <div className="flex flex-col lg:flex-row gap-8">
-                {/* Left Sidebar Filters */}
-                <aside className="lg:w-64 shrink-0 bg-white p-6 rounded-lg border border-gray-200 h-fit space-y-8 sticky top-28">
+                <aside className="lg:w-64 shrink-0 bg-white p-6 rounded-lg border border-gray-200 h-fit space-y-8 sticky top-28 shadow-sm">
                     <div>
                         <h3 className="text-xs font-black uppercase tracking-widest border-b border-gray-100 pb-2 mb-4">Catégories</h3>
                         <div className="space-y-2.5">
@@ -183,11 +253,10 @@ export default async function Home(props: {
                     </div>
                 </aside>
 
-                {/* Main Grid */}
                 <div className="flex-1">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xl font-black uppercase tracking-tighter">
-                            {query ? `Résultats pour "${query}"` : 'Tous les produits'}
+                        <h2 className="text-xl font-bold">
+                            {query ? `Résultats pour "${query}"` : sort === 'promo' ? 'Promotions' : sort === 'best' ? 'Meilleures Ventes' : 'Tous les produits'}
                         </h2>
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{filteredProducts.length} articles</span>
                     </div>
@@ -203,14 +272,14 @@ export default async function Home(props: {
 
       <footer className="bg-[#232f3e] text-white py-20 mt-20">
         <div className="max-w-[1500px] mx-auto px-10 text-center">
-            <h2 className="brand-lolly text-5xl tracking-tighter mb-10">LOLLY<span className="text-lolly">.</span></h2>
+            <h2 className="brand-lolly text-5xl tracking-tighter mb-10 text-white uppercase italic font-black">LOLLY<span className="text-lolly">.</span></h2>
             <div className="flex justify-center flex-wrap gap-10 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-12 border-y border-white/5 py-8">
-                <Link href="/?shop=1" className="hover:text-white">Luxya Beauty</Link>
-                <Link href="/?shop=2" className="hover:text-white">Homtek Tech</Link>
-                <Link href="#" className="hover:text-white">Conditions de Vente</Link>
-                <Link href="#" className="hover:text-white">Contact</Link>
+                <Link href="/?shop=1" className="hover:text-red-500 transition-colors flex items-center"><div className="w-2 h-2 bg-red-600 rounded-full mr-2"/> Luxya Beauty</Link>
+                <Link href="/?shop=2" className="hover:text-blue-500 transition-colors flex items-center"><div className="w-2 h-2 bg-blue-600 rounded-full mr-2"/> Homtek Tech</Link>
+                <Link href="/conditions" className="hover:text-white">Conditions de Vente</Link>
+                <a href={`https://wa.me/${siteSettings?.whatsapp_number || "221772354747"}`} className="hover:text-white">Contact WhatsApp</a>
             </div>
-            <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-500">
+            <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-gray-500 opacity-50">
                 {siteSettings?.address || '© 2026 LOLLY SAS • Dakar, Sénégal'}
             </p>
         </div>
@@ -219,44 +288,40 @@ export default async function Home(props: {
   );
 }
 
-function UniverseEntry({ title, sub, id, img, color }: any) {
+function UniverseEntry({ title, sub, id, img, hexColor }: any) {
     return (
-        <Link href={`/?shop=${id}`} className="group relative h-64 bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500">
-            <div className={`absolute inset-0 bg-gradient-to-t ${color} opacity-20 z-10 group-hover:opacity-40 transition-opacity`} />
-            <Image src={img} alt={title} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
-            <div className="absolute inset-0 z-20 p-6 flex flex-col justify-end">
-                <h3 className="text-2xl font-black text-white uppercase tracking-tighter italic">{title}</h3>
-                <p className="text-white/80 text-[10px] font-bold uppercase tracking-widest">{sub}</p>
+        <div 
+            className="bg-white p-6 shadow-sm border-x border-b border-gray-200 flex flex-col h-full relative overflow-hidden group"
+            style={{ borderTop: `6px solid ${hexColor}` }}
+        >
+            <h3 className="text-xl font-bold mb-1">{title}</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4" style={{ color: hexColor }}>{sub}</p>
+            
+            <div className="flex-1 relative mb-4 overflow-hidden rounded min-h-[200px] bg-gray-50">
+                <Image src={img} alt={title} fill className="object-cover hover:scale-105 transition-transform duration-700" />
             </div>
-        </Link>
-    );
-}
-
-function PromoEntry({ title, desc, icon }: any) {
-    return (
-        <div className="bg-white p-8 rounded-lg shadow-sm flex flex-col items-center justify-center text-center space-y-4 hover:shadow-md transition-all">
-            <div className="p-4 bg-gray-50 rounded-full">{icon}</div>
-            <div>
-                <h3 className="text-sm font-black uppercase tracking-tight">{title}</h3>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{desc}</p>
-            </div>
+            <Link href={`/?shop=${id}`} className="text-sm hover:underline font-bold" style={{ color: hexColor }}>Acheter maintenant</Link>
         </div>
     );
 }
 
-function UniverseSection({ title, subtitle, shopId, products }: any) {
+function UniverseSection({ title, subtitle, shopId, products, hexColor }: any) {
     return (
-        <section className="bg-white p-8 rounded-lg shadow-sm border border-gray-200/60">
-            <div className="flex justify-between items-end mb-8 border-b border-gray-100 pb-6">
-                <div>
-                    <h2 className="text-3xl font-black uppercase tracking-tighter italic">{title} <span className="text-lolly">Collection.</span></h2>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{subtitle}</p>
+        <section 
+            className="bg-white p-6 shadow-sm border-x border-b border-gray-200"
+            style={{ borderTop: `4px solid ${hexColor}` }}
+        >
+            <div className="flex items-baseline space-x-4 mb-6 border-b border-gray-100 pb-4">
+                <div className="flex items-center space-x-3">
+                    <div className="w-4 h-4 rounded-full shadow-lg shadow-black/10" style={{ backgroundColor: hexColor }} />
+                    <h2 className="text-2xl font-bold italic uppercase">{title}</h2>
                 </div>
-                <Link href={`/?shop=${shopId}`} className="text-[10px] font-black uppercase tracking-widest text-lolly hover:underline">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">{subtitle}</p>
+                <Link href={`/?shop=${shopId}`} className="text-sm hover:underline ml-auto font-bold" style={{ color: hexColor }}>
                     Voir tout
                 </Link>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                 {products.slice(0, 6).map((p: any) => (
                     <ProductCard key={p.id} product={p} />
                 ))}

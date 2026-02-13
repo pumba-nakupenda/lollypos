@@ -24,6 +24,7 @@ export class SalesService {
                     payment_method: createSaleDto.paymentMethod,
                     shop_id: createSaleDto.shopId,
                     customer_name: (createSaleDto as any).customer_name,
+                    created_by: createSaleDto.created_by,
                     with_tva: (createSaleDto as any).with_tva ?? true,
                     type: (createSaleDto as any).type || 'invoice',
                     paid_amount: (createSaleDto as any).paid_amount || 0,
@@ -61,6 +62,12 @@ export class SalesService {
             for (const item of createSaleDto.items) {
                 if (!item.productId || item.productId === 0) continue; // Skip if service
 
+                // Update sales count
+                await this.supabase.rpc('increment_sales_count', {
+                    p_id: item.productId,
+                    p_qty: item.quantity
+                });
+
                 this.logger.debug(`[SALES] Updating stock for PID ${item.productId}: -${item.quantity}`);
                 const { error: rpcError } = await this.supabase.rpc('decrement_stock', {
                     p_id: item.productId,
@@ -82,7 +89,7 @@ export class SalesService {
     async findAll(shopId?: number) {
         let query = this.supabase
             .from('sales')
-            .select('*')
+            .select('*, profiles:created_by(email, role)')
             .order('created_at', { ascending: false });
 
         if (shopId) {

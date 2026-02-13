@@ -86,6 +86,7 @@ export class ExpensesService implements OnModuleInit {
           description: createExpenseDto.description,
           amount: createExpenseDto.amount,
           category: createExpenseDto.category,
+          created_by: createExpenseDto.created_by,
           date: createExpenseDto.date || new Date().toISOString(),
           shop_id: createExpenseDto.shopId,
           is_recurring: createExpenseDto.is_recurring || false,
@@ -111,7 +112,7 @@ export class ExpensesService implements OnModuleInit {
   async findAll(shopId?: number, category?: string, includePersonal?: boolean) {
     let query = this.supabase
       .from('expenses')
-      .select('*')
+      .select('*, profiles:created_by(email)')
       .order('date', { ascending: false });
 
     if (shopId) {
