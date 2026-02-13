@@ -202,7 +202,9 @@ export default function DashboardContent({ user }: { user: any }) {
                         <div className="h-8 w-px bg-white/10 mx-1 hidden lg:block" />
                         <div className="hidden sm:flex flex-col items-end mr-2">
                             <span className="text-[10px] font-bold text-white truncate max-w-[100px]">{user.email?.split('@')[0]}</span>
-                            <span className="text-[7px] font-black uppercase tracking-[0.2em] text-shop/60">{profile?.role}</span>
+                            <span className={`text-[7px] font-black uppercase tracking-[0.2em] ${profile?.is_super_admin ? 'text-yellow-400 animate-pulse' : 'text-shop/60'}`}>
+                                {profile?.is_super_admin ? 'Super Admin' : profile?.role}
+                            </span>
                         </div>
                         <form action="/auth/signout" method="post">
                             <button className="p-2 sm:p-2.5 glass-card rounded-lg sm:rounded-xl text-muted-foreground hover:text-red-400 transition-all" type="submit">
@@ -224,11 +226,15 @@ export default function DashboardContent({ user }: { user: any }) {
                 {/* 1. KEY METRICS */}
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
                     <MetricMiniCard title="Revenus" value={metrics.totalSales} icon={<DollarSign className="w-4 h-4" />} color="shop" trend="+12%" />
-                    <MetricMiniCard title="Marge Brute" value={metrics.margeBrute} icon={<TrendingUp className="w-4 h-4" />} color="blue-400" trend="+15%" />
-                    <MetricMiniCard title="Marge Net" value={metrics.margeNet} icon={<PieChart className="w-4 h-4" />} color="green-400" trend="+18%" />
-                    <MetricMiniCard title="Depenses" value={metrics.totalExpenses} icon={<TrendingDown className="w-4 h-4" />} color="red-400" trend="+2%" />
-                    <MetricMiniCard title="TVA (18%)" value={metrics.tva} icon={<Receipt className="w-4 h-4" />} color="orange-400" trend="Fixe" />
-                    <MetricMiniCard title="Profit" value={metrics.profit} icon={<TrendingUp className="w-4 h-4" />} color="green-400" trend="+10%" />
+                    {profile?.is_super_admin && (
+                        <>
+                            <MetricMiniCard title="Marge Brute" value={metrics.margeBrute} icon={<TrendingUp className="w-4 h-4" />} color="blue-400" trend="+15%" />
+                            <MetricMiniCard title="Marge Net" value={metrics.margeNet} icon={<PieChart className="w-4 h-4" />} color="green-400" trend="+18%" />
+                            <MetricMiniCard title="Depenses" value={metrics.totalExpenses} icon={<TrendingDown className="w-4 h-4" />} color="red-400" trend="+2%" />
+                            <MetricMiniCard title="TVA (18%)" value={metrics.tva} icon={<Receipt className="w-4 h-4" />} color="orange-400" trend="Fixe" />
+                            <MetricMiniCard title="Profit" value={metrics.profit} icon={<TrendingUp className="w-4 h-4" />} color="green-400" trend="+10%" />
+                        </>
+                    )}
                 </div>
 
                 {/* Mobile Filters (Only visible on small screens) */}
@@ -321,72 +327,74 @@ export default function DashboardContent({ user }: { user: any }) {
                     </div>
                 </div>
 
-                {/* 2.5 FINANCIAL ANALYSIS SECTION */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                    <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01]">
-                        <div className="flex items-center space-x-3 mb-8">
-                            <BarChart3 className="w-5 h-5 text-shop" />
-                            <h3 className="text-lg font-black uppercase tracking-tight">Analyse de Performance</h3>
-                        </div>
-                        
-                        <div className="space-y-8">
-                            <FinancialProgressBar 
-                                label="Recettes" 
-                                value={metrics.totalSales} 
-                                total={metrics.totalSales + metrics.totalDebts} 
-                                color="bg-shop"
-                                subLabel={`${((metrics.totalSales / (metrics.totalSales + metrics.totalDebts || 1)) * 100).toFixed(0)}% encaissé`}
-                            />
-                            <FinancialProgressBar 
-                                label="Dépenses" 
-                                value={metrics.totalExpenses} 
-                                total={metrics.totalSales} 
-                                color="bg-red-500"
-                                subLabel={`${((metrics.totalExpenses / (metrics.totalSales || 1)) * 100).toFixed(0)}% du CA`}
-                            />
-                            <FinancialProgressBar 
-                                label="Dettes Clients" 
-                                value={metrics.totalDebts} 
-                                total={metrics.totalSales + metrics.totalDebts} 
-                                color="bg-orange-500"
-                                subLabel="À recouvrer"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01] flex flex-col justify-center">
-                        <div className="flex items-center space-x-3 mb-6">
-                            <ShieldAlert className="w-5 h-5 text-shop-secondary" />
-                            <h3 className="text-lg font-black uppercase tracking-tight">Santé Financière</h3>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Profit Net</p>
-                                <h4 className={`text-xl font-black ${(metrics.margeNet || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    {(metrics.margeNet || 0).toLocaleString()} <span className="text-[10px]">CFA</span>
-                                </h4>
+                {/* 2.5 FINANCIAL ANALYSIS SECTION - SUPER ADMIN ONLY */}
+                {profile?.is_super_admin && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                        <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01]">
+                            <div className="flex items-center space-x-3 mb-8">
+                                <BarChart3 className="w-5 h-5 text-shop" />
+                                <h3 className="text-lg font-black uppercase tracking-tight">Analyse de Performance</h3>
                             </div>
-                            <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Cash Immobilisé</p>
-                                <h4 className="text-xl font-black text-orange-400">
-                                    {(metrics.totalDebts || 0).toLocaleString()} <span className="text-[10px]">CFA</span>
-                                </h4>
+                            
+                            <div className="space-y-8">
+                                <FinancialProgressBar 
+                                    label="Recettes" 
+                                    value={metrics.totalSales} 
+                                    total={metrics.totalSales + metrics.totalDebts} 
+                                    color="bg-shop"
+                                    subLabel={`${((metrics.totalSales / (metrics.totalSales + metrics.totalDebts || 1)) * 100).toFixed(0)}% encaissé`}
+                                />
+                                <FinancialProgressBar 
+                                    label="Dépenses" 
+                                    value={metrics.totalExpenses} 
+                                    total={metrics.totalSales} 
+                                    color="bg-red-500"
+                                    subLabel={`${((metrics.totalExpenses / (metrics.totalSales || 1)) * 100).toFixed(0)}% du CA`}
+                                />
+                                <FinancialProgressBar 
+                                    label="Dettes Clients" 
+                                    value={metrics.totalDebts} 
+                                    total={metrics.totalSales + metrics.totalDebts} 
+                                    color="bg-orange-500"
+                                    subLabel="À recouvrer"
+                                />
                             </div>
                         </div>
 
-                        <div className="mt-6 p-4 bg-shop/5 border border-shop/10 rounded-2xl">
-                            <div className="flex items-start space-x-3">
-                                <AlertCircle className="w-4 h-4 text-shop mt-0.5" />
-                                <p className="text-[10px] font-bold text-white leading-relaxed uppercase">
-                                    {metrics.totalDebts > metrics.margeNet 
-                                        ? "Attention : Vos dettes clients dépassent votre profit net. Risque de trésorerie élevé."
-                                        : "Bonne gestion : Vos dettes sont maîtrisées par rapport à votre rentabilité."}
-                                </p>
+                        <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01] flex flex-col justify-center">
+                            <div className="flex items-center space-x-3 mb-6">
+                                <ShieldAlert className="w-5 h-5 text-shop-secondary" />
+                                <h3 className="text-lg font-black uppercase tracking-tight">Santé Financière</h3>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Profit Net</p>
+                                    <h4 className={`text-xl font-black ${(metrics.margeNet || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {(metrics.margeNet || 0).toLocaleString()} <span className="text-[10px]">CFA</span>
+                                    </h4>
+                                </div>
+                                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Cash Immobilisé</p>
+                                    <h4 className="text-xl font-black text-orange-400">
+                                        {(metrics.totalDebts || 0).toLocaleString()} <span className="text-[10px]">CFA</span>
+                                    </h4>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 p-4 bg-shop/5 border border-shop/10 rounded-2xl">
+                                <div className="flex items-start space-x-3">
+                                    <AlertCircle className="w-4 h-4 text-shop mt-0.5" />
+                                    <p className="text-[10px] font-bold text-white leading-relaxed uppercase">
+                                        {metrics.totalDebts > metrics.margeNet 
+                                            ? "Attention : Vos dettes clients dépassent votre profit net. Risque de trésorerie élevé."
+                                            : "Bonne gestion : Vos dettes sont maîtrisées par rapport à votre rentabilité."}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
                     {/* 3. SALES JOURNAL */}

@@ -288,6 +288,17 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                 </div>
                             </div>
 
+                            {/* SENSIBLE DATA: COST PRICE ONLY FOR SUPER ADMIN */}
+                            {profile?.is_super_admin && (
+                                <div className="space-y-2 md:col-span-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Prix de Revient (Confidentiel)</label>
+                                    <div className="relative">
+                                        <Hash className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input name="cost_price" type="number" defaultValue={product.cost_price} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all text-white" />
+                                    </div>
+                                </div>
+                            )}
+
                             {itemType === 'product' && (
                                 <>
                                     <div className="space-y-2">

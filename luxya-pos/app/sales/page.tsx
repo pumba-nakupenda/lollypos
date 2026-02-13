@@ -30,6 +30,8 @@ export default function SalesTerminal() {
     const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
     const [categories, setCategories] = useState<string[]>(['Toutes']);
     const [selectedCategory, setSelectedCategory] = useState('Toutes');
+    const [brands, setBrands] = useState<string[]>(['Toutes']);
+    const [selectedBrand, setSelectedBrand] = useState('Toutes');
     const [isAgency, setIsAgency] = useState(false);
     
     // Agency state
@@ -65,8 +67,12 @@ export default function SalesTerminal() {
             if (res.ok) {
                 const data = await res.json();
                 setProducts(data);
+                
                 const cats = new Set(data.map((p: any) => p.category).filter(Boolean));
                 setCategories(['Toutes', ...Array.from(cats) as string[]]);
+
+                const bnds = new Set(data.map((p: any) => p.brand).filter(Boolean));
+                setBrands(['Toutes', ...Array.from(bnds).sort() as string[]]);
             }
         } catch (e) {
             showToast("Erreur de chargement des produits", "error");
@@ -113,9 +119,11 @@ export default function SalesTerminal() {
 
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            p.category?.toLowerCase().includes(searchQuery.toLowerCase());
+                            (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            (p.brand || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = selectedCategory === 'Toutes' || p.category === selectedCategory;
-        return matchesSearch && matchesCategory && p.show_on_pos !== false;
+        const matchesBrand = selectedBrand === 'Toutes' || p.brand === selectedBrand;
+        return matchesSearch && matchesCategory && matchesBrand && p.show_on_pos !== false;
     });
 
     const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
@@ -336,33 +344,61 @@ export default function SalesTerminal() {
                     {(activeTab === 'shop' || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
                         <div className={activeTab === 'history' ? 'hidden lg:block' : ''}>
                             {!isAgency ? (
-                                <div className="space-y-8">
-                                    <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
-                                        <div className="flex-1 relative group">
+                                <div className="space-y-6">
+                                    {/* Combined Filters Bar */}
+                                    <div className="flex flex-col space-y-4">
+                                        <div className="relative group">
                                             <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-shop transition-colors" />
                                             <input 
                                                 type="text" 
-                                                placeholder="Rechercher un produit..."
+                                                placeholder="Chercher par nom, catégorie ou marque..."
                                                 className="w-full h-16 sm:h-20 bg-white/5 border border-white/10 rounded-[24px] sm:rounded-3xl pl-16 pr-6 text-sm font-bold focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
                                             />
                                         </div>
-                                        <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar md:w-auto">
-                                            {categories.map(cat => (
-                                                <button
-                                                    key={cat}
-                                                    onClick={() => setSelectedCategory(cat)}
-                                                    className={`px-6 sm:px-8 h-16 sm:h-20 rounded-[24px] sm:rounded-3xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
-                                                        selectedCategory === cat 
-                                                        ? 'bg-shop border-shop text-white shadow-xl shadow-shop/20 scale-95' 
-                                                        : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white'
-                                                    }`}
-                                                >
-                                                    {cat}
-                                                </button>
-                                            ))}
+
+                                        {/* Categories Scroll */}
+                                        <div className="space-y-2">
+                                            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest ml-4">Rayons / Catégories</p>
+                                            <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar px-2">
+                                                {categories.map(cat => (
+                                                    <button
+                                                        key={cat}
+                                                        onClick={() => setSelectedCategory(cat)}
+                                                        className={`px-6 h-12 rounded-2xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                                                            selectedCategory === cat 
+                                                            ? 'bg-shop border-shop text-white shadow-lg' 
+                                                            : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white'
+                                                        }`}
+                                                    >
+                                                        {cat}
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
+
+                                        {/* Brands Scroll */}
+                                        {brands.length > 2 && (
+                                            <div className="space-y-2">
+                                                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest ml-4">Marques</p>
+                                                <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar px-2">
+                                                    {brands.map(brand => (
+                                                        <button
+                                                            key={brand}
+                                                            onClick={() => setSelectedBrand(brand)}
+                                                            className={`px-6 h-10 rounded-xl text-[8px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                                                                selectedBrand === brand 
+                                                                ? 'bg-white text-black border-white shadow-md' 
+                                                                : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
+                                                            }`}
+                                                        >
+                                                            {brand}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {loading ? (

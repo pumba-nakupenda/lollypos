@@ -106,28 +106,32 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
             <Package className="w-8 h-8 text-white/5 absolute right-4 group-hover:scale-110 group-hover:text-shop/20 transition-all duration-500" />
           </div>
 
-          <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
-            <div className="relative z-10">
-              <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Investissement (Achat)</p>
-              <h2 className="text-xl sm:text-2xl font-black text-blue-400 tracking-tight">{totalCost.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center absolute right-4 group-hover:bg-blue-500/20 transition-all">
-                <TrendingUp className="w-4 h-4 text-blue-400" />
-            </div>
-          </div>
-
-          <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
-            <div className="relative z-10">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Valeur Stock (Vente)</p>
-                <span className="bg-green-500/20 text-green-400 text-[8px] font-black px-2 py-0.5 rounded-full border border-green-500/20">+{marginPercent.toFixed(1)}% MARGE</span>
+          {profile?.is_super_admin && (
+            <>
+              <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
+                <div className="relative z-10">
+                  <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Investissement (Achat)</p>
+                  <h2 className="text-xl sm:text-2xl font-black text-blue-400 tracking-tight">{totalCost.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center absolute right-4 group-hover:bg-blue-500/20 transition-all">
+                    <TrendingUp className="w-4 h-4 text-blue-400" />
+                </div>
               </div>
-              <h2 className="text-xl sm:text-2xl font-black text-shop-secondary tracking-tight">{totalValue.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-shop-secondary/10 flex items-center justify-center absolute right-4 group-hover:bg-shop-secondary/20 transition-all">
-                <TrendingUp className="w-4 h-4 text-shop-secondary" />
-            </div>
-          </div>
+
+              <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Valeur Stock (Vente)</p>
+                    <span className="bg-green-500/20 text-green-400 text-[8px] font-black px-2 py-0.5 rounded-full border border-green-500/20">+{marginPercent.toFixed(1)}% MARGE</span>
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black text-shop-secondary tracking-tight">{totalValue.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
+                </div>
+                <div className="w-8 h-8 rounded-full bg-shop-secondary/10 flex items-center justify-center absolute right-4 group-hover:bg-shop-secondary/20 transition-all">
+                    <TrendingUp className="w-4 h-4 text-shop-secondary" />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative border-red-500/10">
             <div className="relative z-10">

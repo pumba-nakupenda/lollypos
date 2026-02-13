@@ -11,6 +11,7 @@ export interface UserProfile {
     shop_id: number | null
     shop_ids?: number[]
     has_stock_access?: boolean
+    is_super_admin?: boolean
 }
 
 interface UserContextType {
