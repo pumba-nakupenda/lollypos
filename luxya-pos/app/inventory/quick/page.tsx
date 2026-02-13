@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, Package, Plus, Minus, Check, ChevronLeft, Loader2, Camera, RefreshCw, X, Upload, PlusCircle, DollarSign, TrendingUp, AlertTriangle, Tags, Edit2 } from 'lucide-react';
+import { Search, Package, Plus, Minus, Check, ChevronLeft, Loader2, Camera, RefreshCw, X, Upload, PlusCircle, DollarSign, TrendingUp, AlertTriangle, Tags, Edit2, Calendar } from 'lucide-react';
 import { useShop } from '@/context/ShopContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
