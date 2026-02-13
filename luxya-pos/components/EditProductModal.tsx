@@ -30,6 +30,21 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
     const [showOnPos, setShowOnPos] = useState<boolean>(product.show_on_pos !== false)
     const [showOnWebsite, setShowOnWebsite] = useState<boolean>(product.show_on_website !== false)
 
+    // VARIANTS & BRAND
+    const [brand, setBrand] = useState(product.brand || '')
+    const [variants, setVariants] = useState<any[]>(product.variants || [])
+    const [newVariant, setNewVariant] = useState({ color: '', size: '' })
+
+    const addVariant = () => {
+        if (!newVariant.color && !newVariant.size) return;
+        setVariants([...variants, { ...newVariant, id: Date.now() }])
+        setNewVariant({ color: '', size: '' })
+    }
+
+    const removeVariant = (id: number) => {
+        setVariants(variants.filter(v => v.id !== id))
+    }
+
     const focusSearch = () => {
         const name = nameRef.current?.value;
         if (!name) return showToast("Entrez d'abord un nom de produit", "warning");
@@ -77,6 +92,8 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         formData.set('show_on_pos', showOnPos.toString())
         formData.set('show_on_website', showOnWebsite.toString())
         formData.set('is_featured', isFeatured.toString())
+        formData.set('brand', brand)
+        formData.set('variants', JSON.stringify(variants))
         formData.set('existingGallery', JSON.stringify(gallery))
         
         if (newCategoryMode && customCategory) {
@@ -209,6 +226,15 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                             </div>
 
                             <div className="space-y-2 md:col-span-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Marque (Optionnel)</label>
+                                <input
+                                    name="brand" value={brand} onChange={e => setBrand(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-shop/50 outline-none transition-all text-white"
+                                    placeholder="Ex: Nike, Apple, Luxya..."
+                                />
+                            </div>
+
+                            <div className="space-y-2 md:col-span-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2 flex items-center">
                                     <PlayCircle className="w-3 h-3 mr-1.5 text-red-400" /> Lien Vidéo (YouTube / MP4)
                                 </label>
@@ -252,6 +278,48 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                     </div>
                                 </>
                             )}
+
+                            {/* VARIANTS SECTION */}
+                            <div className="md:col-span-2 space-y-4 p-6 glass-panel rounded-3xl border border-white/5 bg-white/[0.01]">
+                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-shop flex items-center">
+                                    <Sparkles className="w-3 h-3 mr-2" /> Variantes (Tailles & Couleurs)
+                                </h4>
+                                
+                                <div className="grid grid-cols-3 gap-3">
+                                    <input 
+                                        value={newVariant.color} 
+                                        onChange={e => setNewVariant({...newVariant, color: e.target.value})}
+                                        placeholder="Couleur" 
+                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50 text-white" 
+                                    />
+                                    <input 
+                                        value={newVariant.size} 
+                                        onChange={e => setNewVariant({...newVariant, size: e.target.value})}
+                                        placeholder="Taille" 
+                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50 text-white" 
+                                    />
+                                    <button 
+                                        type="button" 
+                                        onClick={addVariant}
+                                        className="bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        Ajouter
+                                    </button>
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    {variants.map(v => (
+                                        <div key={v.id} className="flex items-center space-x-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full group">
+                                            <span className="text-[9px] font-bold uppercase text-white">
+                                                {v.color} {v.color && v.size ? '/' : ''} {v.size}
+                                            </span>
+                                            <button type="button" onClick={() => removeVariant(v.id)} className="text-red-400 hover:text-red-500">
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
 
                             <div className="space-y-2 md:col-span-2">
                                 <div className="flex justify-between items-center mb-1">

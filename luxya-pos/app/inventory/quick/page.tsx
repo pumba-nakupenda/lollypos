@@ -1,7 +1,8 @@
+
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, Package, Plus, Minus, Check, ChevronLeft, Loader2, Camera, RefreshCw, X, Upload, PlusCircle, DollarSign, TrendingUp, AlertTriangle, Tags, Edit2, Calendar } from 'lucide-react';
+import { Search, Package, Plus, Minus, Check, ChevronLeft, Loader2, Camera, RefreshCw, X, Upload, PlusCircle, DollarSign, TrendingUp, AlertTriangle, Tags, Edit2, Calendar, Sparkles } from 'lucide-react';
 import { useShop } from '@/context/ShopContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
@@ -38,6 +39,7 @@ export default function QuickInventoryPage() {
         cost_price: '',
         stock: '1', 
         category: 'Général', 
+        brand: '',
         expiry_date: '',
         image: '' 
     });
@@ -111,6 +113,7 @@ export default function QuickInventoryPage() {
                     cost_price: newProduct.cost_price ? parseFloat(newProduct.cost_price) : undefined,
                     stock: parseInt(newProduct.stock),
                     category: newProduct.category,
+                    brand: newProduct.brand,
                     expiry_date: newProduct.expiry_date || undefined,
                     image: newProduct.image,
                     variants: variants,
@@ -125,6 +128,7 @@ export default function QuickInventoryPage() {
                 showToast("Produit ajouté !", "success");
                 setIsModalOpen(false);
                 setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', expiry_date: '', image: '' });
+                setVariants([]);
                 fetchProducts();
             }
         } catch (e) {
@@ -190,7 +194,7 @@ export default function QuickInventoryPage() {
                 <button onClick={fetchProducts} className="p-2 hover:bg-white/5 rounded-xl"><RefreshCw className={loading ? 'animate-spin' : ''} /></button>
             </header>
 
-            {/* Quick Stats Aligned with main Inventory */}
+            {/* Quick Stats */}
             <div className="p-4 grid grid-cols-2 gap-3">
                 <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
                     <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Valeur Stock</p>
@@ -203,7 +207,10 @@ export default function QuickInventoryPage() {
             </div>
 
             <div className="p-4">
-                <input type="text" placeholder="Rechercher..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input type="text" placeholder="Rechercher..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                </div>
             </div>
 
             <main className="flex-1 overflow-y-auto px-4 space-y-3">
@@ -236,98 +243,130 @@ export default function QuickInventoryPage() {
                 <PlusCircle className="w-8 h-8" />
             </button>
 
+            {/* MODAL / BOTTOM SHEET */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 backdrop-blur-xl bg-black/40">
-                    <div className="relative bg-[#121214] w-full max-w-lg p-8 rounded-t-[40px] sm:rounded-[40px] border border-white/5">
-                        <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full"><X/></button>
-                        <h2 className="text-xl font-black uppercase mb-8 flex items-center"><PlusCircle className="mr-2 text-shop"/> Nouveau Produit</h2>
-                        <form onSubmit={handleCreateQuickProduct} className="space-y-6">
-                            <div onClick={() => fileInputRef.current?.click()} className="h-32 bg-white/5 rounded-3xl border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden">
-                                {newProduct.image ? <img src={newProduct.image} className="w-full h-full object-cover" /> : <><Camera className="text-muted-foreground mb-1"/><p className="text-[8px] font-black uppercase text-muted-foreground">Photo</p></>}
+                <div className="fixed inset-0 z-[100] flex items-end justify-center backdrop-blur-xl bg-black/40">
+                    <div className="absolute inset-0" onClick={() => setIsModalOpen(false)} />
+                    
+                    <div className="relative bg-[#0a0a0c] w-full max-h-[92vh] flex flex-col rounded-t-[40px] border-t border-white/10 shadow-[0_-20px_50px_rgba(0,0,0,0.5)] animate-in slide-in-from-bottom duration-300">
+                        {/* Handle */}
+                        <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto my-4 shrink-0" />
+                        
+                        <div className="flex items-center justify-between px-8 mb-4 shrink-0">
+                            <h2 className="text-xl font-black uppercase flex items-center italic">Ajout <span className="text-shop ml-2">Express.</span></h2>
+                            <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white/5 rounded-full"><X className="w-5 h-5"/></button>
+                        </div>
+
+                        <form onSubmit={handleCreateQuickProduct} className="flex-1 overflow-y-auto px-6 pb-24 space-y-6 custom-scrollbar">
+                            
+                            {/* BLOCK 1: IMAGE */}
+                            <div onClick={() => fileInputRef.current?.click()} className="relative h-44 bg-white/5 rounded-[32px] border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden active:scale-98 transition-all shrink-0">
+                                {newProduct.image ? (
+                                    <img src={newProduct.image} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="text-center">
+                                        <Camera className="w-8 h-8 text-muted-foreground mx-auto mb-2"/>
+                                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Prendre une photo</p>
+                                    </div>
+                                )}
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" capture="environment" onChange={handleFileUpload} />
                             </div>
-                            
-                            <div className="space-y-4">
-                                <input required placeholder="Nom du produit" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
 
-                                <div className="space-y-2">
-                                    <div className="flex justify-between items-center px-1">
-                                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Catégorie</p>
-                                        <button 
-                                            type="button"
-                                            onClick={() => setIsCatModalOpen(true)}
-                                            className="text-[10px] font-black uppercase text-shop hover:underline flex items-center"
-                                        >
-                                            <Edit2 className="w-3 h-3 mr-1"/> Gérer
-                                        </button>
+                            {/* BLOCK 2: BASIC INFO */}
+                            <div className="space-y-4">
+                                <div className="space-y-1.5 px-1">
+                                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Nom du produit</p>
+                                    <input required placeholder="Ex: T-shirt Silk Premium" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-bold outline-none focus:border-shop/50" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                                </div>
+
+                                <div className="space-y-1.5 px-1">
+                                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Marque (Optionnel)</p>
+                                    <input placeholder="Ex: Nike, Apple, Luxya..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} />
+                                </div>
+
+                                <div className="space-y-1.5 px-1">
+                                    <div className="flex justify-between items-center ml-1">
+                                        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Catégorie</p>
+                                        <button type="button" onClick={() => setIsCatModalOpen(true)} className="text-[9px] font-black uppercase text-shop flex items-center"><Edit2 className="w-3 h-3 mr-1"/> Gérer</button>
                                     </div>
-                                    
-                                    <div className="flex flex-wrap gap-2 mb-2 max-h-24 overflow-y-auto p-1 bg-white/[0.02] rounded-xl border border-white/5">
+                                    <div className="flex flex-wrap gap-2 py-1 overflow-x-auto no-scrollbar">
                                         {categories.map(cat => (
-                                            <button
-                                                key={cat}
-                                                type="button"
-                                                onClick={() => setNewProduct({...newProduct, category: cat})}
-                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
-                                                    newProduct.category === cat 
-                                                    ? 'bg-shop text-white shadow-lg shadow-shop/20' 
-                                                    : 'bg-white/5 text-muted-foreground border border-white/10 hover:border-shop/30'
-                                                }`}
-                                            >
-                                                {cat}
-                                            </button>
+                                            <button key={cat} type="button" onClick={() => setNewProduct({...newProduct, category: cat})} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all whitespace-nowrap ${newProduct.category === cat ? 'bg-shop text-white shadow-lg' : 'bg-white/5 text-muted-foreground border border-white/10'}`}>{cat}</button>
                                         ))}
                                     </div>
-
                                     <div className="relative">
                                         <Tags className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input placeholder="Nouvelle ou existante..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+                                        <input placeholder="Ou tapez une nouvelle..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                            {/* BLOCK 3: NUMBERS */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5 px-1">
+                                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Prix Vente</p>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-shop" />
+                                        <input required type="number" placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-base font-black outline-none focus:border-shop/50" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5 px-1">
+                                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Quantité</p>
                                     <div className="relative">
                                         <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input required type="number" placeholder="Stock" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
-                                    </div>
-                                    <div className="relative">
-                                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input required type="number" placeholder="Prix Vente" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                                        <input required type="number" placeholder="1" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-base font-black outline-none focus:border-shop/50" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
                                     </div>
                                 </div>
+                            </div>
 
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="relative">
-                                        <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input type="number" placeholder="Prix Revient" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.cost_price} onChange={e => setNewProduct({...newProduct, cost_price: e.target.value})} />
-                                    </div>
-                                    <div className="relative">
-                                        <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.expiry_date} onChange={e => setNewProduct({...newProduct, expiry_date: e.target.value})} />
-                                    </div>
+                            {/* BLOCK 4: ADDITIONAL */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5 px-1">
+                                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Prix d'achat</p>
+                                    <input type="number" placeholder="Optionnel" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.cost_price} onChange={e => setNewProduct({...newProduct, cost_price: e.target.value})} />
+                                </div>
+                                <div className="space-y-1.5 px-1">
+                                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Péremption</p>
+                                    <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.expiry_date} onChange={e => setNewProduct({...newProduct, expiry_date: e.target.value})} />
+                                </div>
+                            </div>
+
+                            {/* BLOCK 5: VARIANTS */}
+                            <div className="space-y-4 p-6 bg-white/[0.03] rounded-[32px] border border-white/10">
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] font-black uppercase text-shop tracking-widest flex items-center"><Sparkles className="w-3 h-3 mr-2"/> Tailles & Couleurs</p>
+                                    <span className="text-[8px] font-bold text-muted-foreground uppercase">{variants.length} ajoutées</span>
+                                </div>
+                                
+                                <div className="flex gap-2">
+                                    <input placeholder="Coul." className="w-20 bg-white/10 border border-white/10 rounded-xl py-3 px-3 text-xs outline-none focus:border-shop/50" value={newVariant.color} onChange={e => setNewVariant({...newVariant, color: e.target.value})} />
+                                    <input placeholder="Taille" className="flex-1 bg-white/10 border border-white/10 rounded-xl py-3 px-3 text-xs outline-none focus:border-shop/50" value={newVariant.size} onChange={e => setNewVariant({...newVariant, size: e.target.value})} />
+                                    <button type="button" onClick={addVariant} className="px-6 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all">Ajouter</button>
                                 </div>
 
-                                {/* VARIATIONS - MOBILE OPTIMIZED */}
-                                <div className="space-y-4 p-5 bg-white/[0.02] rounded-3xl border border-white/5">
-                                    <p className="text-[10px] font-black uppercase text-shop tracking-widest">Variantes (Tailles / Couleurs)</p>
-                                    <div className="flex gap-2">
-                                        <input placeholder="Coul." className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs outline-none focus:border-shop/50" value={newVariant.color} onChange={e => setNewVariant({...newVariant, color: e.target.value})} />
-                                        <input placeholder="Taille" className="flex-1 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs outline-none focus:border-shop/50" value={newVariant.size} onChange={e => setNewVariant({...newVariant, size: e.target.value})} />
-                                        <button type="button" onClick={addVariant} className="px-4 bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest">OK</button>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
+                                {variants.length > 0 && (
+                                    <div className="flex flex-wrap gap-2 pt-2">
                                         {variants.map(v => (
-                                            <div key={v.id} className="flex items-center space-x-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
-                                                <span className="text-[9px] font-bold uppercase">{v.color} {v.size}</span>
-                                                <button type="button" onClick={() => removeVariant(v.id)} className="text-red-400"><X className="w-3 h-3"/></button>
+                                            <div key={v.id} className="flex items-center space-x-2 bg-shop/20 border border-shop/30 px-3 py-1.5 rounded-full animate-in zoom-in-50 duration-200">
+                                                <span className="text-[9px] font-black uppercase text-shop">{v.color} {v.size}</span>
+                                                <button type="button" onClick={() => removeVariant(v.id)} className="text-shop/60 hover:text-shop"><X className="w-3 h-3"/></button>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
+                                )}
                             </div>
-
-                            <button type="submit" disabled={isCreating} className="w-full py-5 bg-shop text-white font-black uppercase rounded-3xl shadow-xl active:scale-95 transition-all">{isCreating ? <Loader2 className="animate-spin mx-auto"/> : "Valider"}</button>
                         </form>
+
+                        {/* Sticky Action Button */}
+                        <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#0a0a0c] via-[#0a0a0c] to-transparent">
+                            <button 
+                                onClick={(e) => { e.preventDefault(); handleCreateQuickProduct(e as any); }}
+                                disabled={isCreating || !newProduct.name || !newProduct.price} 
+                                className="w-full py-5 bg-shop text-white font-black uppercase rounded-3xl shadow-2xl shadow-shop/30 active:scale-95 transition-all flex items-center justify-center disabled:opacity-30 disabled:grayscale"
+                            >
+                                {isCreating ? <Loader2 className="animate-spin"/> : <><Check className="w-5 h-5 mr-2 stroke-[3px]"/> Valider l'ajout</>}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

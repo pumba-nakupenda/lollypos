@@ -136,6 +136,8 @@ export async function updateProduct(productId: number, formData: FormData) {
     const video_url = formData.get('video_url') as string | null
     const show_on_pos = formData.get('show_on_pos') === 'true'
     const show_on_website = formData.get('show_on_website') === 'true'
+    const brand = formData.get('brand') as string
+    const variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : []
     const imageFile = formData.get('image') as File | null
     const aiImageUrl = formData.get('ai_image_url') as string | null
     const galleryFiles = formData.getAll('gallery') as File[]
@@ -184,6 +186,8 @@ export async function updateProduct(productId: number, formData: FormData) {
         stock,
         min_stock,
         category,
+        brand,
+        variants,
         image: imageUrl,
         images: galleryUrls,
         type,

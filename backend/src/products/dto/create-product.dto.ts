@@ -7,6 +7,7 @@ export class CreateProductDto {
     stock: number;
     min_stock?: number;
     category?: string;
+    brand?: string;
     shop_id: number;
     created_by?: string;
     variants?: any[];

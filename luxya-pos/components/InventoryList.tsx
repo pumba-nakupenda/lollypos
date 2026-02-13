@@ -234,7 +234,10 @@ export default function InventoryList({ products }: InventoryListProps) {
                                     )}
                                 </div>
                                 <div className="min-w-0 flex-1">
-                                    <h3 className="text-base sm:text-lg font-bold truncate group-hover:text-shop transition-colors text-white uppercase">{product.name}</h3>
+                                    <h3 className="text-base sm:text-lg font-bold truncate group-hover:text-shop transition-colors text-white uppercase">
+                                        {product.brand && <span className="text-shop/60 text-xs mr-2">[{product.brand}]</span>}
+                                        {product.name}
+                                    </h3>
                                     <div className="flex flex-wrap items-center gap-2 mt-1">
                                         <span className="bg-white/5 px-2 py-0.5 rounded-md border border-white/5 text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-shop/70">
                                             {product.category || 'Général'}
