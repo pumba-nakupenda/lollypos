@@ -47,6 +47,10 @@ export default function InventoryList({ products }: InventoryListProps) {
     const [variants, setVariants] = useState<any[]>([])
     const [newColorMode, setNewColorMode] = useState(false)
     const [newVariant, setNewVariant] = useState({ color: '', size: '' })
+    
+    // NEW: Brand Selection State
+    const [newBrandMode, setNewBrandMode] = useState(false)
+    const [customBrand, setCustomBrand] = useState('')
 
     const addVariant = () => {
         if (!newVariant.color && !newVariant.size) return
@@ -98,7 +102,7 @@ export default function InventoryList({ products }: InventoryListProps) {
                     cost_price: newProduct.cost_price ? parseFloat(newProduct.cost_price) : undefined,
                     stock: parseInt(newProduct.stock),
                     category: newProduct.category,
-                    brand: newProduct.brand,
+                    brand: newBrandMode ? customBrand : newProduct.brand,
                     expiry_date: newProduct.expiry_date || undefined,
                     image: newProduct.image,
                     variants: variants,
@@ -368,15 +372,35 @@ export default function InventoryList({ products }: InventoryListProps) {
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center px-1">
                                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Marque</p>
-                                        <button 
-                                            type="button"
-                                            onClick={() => setIsBrandModalOpen(true)}
-                                            className="text-[10px] font-black uppercase text-shop hover:underline flex items-center"
-                                        >
-                                            <Edit2 className="w-3 h-3 mr-1"/> Gérer
-                                        </button>
+                                        <div className="flex items-center space-x-2">
+                                            <button type="button" onClick={() => setNewBrandMode(!newBrandMode)} className="text-[10px] font-black uppercase text-shop hover:underline">
+                                                {newBrandMode ? 'Choisir' : '+ Nouvelle'}
+                                            </button>
+                                            <button 
+                                                type="button"
+                                                onClick={() => setIsBrandModalOpen(true)}
+                                                className="text-[10px] font-black uppercase text-muted-foreground hover:text-white flex items-center border-l border-white/10 pl-2 ml-2"
+                                            >
+                                                <Edit2 className="w-3 h-3 mr-1"/> Gérer
+                                            </button>
+                                        </div>
                                     </div>
-                                    <input placeholder="Ex: Nike, Apple, Luxya..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} />
+                                    {newBrandMode ? (
+                                        <input placeholder="Nom de la marque..." className="w-full bg-white/5 border border-shop/30 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white animate-in slide-in-from-top-1" value={customBrand} onChange={e => setCustomBrand(e.target.value)} autoFocus />
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2 py-1 max-h-24 overflow-y-auto no-scrollbar">
+                                            {brands.length > 0 ? brands.map(b => (
+                                                <button 
+                                                    key={b} 
+                                                    type="button" 
+                                                    onClick={() => setNewProduct({...newProduct, brand: b})}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${newProduct.brand === b ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-muted-foreground border border-white/10'}`}
+                                                >
+                                                    {b}
+                                                </button>
+                                            )) : <p className="text-[8px] text-muted-foreground italic px-2">Aucune marque enregistrée</p>}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">

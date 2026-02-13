@@ -56,12 +56,14 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
     console.error('Failed to fetch products', e)
   }
 
-  const outOfStock = products.filter((p: any) => p.stock <= 0).length;
   const totalValue = products.reduce((acc: number, p: any) => acc + (p.price * p.stock), 0);
+  const totalCost = products.reduce((acc: number, p: any) => acc + (Number(p.cost_price || 0) * p.stock), 0);
+  const marginPercent = totalValue > 0 ? ((totalValue - totalCost) / totalValue) * 100 : 0;
+  const outOfStock = products.filter((p: any) => p.stock <= 0).length;
 
   return (
     <div className="min-h-screen pb-20">
-      {/* Refined Header - Lowered z-index to let global menu button stay on top */}
+      {/* ... header reste inchangé ... */}
       <header className="glass-panel sticky top-2 sm:top-4 z-50 mx-2 sm:mx-4 rounded-2xl sm:rounded-[24px] shadow-xl border-white/5">
         <div className="max-w-7xl mx-auto py-3 sm:py-4 px-4 sm:px-8 flex justify-between items-center">
           <div className="flex items-center space-x-3 sm:space-x-6">
@@ -95,31 +97,46 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
 
       <main className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
             <div className="relative z-10">
               <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Total Produits</p>
-              <h2 className="text-2xl sm:text-3xl font-black">{products.length}</h2>
+              <h2 className="text-xl sm:text-2xl font-black">{products.length}</h2>
             </div>
-            <Package className="w-10 h-10 sm:w-12 sm:h-12 text-white/5 absolute right-4 group-hover:scale-110 group-hover:text-shop/20 transition-all duration-500" />
+            <Package className="w-8 h-8 text-white/5 absolute right-4 group-hover:scale-110 group-hover:text-shop/20 transition-all duration-500" />
           </div>
 
           <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
             <div className="relative z-10">
-              <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Valeur Stock</p>
-              <h2 className="text-2xl sm:text-3xl font-black text-shop-secondary tracking-tight">{totalValue.toLocaleString()} <span className="text-xs">FCFA</span></h2>
+              <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Investissement (Achat)</p>
+              <h2 className="text-xl sm:text-2xl font-black text-blue-400 tracking-tight">{totalCost.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
             </div>
-            <TrendingUp className="w-10 h-10 sm:w-12 sm:h-12 text-white/5 absolute right-4 group-hover:scale-110 group-hover:text-shop-secondary/20 transition-all duration-500" />
+            <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center absolute right-4 group-hover:bg-blue-500/20 transition-all">
+                <TrendingUp className="w-4 h-4 text-blue-400" />
+            </div>
           </div>
 
-          <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative border-red-500/10 sm:col-span-2 md:col-span-1">
+          <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Valeur Stock (Vente)</p>
+                <span className="bg-green-500/20 text-green-400 text-[8px] font-black px-2 py-0.5 rounded-full border border-green-500/20">+{marginPercent.toFixed(1)}% MARGE</span>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black text-shop-secondary tracking-tight">{totalValue.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-shop-secondary/10 flex items-center justify-center absolute right-4 group-hover:bg-shop-secondary/20 transition-all">
+                <TrendingUp className="w-4 h-4 text-shop-secondary" />
+            </div>
+          </div>
+
+          <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative border-red-500/10">
             <div className="relative z-10">
               <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Alertes Stock</p>
-              <h2 className={`text-2xl sm:text-3xl font-black ${outOfStock > 0 ? 'text-red-400' : 'text-green-400'}`}>
+              <h2 className={`text-xl sm:text-2xl font-black ${outOfStock > 0 ? 'text-red-400' : 'text-green-400'}`}>
                 {outOfStock} Ruptures
               </h2>
             </div>
-            <AlertTriangle className={`w-10 h-10 sm:w-12 sm:h-12 absolute right-4 group-hover:scale-110 transition-all duration-500 ${outOfStock > 0 ? 'text-red-500/20' : 'text-green-500/5'}`} />
+            <AlertTriangle className={`w-8 h-8 absolute right-4 group-hover:scale-110 transition-all duration-500 ${outOfStock > 0 ? 'text-red-500/20' : 'text-green-500/5'}`} />
           </div>
         </div>
 

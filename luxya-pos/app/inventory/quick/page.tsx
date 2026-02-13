@@ -58,8 +58,10 @@ export default function QuickInventoryPage() {
     });
     const [variants, setVariants] = useState<any[]>([]);
     
-    // NEW: Color Selection State
+    // NEW: Selection States
     const [newColorMode, setNewColorMode] = useState(false);
+    const [newBrandMode, setNewBrandMode] = useState(false);
+    const [customBrand, setCustomBrand] = useState('');
     const [newVariant, setNewVariant] = useState({ color: '', size: '' });
 
     const addVariant = () => {
@@ -130,7 +132,7 @@ export default function QuickInventoryPage() {
                     cost_price: newProduct.cost_price ? parseFloat(newProduct.cost_price) : undefined,
                     stock: parseInt(newProduct.stock),
                     category: newProduct.category,
-                    brand: newProduct.brand,
+                    brand: newBrandMode ? customBrand : newProduct.brand,
                     expiry_date: newProduct.expiry_date || undefined,
                     image: newProduct.image,
                     variants: variants,
@@ -197,6 +199,8 @@ export default function QuickInventoryPage() {
 
     const filtered = products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
     const totalValue = products.reduce((acc, p) => acc + (p.price * p.stock), 0);
+    const totalCost = products.reduce((acc, p) => acc + (Number(p.cost_price || 0) * p.stock), 0);
+    const marginPercent = totalValue > 0 ? ((totalValue - totalCost) / totalValue) * 100 : 0;
     const outOfStock = products.filter(p => p.stock <= 0).length;
 
     if (profileLoading) return null;
@@ -211,15 +215,27 @@ export default function QuickInventoryPage() {
                 <button onClick={fetchProducts} className="p-2 hover:bg-white/5 rounded-xl"><RefreshCw className={loading ? 'animate-spin' : ''} /></button>
             </header>
 
-            {/* Quick Stats */}
-            <div className="p-4 grid grid-cols-2 gap-3">
+            {/* Quick Stats Updated */}
+            <div className="p-4 grid grid-cols-2 gap-3 pb-2">
                 <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
-                    <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Valeur Stock</p>
-                    <p className="text-sm font-black text-shop">{totalValue.toLocaleString()} CFA</p>
+                    <p className="text-[8px] font-black uppercase text-blue-400 mb-1">Investissement</p>
+                    <p className="text-sm font-black text-white">{totalCost.toLocaleString()} CFA</p>
                 </div>
-                <div className={`p-4 rounded-3xl border ${outOfStock > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'}`}>
-                    <p className="text-[8px] font-black uppercase text-muted-foreground mb-1">Ruptures</p>
-                    <p className={`text-sm font-black ${outOfStock > 0 ? 'text-red-400' : 'text-green-400'}`}>{outOfStock}</p>
+                <div className="bg-white/5 p-4 rounded-3xl border border-white/5 relative overflow-hidden">
+                    <div className="absolute top-2 right-3 px-1.5 py-0.5 bg-green-500 text-white text-[6px] font-black rounded-full">
+                        +{marginPercent.toFixed(0)}%
+                    </div>
+                    <p className="text-[8px] font-black uppercase text-shop-secondary mb-1">Valeur Vente</p>
+                    <p className="text-sm font-black text-white">{totalValue.toLocaleString()} CFA</p>
+                </div>
+            </div>
+
+            <div className="px-4 pb-2 grid grid-cols-1">
+                <div className={`px-4 py-2 rounded-2xl border ${outOfStock > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'}`}>
+                    <p className="text-[8px] font-black uppercase text-muted-foreground flex justify-between items-center">
+                        <span>Alertes Stock</span>
+                        <span className={outOfStock > 0 ? 'text-red-400' : 'text-green-400'}>{outOfStock} Ruptures</span>
+                    </p>
                 </div>
             </div>
 
@@ -298,10 +314,30 @@ export default function QuickInventoryPage() {
 
                                 <div className="space-y-1.5 px-1">
                                     <div className="flex justify-between items-center ml-1">
-                                        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Marque (Optionnel)</p>
-                                        <button type="button" onClick={() => setIsBrandModalOpen(true)} className="text-[9px] font-black uppercase text-shop flex items-center"><Edit2 className="w-3 h-3 mr-1"/> Gérer</button>
+                                        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Marque</p>
+                                        <div className="flex items-center space-x-2">
+                                            <button type="button" onClick={() => setNewBrandMode(!newBrandMode)} className="text-[9px] font-black uppercase text-shop">
+                                                {newBrandMode ? 'Choisir' : '+ Nouvelle'}
+                                            </button>
+                                            <button type="button" onClick={() => setIsBrandModalOpen(true)} className="text-[9px] font-black uppercase text-muted-foreground flex items-center border-l border-white/10 pl-2 ml-2"><Edit2 className="w-3 h-3 mr-1"/> Gérer</button>
+                                        </div>
                                     </div>
-                                    <input placeholder="Ex: Nike, Apple, Luxya..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} />
+                                    {newBrandMode ? (
+                                        <input placeholder="Nom de la marque..." className="w-full bg-white/5 border border-shop/30 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white animate-in slide-in-from-top-1" value={customBrand} onChange={e => setCustomBrand(e.target.value)} autoFocus />
+                                    ) : (
+                                        <div className="flex flex-wrap gap-2 py-1 max-h-24 overflow-x-auto no-scrollbar">
+                                            {brands.length > 0 ? brands.map(b => (
+                                                <button 
+                                                    key={b} 
+                                                    type="button" 
+                                                    onClick={() => setNewProduct({...newProduct, brand: b})}
+                                                    className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase transition-all whitespace-nowrap ${newProduct.brand === b ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-muted-foreground border border-white/10'}`}
+                                                >
+                                                    {b}
+                                                </button>
+                                            )) : <p className="text-[8px] text-muted-foreground italic px-2">Aucune marque</p>}
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* BLOCK 2.5: VARIANTS (MOVED UP FOR VISIBILITY) */}
