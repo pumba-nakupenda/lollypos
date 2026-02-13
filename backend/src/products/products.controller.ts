@@ -50,6 +50,40 @@ export class ProductsController {
         return this.productsService.deleteCategory(name, shopId ? +shopId : undefined);
     }
 
+    @Patch('brands/rename')
+    renameBrand(
+        @Body('oldName') oldName: string,
+        @Body('newName') newName: string,
+        @Query('shopId') shopId?: string
+    ) {
+        return this.productsService.updateBrand(oldName, newName, shopId ? +shopId : undefined);
+    }
+
+    @Delete('brands/delete')
+    deleteBrand(
+        @Body('name') name: string,
+        @Query('shopId') shopId?: string
+    ) {
+        return this.productsService.deleteBrand(name, shopId ? +shopId : undefined);
+    }
+
+    @Patch('colors/rename')
+    renameColor(
+        @Body('oldName') oldName: string,
+        @Body('newName') newName: string,
+        @Query('shopId') shopId?: string
+    ) {
+        return this.productsService.updateColor(oldName, newName, shopId ? +shopId : undefined);
+    }
+
+    @Delete('colors/delete')
+    deleteColor(
+        @Body('name') name: string,
+        @Query('shopId') shopId?: string
+    ) {
+        return this.productsService.deleteColor(name, shopId ? +shopId : undefined);
+    }
+
     @Post(':id/view')
     recordView(@Param('id') id: string, @Body('shopId') shopId?: number) {
         return this.productsService.recordView(+id, shopId);

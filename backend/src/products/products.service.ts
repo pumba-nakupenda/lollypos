@@ -149,6 +149,65 @@ export class ProductsService {
         return { count: data?.length || 0 };
     }
 
+    async updateBrand(oldName: string, newName: string, shopId?: number) {
+        this.logger.log(`[PRODUCTS] Renaming brand from "${oldName}" to "${newName}"`);
+        let query = this.supabase.from('products').update({ brand: newName }).eq('brand', oldName);
+        if (shopId) query = query.eq('shop_id', shopId);
+        
+        const { data, error } = await query.select();
+        if (error) throw new Error(error.message);
+        return { count: data?.length || 0 };
+    }
+
+    async deleteBrand(name: string, shopId?: number) {
+        this.logger.log(`[PRODUCTS] Deleting brand "${name}" (resetting to empty)`);
+        let query = this.supabase.from('products').update({ brand: '' }).eq('brand', name);
+        if (shopId) query = query.eq('shop_id', shopId);
+
+        const { data, error } = await query.select();
+        if (error) throw new Error(error.message);
+        return { count: data?.length || 0 };
+    }
+
+    // GLOBAL COLOR MANAGEMENT
+    async updateColor(oldColor: string, newColor: string, shopId?: number) {
+        this.logger.log(`[PRODUCTS] Global rename color "${oldColor}" to "${newColor}"`);
+        
+        // Fetch all products that have this color in variants
+        let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', `[{"color": "${oldColor}"}]`);
+        if (shopId) query = query.eq('shop_id', shopId);
+        
+        const { data: products, error: fetchError } = await query;
+        if (fetchError) throw fetchError;
+
+        let updatedCount = 0;
+        for (const product of products || []) {
+            const newVariants = product.variants.map((v: any) => 
+                v.color === oldColor ? { ...v, color: newColor } : v
+            );
+            await this.supabase.from('products').update({ variants: newVariants }).eq('id', product.id);
+            updatedCount++;
+        }
+        return { count: updatedCount };
+    }
+
+    async deleteColor(color: string, shopId?: number) {
+        this.logger.log(`[PRODUCTS] Global delete color "${color}"`);
+        let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', `[{"color": "${color}"}]`);
+        if (shopId) query = query.eq('shop_id', shopId);
+        
+        const { data: products, error: fetchError } = await query;
+        if (fetchError) throw fetchError;
+
+        let updatedCount = 0;
+        for (const product of products || []) {
+            const newVariants = product.variants.filter((v: any) => v.color !== color);
+            await this.supabase.from('products').update({ variants: newVariants }).eq('id', product.id);
+            updatedCount++;
+        }
+        return { count: updatedCount };
+    }
+
     async recordView(productId: number, shopId?: number) {
         this.logger.debug(`[TRACKING] Recording view for product ID: ${productId}`);
         const { error } = await this.supabase

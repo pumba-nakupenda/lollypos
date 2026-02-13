@@ -1,13 +1,14 @@
 'use client'
 
 import React, { useState, useMemo, useRef } from 'react'
-import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink, Plus, Camera, Loader2, PlusCircle, DollarSign, TrendingUp } from 'lucide-react'
+import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink, Plus, Camera, Loader2, PlusCircle, DollarSign, TrendingUp, Sparkles } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import EditProductModal from './EditProductModal'
 import CustomDropdown from './CustomDropdown'
 import ExpiryBadge from './ExpiryBadge'
 import ManageCategoriesModal from './ManageCategoriesModal'
+import ManageBrandsModal from './ManageBrandsModal'
 import { SITE_URL, API_URL } from '@/utils/api'
 import { createClient } from '@/utils/supabase/client'
 import { useShop } from '@/context/ShopContext'
@@ -26,6 +27,7 @@ export default function InventoryList({ products }: InventoryListProps) {
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isCatModalOpen, setIsCatModalOpen] = useState(false)
+    const [isBrandModalOpen, setIsBrandModalOpen] = useState(false)
 
     // Quick Creation State
     const [isQuickModalOpen, setIsQuickModalOpen] = useState(false)
@@ -36,10 +38,38 @@ export default function InventoryList({ products }: InventoryListProps) {
         cost_price: '',
         stock: '1', 
         category: 'Général', 
+        brand: '',
         expiry_date: '',
         image: '' 
     })
+    
+    // NEW: Variants State for Quick Add
+    const [variants, setVariants] = useState<any[]>([])
+    const [newColorMode, setNewColorMode] = useState(false)
+    const [newVariant, setNewVariant] = useState({ color: '', size: '' })
+
+    const addVariant = () => {
+        if (!newVariant.color && !newVariant.size) return
+        setVariants([...variants, { ...newVariant, id: Date.now() }])
+        setNewVariant({ color: '', size: '' })
+        setNewColorMode(false)
+    }
+
+    const removeVariant = (id: number) => {
+        setVariants(variants.filter(v => v.id !== id))
+    }
+
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const brands = useMemo(() => {
+        const b = new Set(products.map(p => p.brand).filter(Boolean))
+        return Array.from(b).sort() as string[]
+    }, [products])
+
+    const colors = useMemo(() => {
+        const c = new Set(products.flatMap(p => p.variants?.map((v: any) => v.color)).filter(Boolean))
+        return Array.from(c).sort() as string[]
+    }, [products])
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -68,8 +98,10 @@ export default function InventoryList({ products }: InventoryListProps) {
                     cost_price: newProduct.cost_price ? parseFloat(newProduct.cost_price) : undefined,
                     stock: parseInt(newProduct.stock),
                     category: newProduct.category,
+                    brand: newProduct.brand,
                     expiry_date: newProduct.expiry_date || undefined,
                     image: newProduct.image,
+                    variants: variants,
                     shop_id: activeShop?.id || 1,
                     created_by: profile?.id,
                     show_on_pos: true,
@@ -79,7 +111,8 @@ export default function InventoryList({ products }: InventoryListProps) {
             if (res.ok) {
                 showToast("Produit ajouté !", "success");
                 setIsQuickModalOpen(false);
-                setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', expiry_date: '', image: '' });
+                setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', brand: '', expiry_date: '', image: '' });
+                setVariants([]);
                 window.location.reload();
             }
         } catch (err) { showToast("Erreur de création", "error"); } finally { setIsCreating(false); }
@@ -334,6 +367,20 @@ export default function InventoryList({ products }: InventoryListProps) {
                                 
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center px-1">
+                                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Marque</p>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setIsBrandModalOpen(true)}
+                                            className="text-[10px] font-black uppercase text-shop hover:underline flex items-center"
+                                        >
+                                            <Edit2 className="w-3 h-3 mr-1"/> Gérer
+                                        </button>
+                                    </div>
+                                    <input placeholder="Ex: Nike, Apple, Luxya..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <div className="flex justify-between items-center px-1">
                                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Catégorie</p>
                                         <button 
                                             type="button"
@@ -388,6 +435,65 @@ export default function InventoryList({ products }: InventoryListProps) {
                                         <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.expiry_date} onChange={e => setNewProduct({...newProduct, expiry_date: e.target.value})} />
                                     </div>
                                 </div>
+
+                                {/* VARIANTS SECTION (Quick Add) */}
+                                <div className="space-y-4 p-6 bg-white/[0.03] rounded-[32px] border border-white/10">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[10px] font-black uppercase text-shop tracking-widest flex items-center"><Sparkles className="w-3 h-3 mr-2"/> Tailles & Couleurs</p>
+                                        <span className="text-[8px] font-bold text-muted-foreground uppercase">{variants.length} ajoutées</span>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center px-1">
+                                                <p className="text-[8px] font-black uppercase text-muted-foreground">Couleur</p>
+                                                <button type="button" onClick={() => setNewColorMode(!newColorMode)} className="text-[8px] font-black uppercase text-shop">
+                                                    {newColorMode ? 'Choisir' : '+ Nouvelle'}
+                                                </button>
+                                            </div>
+                                            
+                                            {newColorMode ? (
+                                                <input 
+                                                    placeholder="Nom de la couleur..." 
+                                                    className="w-full bg-white/10 border border-shop/30 rounded-xl py-3 px-3 text-xs outline-none text-white animate-in slide-in-from-top-1" 
+                                                    value={newVariant.color} 
+                                                    onChange={e => setNewVariant({...newVariant, color: e.target.value})} 
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <div className="flex flex-wrap gap-2 py-1 max-h-24 overflow-y-auto no-scrollbar">
+                                                    {colors.length > 0 ? colors.map(c => (
+                                                        <button 
+                                                            key={c} 
+                                                            type="button" 
+                                                            onClick={() => setNewVariant({...newVariant, color: c})}
+                                                            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center space-x-2 ${newVariant.color === c ? 'bg-white text-black' : 'bg-white/5 text-muted-foreground border border-white/10'}`}
+                                                        >
+                                                            <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: c.toLowerCase() }} />
+                                                            <span>{c}</span>
+                                                        </button>
+                                                    )) : <p className="text-[8px] text-muted-foreground italic px-2">Aucune couleur</p>}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <input placeholder="Taille" className="flex-1 bg-white/10 border border-white/10 rounded-xl py-3 px-3 text-xs outline-none focus:border-shop/50 text-white" value={newVariant.size} onChange={e => setNewVariant({...newVariant, size: e.target.value})} />
+                                            <button type="button" onClick={addVariant} className="px-6 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all">OK</button>
+                                        </div>
+                                    </div>
+
+                                    {variants.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            {variants.map(v => (
+                                                <div key={v.id} className="flex items-center space-x-2 bg-shop/20 border border-shop/30 px-3 py-1.5 rounded-full animate-in zoom-in-50 duration-200">
+                                                    <span className="text-[9px] font-black uppercase text-shop">{v.color} {v.size}</span>
+                                                    <button type="button" onClick={() => removeVariant(v.id)} className="text-shop/60 hover:text-shop"><X className="w-3 h-3"/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             <button type="submit" disabled={isCreating} className="w-full py-5 bg-white text-black hover:bg-shop hover:text-white font-black uppercase rounded-[24px] shadow-xl transition-all active:scale-95">
@@ -402,6 +508,13 @@ export default function InventoryList({ products }: InventoryListProps) {
                 isOpen={isCatModalOpen}
                 onClose={() => setIsCatModalOpen(false)}
                 categories={categories}
+                shopId={activeShop?.id}
+                onRefresh={() => window.location.reload()}
+            />
+            <ManageBrandsModal 
+                isOpen={isBrandModalOpen}
+                onClose={() => setIsBrandModalOpen(false)}
+                brands={brands}
                 shopId={activeShop?.id}
                 onRefresh={() => window.location.reload()}
             />

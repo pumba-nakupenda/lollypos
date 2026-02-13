@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Plus, X, Package, Ruler, Hash, Image as ImageIcon, Tags, FileText, Upload, Trash2, ChevronDown, AlertTriangle, Store, PlusCircle, Sparkles, Calendar, PlayCircle, Globe } from 'lucide-react'
+import { Plus, X, Package, Ruler, Hash, Image as ImageIcon, Tags, FileText, Upload, Trash2, ChevronDown, AlertTriangle, Store, PlusCircle, Sparkles, Calendar, PlayCircle, Globe, Tag } from 'lucide-react'
 import { createProduct } from '@/app/inventory/actions'
 import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
@@ -27,7 +27,13 @@ export default function CreateProductButton() {
     const [newCategoryMode, setNewCategoryMode] = useState(false)
     const [customCategory, setCustomCategory] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('Général')
+    
+    const [newBrandMode, setNewBrandMode] = useState(false)
+    const [customBrand, setCustomBrand] = useState('')
+    const [selectedBrand, setSelectedBrand] = useState('')
+    
     const [existingCategories, setExistingCategories] = useState<string[]>([])
+    const [existingBrands, setExistingBrands] = useState<string[]>([])
     
     // NEW: Type selection
     const [itemType, setItemType] = useState<'product' | 'service'>('product')
@@ -73,6 +79,9 @@ export default function CreateProductButton() {
                 .then(data => {
                     const cats = new Set(data.map((p: any) => p.category).filter(Boolean))
                     setExistingCategories(Array.from(cats) as string[])
+                    
+                    const bnds = new Set(data.map((p: any) => p.brand).filter(Boolean))
+                    setExistingBrands(Array.from(bnds).sort() as string[])
                 })
         }
     }, [isOpen])
@@ -119,6 +128,12 @@ export default function CreateProductButton() {
             formData.set('category', customCategory)
         } else {
             formData.set('category', selectedCategory)
+        }
+
+        if (newBrandMode && customBrand) {
+            formData.set('brand', customBrand)
+        } else {
+            formData.set('brand', selectedBrand)
         }
 
         const result = await createProduct(formData)
@@ -307,6 +322,32 @@ export default function CreateProductButton() {
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 text-white" 
                                             placeholder="Ex: Chemise Silk Premium" 
                                         />
+                                    </div>
+
+                                    {/* Brand Field with Selection */}
+                                    <div className="space-y-2 md:col-span-2">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center ml-2">
+                                                <Tag className="w-3 h-3 mr-1.5" /> Marque
+                                            </label>
+                                            <button type="button" onClick={() => setNewBrandMode(!newBrandMode)} className="text-[8px] font-black uppercase text-shop hover:underline">
+                                                {newBrandMode ? 'Choisir existante' : '+ Nouvelle'}
+                                            </button>
+                                        </div>
+                                        
+                                        {newBrandMode ? (
+                                            <input value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-4 text-sm focus:ring-2 focus:ring-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 text-white animate-in slide-in-from-top-2" placeholder="Nom de la nouvelle marque..." autoFocus />
+                                        ) : (
+                                            <CustomDropdown 
+                                                options={[
+                                                    { label: 'Aucune marque', value: '', icon: <Tag className="w-3.5 h-3.5" /> },
+                                                    ...existingBrands.map(b => ({ label: b, value: b, icon: <Tag className="w-3.5 h-3.5" /> }))
+                                                ]}
+                                                value={selectedBrand}
+                                                onChange={setSelectedBrand}
+                                                placeholder="Sélectionner une marque"
+                                            />
+                                        )}
                                     </div>
 
                                     {/* Video URL */}

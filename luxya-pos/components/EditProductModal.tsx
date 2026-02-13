@@ -32,6 +32,11 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
 
     // VARIANTS & BRAND
     const [brand, setBrand] = useState(product.brand || '')
+    const [newBrandMode, setNewBrandMode] = useState(false)
+    const [customBrand, setCustomBrand] = useState('')
+    const [selectedBrand, setSelectedBrand] = useState(product.brand || '')
+    const [existingBrands, setExistingBrands] = useState<string[]>([])
+
     const [variants, setVariants] = useState<any[]>(product.variants || [])
     const [newVariant, setNewVariant] = useState({ color: '', size: '' })
 
@@ -64,6 +69,9 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
             .then(data => {
                 const cats = new Set(data.map((p: any) => p.category).filter(Boolean))
                 setExistingCategories(Array.from(cats) as string[])
+
+                const bnds = new Set(data.map((p: any) => p.brand).filter(Boolean))
+                setExistingBrands(Array.from(bnds).sort() as string[])
             })
     }
 
@@ -92,7 +100,13 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         formData.set('show_on_pos', showOnPos.toString())
         formData.set('show_on_website', showOnWebsite.toString())
         formData.set('is_featured', isFeatured.toString())
-        formData.set('brand', brand)
+        
+        if (newBrandMode && customBrand) {
+            formData.set('brand', customBrand)
+        } else {
+            formData.set('brand', selectedBrand)
+        }
+
         formData.set('variants', JSON.stringify(variants))
         formData.set('existingGallery', JSON.stringify(gallery))
         
@@ -226,12 +240,25 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                             </div>
 
                             <div className="space-y-2 md:col-span-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Marque (Optionnel)</label>
-                                <input
-                                    name="brand" value={brand} onChange={e => setBrand(e.target.value)}
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm focus:border-shop/50 outline-none transition-all text-white"
-                                    placeholder="Ex: Nike, Apple, Luxya..."
-                                />
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">
+                                        Marque
+                                    </label>
+                                    <button type="button" onClick={() => setNewBrandMode(!newBrandMode)} className="text-[8px] font-black uppercase text-shop hover:underline">
+                                        {newBrandMode ? 'Choisir existante' : '+ Nouvelle'}
+                                    </button>
+                                </div>
+                                {newBrandMode ? (
+                                    <input value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-4 text-sm focus:ring-2 focus:ring-shop/50 outline-none transition-all text-white" placeholder="Nom de la nouvelle marque..." autoFocus />
+                                ) : (
+                                    <CustomDropdown 
+                                        options={[
+                                            { label: 'Aucune marque', value: '', icon: <Tag className="w-3.5 h-3.5" /> },
+                                            ...existingBrands.map(b => ({ label: b, value: b, icon: <Tag className="w-3.5 h-3.5" /> }))
+                                        ]}
+                                        value={selectedBrand} onChange={setSelectedBrand}
+                                    />
+                                )}
                             </div>
 
                             <div className="space-y-2 md:col-span-2">

@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
@@ -11,6 +10,8 @@ import { API_URL } from '@/utils/api';
 import Link from 'next/link';
 import ShopSelector from '@/components/ShopSelector';
 import ManageCategoriesModal from '@/components/ManageCategoriesModal';
+import ManageBrandsModal from '@/components/ManageBrandsModal';
+import ManageColorsModal from '@/components/ManageColorsModal';
 
 export default function QuickInventoryPage() {
     const { activeShop } = useShop();
@@ -26,11 +27,23 @@ export default function QuickInventoryPage() {
     // Create Quick Product State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+    const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
+    const [isColorModalOpen, setIsColorModalOpen] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
 
     const categories = useMemo(() => {
         const cats = new Set(products.map(p => p.category || 'Général'))
         return Array.from(cats).sort()
+    }, [products])
+
+    const brands = useMemo(() => {
+        const b = new Set(products.map(p => p.brand).filter(Boolean))
+        return Array.from(b).sort() as string[]
+    }, [products])
+
+    const colors = useMemo(() => {
+        const c = new Set(products.flatMap(p => p.variants?.map((v: any) => v.color)).filter(Boolean))
+        return Array.from(c).sort() as string[]
     }, [products])
 
     const [newProduct, setNewProduct] = useState({ 
@@ -44,12 +57,16 @@ export default function QuickInventoryPage() {
         image: '' 
     });
     const [variants, setVariants] = useState<any[]>([]);
+    
+    // NEW: Color Selection State
+    const [newColorMode, setNewColorMode] = useState(false);
     const [newVariant, setNewVariant] = useState({ color: '', size: '' });
 
     const addVariant = () => {
         if (!newVariant.color && !newVariant.size) return;
         setVariants([...variants, { ...newVariant, id: Date.now() }]);
         setNewVariant({ color: '', size: '' });
+        setNewColorMode(false); // Reset to selection after add
     };
 
     const removeVariant = (id: number) => {
@@ -276,12 +293,78 @@ export default function QuickInventoryPage() {
                             <div className="space-y-4">
                                 <div className="space-y-1.5 px-1">
                                     <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Nom du produit</p>
-                                    <input required placeholder="Ex: T-shirt Silk Premium" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-bold outline-none focus:border-shop/50" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
+                                    <input required placeholder="Ex: T-shirt Silk Premium" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-bold outline-none focus:border-shop/50 text-white" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
                                 </div>
 
                                 <div className="space-y-1.5 px-1">
-                                    <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Marque (Optionnel)</p>
-                                    <input placeholder="Ex: Nike, Apple, Luxya..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} />
+                                    <div className="flex justify-between items-center ml-1">
+                                        <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Marque (Optionnel)</p>
+                                        <button type="button" onClick={() => setIsBrandModalOpen(true)} className="text-[9px] font-black uppercase text-shop flex items-center"><Edit2 className="w-3 h-3 mr-1"/> Gérer</button>
+                                    </div>
+                                    <input placeholder="Ex: Nike, Apple, Luxya..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newProduct.brand} onChange={e => setNewProduct({...newProduct, brand: e.target.value})} />
+                                </div>
+
+                                {/* BLOCK 2.5: VARIANTS (MOVED UP FOR VISIBILITY) */}
+                                <div className="space-y-4 p-6 bg-white/[0.03] rounded-[32px] border border-white/10">
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[10px] font-black uppercase text-shop tracking-widest flex items-center"><Sparkles className="w-3 h-3 mr-2"/> Tailles & Couleurs</p>
+                                        <div className="flex items-center space-x-2">
+                                            <button type="button" onClick={() => setIsColorModalOpen(true)} className="text-[9px] font-black uppercase text-purple-400 flex items-center bg-purple-500/10 px-2 py-1 rounded-lg">Gérer</button>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase">{variants.length} ajoutées</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        {/* Color Selection vs Manual Mode */}
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center px-1">
+                                                <p className="text-[8px] font-black uppercase text-muted-foreground">Couleur</p>
+                                                <button type="button" onClick={() => setNewColorMode(!newColorMode)} className="text-[8px] font-black uppercase text-shop">
+                                                    {newColorMode ? 'Choisir' : '+ Nouvelle'}
+                                                </button>
+                                            </div>
+                                            
+                                            {newColorMode ? (
+                                                <input 
+                                                    placeholder="Nom de la couleur..." 
+                                                    className="w-full bg-white/10 border border-shop/30 rounded-xl py-3 px-3 text-xs outline-none text-white animate-in slide-in-from-top-1" 
+                                                    value={newVariant.color} 
+                                                    onChange={e => setNewVariant({...newVariant, color: e.target.value})} 
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <div className="flex flex-wrap gap-2 py-1 max-h-24 overflow-y-auto no-scrollbar">
+                                                    {colors.length > 0 ? colors.map(c => (
+                                                        <button 
+                                                            key={c} 
+                                                            type="button" 
+                                                            onClick={() => setNewVariant({...newVariant, color: c})}
+                                                            className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center space-x-2 ${newVariant.color === c ? 'bg-white text-black' : 'bg-white/5 text-muted-foreground border border-white/10'}`}
+                                                        >
+                                                            <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: c.toLowerCase() }} />
+                                                            <span>{c}</span>
+                                                        </button>
+                                                    )) : <p className="text-[8px] text-muted-foreground italic px-2">Aucune couleur existante</p>}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <input placeholder="Taille (ex: XL, 42...)" className="flex-1 bg-white/10 border border-white/10 rounded-xl py-3 px-3 text-xs outline-none focus:border-shop/50 text-white" value={newVariant.size} onChange={e => setNewVariant({...newVariant, size: e.target.value})} />
+                                            <button type="button" onClick={addVariant} className="px-6 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all">Ajouter</button>
+                                        </div>
+                                    </div>
+
+                                    {variants.length > 0 && (
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            {variants.map(v => (
+                                                <div key={v.id} className="flex items-center space-x-2 bg-shop/20 border border-shop/30 px-3 py-1.5 rounded-full animate-in zoom-in-50 duration-200">
+                                                    <span className="text-[9px] font-black uppercase text-shop">{v.color} {v.size}</span>
+                                                    <button type="button" onClick={() => removeVariant(v.id)} className="text-shop/60 hover:text-shop"><X className="w-3 h-3"/></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="space-y-1.5 px-1">
@@ -296,7 +379,7 @@ export default function QuickInventoryPage() {
                                     </div>
                                     <div className="relative">
                                         <Tags className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input placeholder="Ou tapez une nouvelle..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+                                        <input placeholder="Ou tapez une nouvelle..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
                                     </div>
                                 </div>
                             </div>
@@ -307,14 +390,14 @@ export default function QuickInventoryPage() {
                                     <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Prix Vente</p>
                                     <div className="relative">
                                         <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-shop" />
-                                        <input required type="number" placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-base font-black outline-none focus:border-shop/50" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                                        <input required type="number" placeholder="0" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-base font-black outline-none focus:border-shop/50 text-white" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
                                     </div>
                                 </div>
                                 <div className="space-y-1.5 px-1">
                                     <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Quantité</p>
                                     <div className="relative">
                                         <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input required type="number" placeholder="1" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-base font-black outline-none focus:border-shop/50" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
+                                        <input required type="number" placeholder="1" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-base font-black outline-none focus:border-shop/50 text-white" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
                                     </div>
                                 </div>
                             </div>
@@ -323,37 +406,12 @@ export default function QuickInventoryPage() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5 px-1">
                                     <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Prix d'achat</p>
-                                    <input type="number" placeholder="Optionnel" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.cost_price} onChange={e => setNewProduct({...newProduct, cost_price: e.target.value})} />
+                                    <input type="number" placeholder="Optionnel" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newProduct.cost_price} onChange={e => setNewProduct({...newProduct, cost_price: e.target.value})} />
                                 </div>
                                 <div className="space-y-1.5 px-1">
                                     <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-1">Péremption</p>
-                                    <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.expiry_date} onChange={e => setNewProduct({...newProduct, expiry_date: e.target.value})} />
+                                    <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-4 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newProduct.expiry_date} onChange={e => setNewProduct({...newProduct, expiry_date: e.target.value})} />
                                 </div>
-                            </div>
-
-                            {/* BLOCK 5: VARIANTS */}
-                            <div className="space-y-4 p-6 bg-white/[0.03] rounded-[32px] border border-white/10">
-                                <div className="flex items-center justify-between">
-                                    <p className="text-[10px] font-black uppercase text-shop tracking-widest flex items-center"><Sparkles className="w-3 h-3 mr-2"/> Tailles & Couleurs</p>
-                                    <span className="text-[8px] font-bold text-muted-foreground uppercase">{variants.length} ajoutées</span>
-                                </div>
-                                
-                                <div className="flex gap-2">
-                                    <input placeholder="Coul." className="w-20 bg-white/10 border border-white/10 rounded-xl py-3 px-3 text-xs outline-none focus:border-shop/50" value={newVariant.color} onChange={e => setNewVariant({...newVariant, color: e.target.value})} />
-                                    <input placeholder="Taille" className="flex-1 bg-white/10 border border-white/10 rounded-xl py-3 px-3 text-xs outline-none focus:border-shop/50" value={newVariant.size} onChange={e => setNewVariant({...newVariant, size: e.target.value})} />
-                                    <button type="button" onClick={addVariant} className="px-6 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all">Ajouter</button>
-                                </div>
-
-                                {variants.length > 0 && (
-                                    <div className="flex flex-wrap gap-2 pt-2">
-                                        {variants.map(v => (
-                                            <div key={v.id} className="flex items-center space-x-2 bg-shop/20 border border-shop/30 px-3 py-1.5 rounded-full animate-in zoom-in-50 duration-200">
-                                                <span className="text-[9px] font-black uppercase text-shop">{v.color} {v.size}</span>
-                                                <button type="button" onClick={() => removeVariant(v.id)} className="text-shop/60 hover:text-shop"><X className="w-3 h-3"/></button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         </form>
 
@@ -375,6 +433,22 @@ export default function QuickInventoryPage() {
                 isOpen={isCatModalOpen}
                 onClose={() => setIsCatModalOpen(false)}
                 categories={categories}
+                shopId={activeShop?.id}
+                onRefresh={fetchProducts}
+            />
+
+            <ManageBrandsModal 
+                isOpen={isBrandModalOpen}
+                onClose={() => setIsBrandModalOpen(false)}
+                brands={brands}
+                shopId={activeShop?.id}
+                onRefresh={fetchProducts}
+            />
+
+            <ManageColorsModal 
+                isOpen={isColorModalOpen}
+                onClose={() => setIsColorModalOpen(false)}
+                colors={colors}
                 shopId={activeShop?.id}
                 onRefresh={fetchProducts}
             />

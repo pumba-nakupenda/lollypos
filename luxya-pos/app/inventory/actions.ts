@@ -19,6 +19,7 @@ export async function createProduct(formData: FormData) {
         .single()
 
     const name = formData.get('name') as string
+    const brand = formData.get('brand') as string
     const description = formData.get('description') as string
     const price = Number(formData.get('price'))
     const cost_price = Number(formData.get('cost_price'))
@@ -78,6 +79,7 @@ export async function createProduct(formData: FormData) {
 
     const rawData = {
         name,
+        brand,
         description,
         price,
         cost_price,
@@ -124,6 +126,7 @@ export async function updateProduct(productId: number, formData: FormData) {
     if (!user) return { error: 'Non authentifié' }
 
     const name = formData.get('name') as string
+    const brand = formData.get('brand') as string
     const description = formData.get('description') as string
     const price = Number(formData.get('price'))
     const cost_price = Number(formData.get('cost_price'))
@@ -136,7 +139,6 @@ export async function updateProduct(productId: number, formData: FormData) {
     const video_url = formData.get('video_url') as string | null
     const show_on_pos = formData.get('show_on_pos') === 'true'
     const show_on_website = formData.get('show_on_website') === 'true'
-    const brand = formData.get('brand') as string
     const variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : []
     const imageFile = formData.get('image') as File | null
     const aiImageUrl = formData.get('ai_image_url') as string | null
@@ -179,6 +181,7 @@ export async function updateProduct(productId: number, formData: FormData) {
 
     const updateData = {
         name,
+        brand,
         description,
         price,
         cost_price,
@@ -186,8 +189,6 @@ export async function updateProduct(productId: number, formData: FormData) {
         stock,
         min_stock,
         category,
-        brand,
-        variants,
         image: imageUrl,
         images: galleryUrls,
         type,
@@ -195,6 +196,7 @@ export async function updateProduct(productId: number, formData: FormData) {
         video_url,
         show_on_pos,
         show_on_website,
+        variants,
         is_featured: formData.get('is_featured') === 'true'
     }
 
