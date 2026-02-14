@@ -6,9 +6,11 @@ import { createClient } from '../../utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Loader2, Mail, Lock, ArrowLeft, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/context/ToastContext';
 
 export default function LoginPage() {
     const supabase = useMemo(() => createClient(), []);
+    const { showToast } = useToast();
     const [isSignup, setIsSignup] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -45,17 +47,19 @@ export default function LoginPage() {
                     
                     if (profileError) throw profileError;
                 }
-                alert("Compte créé avec succès !");
+                showToast("Compte créé avec succès !", "success");
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
                 });
                 if (error) throw error;
+                showToast("Heureux de vous revoir !", "success");
             }
             router.push('/');
         } catch (e: any) {
             setError(e.message || "Erreur d'authentification");
+            showToast(e.message || "Erreur d'authentification", "error");
         } finally {
             setLoading(false);
         }

@@ -8,13 +8,15 @@ import {
     Megaphone, Calendar, Upload, Loader2, X, Search, 
     Globe, Eye, EyeOff, Star, TrendingUp, 
     Filter, CheckCircle2, Clock, Truck, AlertCircle, 
-    ExternalLink, ChevronDown, UserCheck, Award, Phone, User, Ticket, Printer, MessageSquare, ThumbsUp, ThumbsDown, Pencil
+    ExternalLink, ChevronDown, UserCheck, Award, Phone, User, Ticket, Printer, MessageSquare, ThumbsUp, ThumbsDown, Pencil, RotateCcw
 } from 'lucide-react';
 import Link from 'next/link';
 import CustomerDetailsModal from '@/components/CustomerDetailsModal';
 import EditProductModal from '@/components/EditProductModal';
+import { useToast } from '@/context/ToastContext';
 
 export default function AdminDashboard() {
+    const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState('dashboard');
     const [settings, setSettings] = useState<any>(null);
     const [products, setProducts] = useState<any[]>([]);
@@ -112,16 +114,22 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(zoneData)
             });
-            if (res.ok) fetchShippingZones();
-        } catch (error) { alert("Erreur lors de l'ajout"); }
+            if (res.ok) {
+                fetchShippingZones();
+                showToast("Zone de livraison ajoutée");
+            }
+        } catch (error) { showToast("Erreur lors de l'ajout", "error"); }
     };
 
     const handleDeleteShippingZone = async (id: string) => {
         if (!confirm("Supprimer cette zone ?")) return;
         try {
             const res = await fetch(`/api/admin/shipping?id=${id}`, { method: 'DELETE' });
-            if (res.ok) fetchShippingZones();
-        } catch (error) { alert("Erreur lors de la suppression"); }
+            if (res.ok) {
+                fetchShippingZones();
+                showToast("Zone supprimée");
+            }
+        } catch (error) { showToast("Erreur lors de la suppression", "error"); }
     };
 
     const fetchCoupons = async () => {
@@ -141,16 +149,22 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(couponData)
             });
-            if (res.ok) fetchCoupons();
-        } catch (error) { alert("Erreur lors de l'ajout"); }
+            if (res.ok) {
+                fetchCoupons();
+                showToast("Code promo créé !");
+            }
+        } catch (error) { showToast("Erreur lors de l'ajout", "error"); }
     };
 
     const handleDeleteCoupon = async (id: string) => {
         if (!confirm("Supprimer ce code promo ?")) return;
         try {
             const res = await fetch(`/api/admin/coupons?id=${id}`, { method: 'DELETE' });
-            if (res.ok) fetchCoupons();
-        } catch (error) { alert("Erreur lors de la suppression"); }
+            if (res.ok) {
+                fetchCoupons();
+                showToast("Coupon supprimé");
+            }
+        } catch (error) { showToast("Erreur lors de la suppression", "error"); }
     };
 
     const fetchReviews = async () => {
@@ -170,16 +184,22 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, status })
             });
-            if (res.ok) fetchReviews();
-        } catch (error) { alert("Erreur lors de la mise à jour"); }
+            if (res.ok) {
+                fetchReviews();
+                showToast(`Avis ${status === 'approved' ? 'approuvé' : 'refusé'}`);
+            }
+        } catch (error) { showToast("Erreur lors de la mise à jour", "error"); }
     };
 
     const deleteReview = async (id: string) => {
         if (!confirm("Supprimer cet avis ?")) return;
         try {
             const res = await fetch(`/api/admin/reviews?id=${id}`, { method: 'DELETE' });
-            if (res.ok) fetchReviews();
-        } catch (error) { alert("Erreur lors de la suppression"); }
+            if (res.ok) {
+                fetchReviews();
+                showToast("Avis supprimé");
+            }
+        } catch (error) { showToast("Erreur lors de la suppression", "error"); }
     };
 
     const fetchProducts = async () => {
@@ -220,8 +240,8 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(settings)
             });
-            if (res.ok) alert("Configuration sauvegardée !");
-        } catch (error) { alert("Erreur lors de la sauvegarde"); }
+            if (res.ok) showToast("Configuration sauvegardée !", "success");
+        } catch (error) { showToast("Erreur lors de la sauvegarde", "error"); }
         finally { setIsSaving(false); }
     };
 
@@ -233,6 +253,7 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, show_on_website: !current })
             });
+            showToast("Visibilité mise à jour");
         } catch (e) { fetchProducts(); }
     };
 
@@ -244,6 +265,7 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, status: newStatus })
             });
+            showToast("Statut de commande mis à jour");
         } catch (e) { fetchOrders(); }
     };
 
@@ -255,6 +277,7 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, loyalty_points: newPoints })
             });
+            showToast("Points de fidélité mis à jour");
         } catch (e) { fetchCustomers(); }
     };
 
@@ -266,6 +289,7 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, is_featured: !current })
             });
+            showToast("Statut vedette mis à jour");
         } catch (e) { fetchProducts(); }
     };
 
@@ -276,7 +300,8 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id, promo_price: promoPrice })
             });
-        } catch (e) { alert("Erreur promo"); }
+            showToast("Prix promo mis à jour");
+        } catch (e) { showToast("Erreur promo", "error"); }
     };
 
     const updateSlide = (index: number, field: string, value: string) => {
@@ -576,7 +601,7 @@ export default function AdminDashboard() {
                                                     <td className="p-8">
                                                         <div className="flex items-center space-x-4">
                                                             <div className="w-14 h-14 bg-white/5 rounded-2xl flex-shrink-0 flex items-center justify-center p-2 relative overflow-hidden">
-                                                                {p.image ? <img src={p.image} className="w-full h-full object-contain" alt="" /> : <ImageIcon className="w-6 h-6 text-white/10" />}
+                                                                {p.image ? <img src={p.image} className="w-full h-full object-cover" alt="" /> : <ImageIcon className="w-6 h-6 text-white/10" />}
                                                             </div>
                                                             <div>
                                                                 <p className="text-sm font-black italic">{p.name}</p>

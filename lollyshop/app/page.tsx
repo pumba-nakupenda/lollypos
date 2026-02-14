@@ -200,55 +200,62 @@ export default async function Home(props: {
           </div>
       ) : (
           <main className="max-w-[1500px] mx-auto px-4 lg:px-6 py-6 pb-20 bg-[#eaeded] min-h-screen">
-            <div className="mb-8">
-                <FilterBar categories={categories} resultsCount={totalCount} />
-            </div>
-
             <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
-                {/* Desktop Sidebar */}
-                <aside className="hidden lg:block w-64 shrink-0 bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-8 lg:sticky lg:top-28">
-                    {isFiltering && (
-                        <Link href="/" className="flex items-center justify-center space-x-2 w-full py-3 bg-red-50 text-red-600 rounded-lg border border-red-100 text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all">
-                            <RotateCcw className="w-3 h-3" /> <span>Effacer les filtres</span>
-                        </Link>
-                    )}
-                    <div>
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Univers</h3>
-                        <div className="space-y-2">
-                            <Link href={`/?shop=all&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold ${shopFilter === 'all' ? 'text-lolly' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === 'all' ? 'bg-lolly' : 'bg-gray-300'}`} /> Tout Lolly</Link>
-                            <Link href={`/?shop=1&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold ${shopFilter === '1' ? 'text-red-600' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === '1' ? 'bg-red-600' : 'bg-gray-300'}`} /> Luxya Beauty</Link>
-                            <Link href={`/?shop=2&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold ${shopFilter === '2' ? 'text-blue-600' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === '2' ? 'bg-blue-600' : 'bg-gray-300'}`} /> Homtek Tech</Link>
-                        </div>
-                    </div>
-                    
-                    {categories.length > 0 && (
+                {/* Lateral Sidebar (Scrollable on Mobile, Sticky on Desktop) */}
+                <aside className="w-full lg:w-64 shrink-0 bg-white lg:bg-white p-5 rounded-2xl lg:rounded-xl border border-gray-200 shadow-sm space-y-8 lg:sticky lg:top-28 overflow-x-auto lg:overflow-visible">
+                    <div className="flex lg:flex-col gap-8 lg:gap-8 min-w-max lg:min-w-0">
+                        {isFiltering && (
+                            <Link href="/" className="flex items-center justify-center space-x-2 px-6 py-3 bg-red-50 text-red-600 rounded-lg border border-red-100 text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all">
+                                <RotateCcw className="w-3 h-3" /> <span>Effacer</span>
+                            </Link>
+                        )}
                         <div>
-                            <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Rayons</h3>
-                            <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">{categories.map(cat => (<Link key={cat} href={`/?cat=${cat}&shop=${shopFilter}&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`block text-[11px] font-bold transition-colors ${catFilter === cat ? 'text-[#0055ff] translate-x-1' : 'text-gray-500 hover:text-black'}`}>{cat}</Link>))}</div>
+                            <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Univers</h3>
+                            <div className="flex lg:flex-col gap-4 lg:gap-2">
+                                <Link href={`/?shop=all&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold whitespace-nowrap ${shopFilter === 'all' ? 'text-lolly' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === 'all' ? 'bg-lolly' : 'bg-gray-300'}`} /> Tout Lolly</Link>
+                                <Link href={`/?shop=1&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold whitespace-nowrap ${shopFilter === '1' ? 'text-red-600' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === '1' ? 'bg-red-600' : 'bg-gray-300'}`} /> Luxya Beauty</Link>
+                                <Link href={`/?shop=2&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold whitespace-nowrap ${shopFilter === '2' ? 'text-blue-600' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === '2' ? 'bg-blue-600' : 'bg-gray-300'}`} /> Homtek Tech</Link>
+                            </div>
                         </div>
-                    )}
+                        
+                        {categories.length > 0 && (
+                            <div>
+                                <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Rayons</h3>
+                                <div className="flex lg:flex-col gap-4 lg:gap-2 max-h-48 overflow-y-auto no-scrollbar">{categories.map(cat => (<Link key={cat} href={`/?cat=${cat}&shop=${shopFilter}&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`block text-[11px] font-bold whitespace-nowrap transition-colors ${catFilter === cat ? 'text-[#0055ff] lg:translate-x-1' : 'text-gray-500 hover:text-black'}`}>{cat}</Link>))}</div>
+                            </div>
+                        )}
 
-                    <div>
-                        <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Budget</h3>
-                        <div className="space-y-2">
-                            {[
-                                { label: 'Moins de 10.000', val: 'low' },
-                                { label: '10.000 - 50.000', val: 'mid' },
-                                { label: 'Plus de 50.000', val: 'high' }
-                            ].map(p => (
-                                <Link 
-                                    key={p.val}
-                                    href={`/?price=${p.val}&shop=${shopFilter}&cat=${catFilter}&stock=${onlyInStock}&sort=${sort}`}
-                                    className={`block text-[11px] font-bold transition-colors ${priceFilter === p.val ? 'text-[#0055ff] translate-x-1' : 'text-gray-500 hover:text-black'}`}
-                                >
-                                    {p.label} <span className="text-[8px] opacity-50 font-black">CFA</span>
-                                </Link>
-                            ))}
+                        <div>
+                            <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Budget</h3>
+                            <div className="flex lg:flex-col gap-4 lg:gap-2">
+                                {[
+                                    { label: 'Moins de 10.000', val: 'low' },
+                                    { label: '10.000 - 50.000', val: 'mid' },
+                                    { label: 'Plus de 50.000', val: 'high' }
+                                ].map(p => (
+                                    <Link 
+                                        key={p.val}
+                                        href={`/?price=${p.val}&shop=${shopFilter}&cat=${catFilter}&stock=${onlyInStock}&sort=${sort}`}
+                                        className={`block text-[11px] font-bold whitespace-nowrap transition-colors ${priceFilter === p.val ? 'text-[#0055ff] lg:translate-x-1' : 'text-gray-500 hover:text-black'}`}
+                                    >
+                                        {p.label} <span className="text-[8px] opacity-50 font-black">CFA</span>
+                                    </Link>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </aside>
 
                 <div className="flex-1 space-y-10">
+                    {/* Results Counter & Sort */}
+                    <div className="flex items-center justify-between bg-white px-6 py-4 rounded-xl shadow-sm border border-gray-200">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{totalCount} articles trouvés</span>
+                        <div className="flex items-center space-x-4">
+                            <Link href={`/?sort=newest&shop=${shopFilter}&cat=${catFilter}&price=${priceFilter}&stock=${onlyInStock}`} className={`text-[10px] font-black uppercase tracking-widest ${sort === 'newest' ? 'text-lolly' : 'text-gray-400'}`}>Nouveautés</Link>
+                            <Link href={`/?sort=price_asc&shop=${shopFilter}&cat=${catFilter}&price=${priceFilter}&stock=${onlyInStock}`} className={`text-[10px] font-black uppercase tracking-widest ${sort === 'price_asc' ? 'text-lolly' : 'text-gray-400'}`}>Prix croissant</Link>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                         {filteredProducts.map((p: any) => (
                             <ProductCard key={p.id} product={p} />

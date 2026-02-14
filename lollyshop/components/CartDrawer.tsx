@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { X, ShoppingBag, Trash2, Send, Plus, Minus, ShieldCheck, Truck, Ticket, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import { useUser } from '@/context/UserContext'
+import { useToast } from '@/context/ToastContext'
 import Image from 'next/image'
 
 interface CartDrawerProps {
@@ -15,6 +16,7 @@ interface CartDrawerProps {
 export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDrawerProps) {
     const { cart, removeFromCart, updateQuantity, cartTotal, cartCount } = useCart()
     const { user, profile } = useUser()
+    const { showToast } = useToast()
     const [couponCode, setCouponCode] = useState('')
     const [activeCoupon, setActiveCoupon] = useState<any>(null)
     const [couponError, setCouponError] = useState('')
@@ -62,8 +64,10 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
             if (res.ok) {
                 setActiveCoupon(data)
                 setCouponCode('')
+                showToast(`Code ${data.code} appliqué !`, 'success');
             } else {
                 setCouponError(data.error || 'Code invalide')
+                showToast(data.error || 'Code invalide', 'error');
             }
         } catch (e) {
             setCouponError('Erreur de connexion')
@@ -86,7 +90,7 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
 
     const handleStandardOrder = async () => {
         if (!customerInfo.name || !customerInfo.phone) {
-            alert("Veuillez remplir votre nom et téléphone pour la livraison.");
+            showToast("Veuillez remplir votre nom et téléphone.", "error");
             return;
         }
         setIsLoading(true);
@@ -106,12 +110,12 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
             const data = await res.json();
             if (res.ok) {
                 setOrderId(data.order_id);
-                // We don't clear the cart immediately so they can still click WhatsApp if they want
+                showToast("Commande enregistrée avec succès !", "success");
             } else {
-                alert("Erreur lors de l'enregistrement de la commande.");
+                showToast("Erreur lors de l'enregistrement.", "error");
             }
         } catch (e) {
-            alert("Erreur de connexion.");
+            showToast("Erreur de connexion.", "error");
         } finally {
             setIsLoading(false);
         }
