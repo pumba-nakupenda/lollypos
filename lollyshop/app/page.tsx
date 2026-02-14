@@ -48,7 +48,7 @@ async function getProducts(filters: {
 
     // Special Filter for Promos
     if (filters.sort === 'promo') {
-        query = query.gt('promo_price', 0).filter('promo_price', 'lt', 'price');
+        query = query.gt('promo_price', 0);
     }
 
     // Sort
@@ -59,10 +59,13 @@ async function getProducts(filters: {
 
     const { data, error, count } = await query.range(from, to);
     
-    if (error) throw error;
+    if (error) {
+        console.error("Supabase query error:", error);
+        throw error;
+    }
     return { products: data || [], totalCount: count || 0 };
-  } catch (e) {
-    console.error("Supabase fetch failed:", e);
+  } catch (e: any) {
+    console.error("getProducts failed:", e.message || e);
     return { products: [], totalCount: 0 };
   }
 }
