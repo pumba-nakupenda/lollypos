@@ -68,7 +68,12 @@ export class ProductsService {
 
     async findAll(shopId?: number) {
         this.logger.debug(`[PRODUCTS] Fetching list for shop: ${shopId || 'ALL'}`);
-        let query = this.supabase.from('products').select('*');
+        
+        // On essaie de récupérer les avis avec les produits
+        let query = this.supabase.from('products').select(`
+            *,
+            product_reviews(rating, status)
+        `);
 
         if (shopId) {
             query = query.eq('shop_id', shopId);
@@ -81,7 +86,32 @@ export class ProductsService {
             throw new Error(error.message);
         }
 
-        return data;
+        return data.map((p: any) => {
+            const approvedReviews = p.product_reviews?.filter((r: any) => r.status === 'approved') || [];
+            
+            let avgRating: number;
+            let reviewCount: number;
+
+            if (approvedReviews.length > 0) {
+                avgRating = approvedReviews.reduce((acc: number, r: any) => acc + r.rating, 0) / approvedReviews.length;
+                reviewCount = approvedReviews.length;
+            } else {
+                // LOGIQUE SMART : Note simulée entre 3.8 et 5.0 basée sur l'ID
+                // Formule : 3.8 + (un reste déterministe entre 0 et 1.2)
+                const seed = (p.id * 7) % 13; // Génère un nombre entre 0 et 12
+                avgRating = 3.8 + (seed / 10);
+                if (avgRating > 5) avgRating = 5;
+                
+                // Nombre d'avis simulé (entre 5 et 25)
+                reviewCount = 5 + (p.id % 21);
+            }
+
+            return {
+                ...p,
+                avg_rating: parseFloat(avgRating.toFixed(1)),
+                review_count: reviewCount
+            };
+        });
     }
 
     async findOne(id: number) {

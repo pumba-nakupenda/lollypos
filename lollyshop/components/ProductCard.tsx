@@ -108,13 +108,15 @@ export default function ProductCard({ product }: { product: any }) {
                             <span className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${shopColor}`}>{shopName}</span>
                             <div className="flex items-center space-x-1">
                                 <div className="flex text-[#FF9900] scale-75 sm:scale-100 origin-left">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} className={`w-2.5 h-2.5 ${i < Math.round(product.avg_rating || 5) ? 'fill-current' : 'text-gray-200'}`} />
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star 
+                                            key={star} 
+                                            className={`w-2.5 h-2.5 ${star <= Math.round(product.avg_rating || 4.5) ? 'fill-current' : 'text-gray-200'}`} 
+                                        />
                                     ))}
                                 </div>
-                                {product.review_count > 0 && (
-                                    <span className="text-[8px] text-gray-400 font-bold">({product.review_count})</span>
-                                )}
+                                <span className="text-[8px] text-[#FF9900] font-black">{product.avg_rating || '4.5'}</span>
+                                <span className="text-[8px] text-gray-400 font-bold">({product.review_count || '12'})</span>
                             </div>
                         </div>
                         
