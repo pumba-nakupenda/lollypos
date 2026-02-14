@@ -33,6 +33,8 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
             })
         }
     }, [profile])
+
+    useEffect(() => {
         const fetchZones = async () => {
             try {
                 const res = await fetch('/api/shipping')
