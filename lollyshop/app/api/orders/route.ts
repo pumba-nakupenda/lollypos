@@ -43,7 +43,18 @@ export async function POST(req: Request) {
 
         if (itemsError) throw itemsError;
 
-        // 4. Update coupon usage if applicable
+        // 4. DECREMENT STOCK for each physical product
+        for (const item of items) {
+            // Only decrement if it's not a service
+            if (item.type !== 'service') {
+                await supabase.rpc('decrement_stock', { 
+                    product_id: item.id, 
+                    quantity: item.quantity 
+                });
+            }
+        }
+
+        // 5. Update coupon usage if applicable
         if (coupon_id) {
             await supabase.rpc('increment_coupon_usage', { coupon_uuid: coupon_id });
         }

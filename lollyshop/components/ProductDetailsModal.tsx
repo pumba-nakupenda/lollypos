@@ -80,10 +80,11 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
 
     const handleShare = async () => {
         try {
+            const shareUrl = `${window.location.origin}/product/${product.id}`;
             await navigator.share({
                 title: `Lolly - ${product.name}`,
                 text: `Découvrez cet article chez Lolly !`,
-                url: window.location.href
+                url: shareUrl
             });
         } catch (e) {}
     };

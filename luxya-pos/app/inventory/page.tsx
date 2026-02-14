@@ -9,9 +9,13 @@ import { shops, Shop } from '@/types/shop'
 import InventoryList from '@/components/InventoryList'
 import { API_URL } from '@/utils/api'
 
-export default async function InventoryPage(props: { searchParams: Promise<{ shopId?: string }> }) {
+export default async function InventoryPage(props: { searchParams: Promise<{ shopId?: string, page?: string }> }) {
   const searchParams = await props.searchParams;
   const supabase = await createClient()
+  const currentPage = parseInt(searchParams.page || '1');
+  const pageSize = 50;
+  const from = (currentPage - 1) * pageSize;
+  const to = from + pageSize - 1;
 
   const {
     data: { user },
@@ -21,7 +25,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
     redirect('/login')
   }
 
-  // Role-based access control and shop restriction
+  // ... (keep profile fetch)
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('role, shop_id, has_stock_access, is_super_admin')
@@ -40,25 +44,31 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
     redirect('/sales?error=unauthorized_erp')
   }
 
-  // SHOP RESTRICTION: If user has a shop_id, they MUST use it. Otherwise, use URL or default '1'
+  // SHOP RESTRICTION
   const effectiveShopId = profile.shop_id ? profile.shop_id.toString() : (searchParams.shopId || '1');
   
   const activeShop = shops.find(s => s.id === +effectiveShopId) || shops[0];
   const shopName = activeShop.name;
 
   let products = []
+  let totalCount = 0;
+
   try {
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('products')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('shop_id', +effectiveShopId)
-      .order('name', { ascending: true });
+      .order('name', { ascending: true })
+      .range(from, to);
     
     if (error) throw error;
     products = data || [];
+    totalCount = count || 0;
   } catch (e) {
     console.error('Failed to fetch products', e)
   }
+
+  const totalPages = Math.ceil(totalCount / pageSize);
 
   const totalValue = products.reduce((acc: number, p: any) => acc + (p.price * p.stock), 0);
   const totalCost = products.reduce((acc: number, p: any) => acc + (Number(p.cost_price || 0) * p.stock), 0);
