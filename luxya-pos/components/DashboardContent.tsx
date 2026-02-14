@@ -534,7 +534,7 @@ function MetricMiniCard({ title, value, icon, color, trend }: any) {
                 </div>
             </div>
             <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-${color} shrink-0 ml-2`}>
-                {React.cloneElement(icon as React.ReactElement, { className: "w-4 h-4 sm:w-6 sm:h-6" })}
+                {React.cloneElement(icon as React.ReactElement<any>, { className: "w-4 h-4 sm:w-6 sm:h-6" })}
             </div>
         </div>
     )
