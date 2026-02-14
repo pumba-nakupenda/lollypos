@@ -48,10 +48,14 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
 
   let products = []
   try {
-    const res = await fetch(`${API_URL}/products?shopId=${effectiveShopId}`, { cache: 'no-store' })
-    if (res.ok) {
-      products = await res.json()
-    }
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('shop_id', +effectiveShopId)
+      .order('name', { ascending: true });
+    
+    if (error) throw error;
+    products = data || [];
   } catch (e) {
     console.error('Failed to fetch products', e)
   }

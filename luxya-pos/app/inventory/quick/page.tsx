@@ -84,11 +84,14 @@ export default function QuickInventoryPage() {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const res = await fetch(`${API_URL}/products?shopId=${activeShop?.id}`);
-            if (res.ok) {
-                const data = await res.json();
-                setProducts(data);
-            }
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .eq('shop_id', activeShop?.id)
+                .order('name', { ascending: true });
+
+            if (error) throw error;
+            if (data) setProducts(data);
         } catch (e) {
             showToast("Erreur de chargement", "error");
         } finally {
