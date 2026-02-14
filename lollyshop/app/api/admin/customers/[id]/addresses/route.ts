@@ -1,9 +1,9 @@
-import { createClient } from '../../../../../../utils/supabase/server';
+import { createClient } from '../../../../../utils/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const supabase = await createClient();
@@ -13,7 +13,8 @@ export async function GET(
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
         if (profile?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
-        const customerId = params.id;
+        const resolvedParams = await params;
+        const customerId = resolvedParams.id;
 
         const { data, error } = await supabase
             .from('customer_addresses')

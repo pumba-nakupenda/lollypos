@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const supabase = await createClient();
@@ -13,7 +13,8 @@ export async function GET(
         const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
         if (profile?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
-        const orderId = params.id;
+        const resolvedParams = await params;
+        const orderId = resolvedParams.id;
 
         const { data: order, error } = await supabase
             .from('sales')
