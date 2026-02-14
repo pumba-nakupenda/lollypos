@@ -1,9 +1,10 @@
 'use client'
 
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
 import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink, Plus, Camera, Loader2, PlusCircle, DollarSign, TrendingUp, Sparkles } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import EditProductModal from './EditProductModal'
 import CustomDropdown from './CustomDropdown'
 import ExpiryBadge from './ExpiryBadge'
@@ -17,13 +18,18 @@ import { useToast } from '@/context/ToastContext'
 
 interface InventoryListProps {
     products: any[]
+    allCategories?: string[]
+    allBrands?: string[]
 }
 
-export default function InventoryList({ products }: InventoryListProps) {
+export default function InventoryList({ products, allCategories = [], allBrands = [] }: InventoryListProps) {
     const { activeShop } = useShop()
     const { profile } = useUser()
     const { showToast } = useToast()
+    const router = useRouter()
+    const searchParams = useSearchParams()
     const supabase = createClient()
+    
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isCatModalOpen, setIsCatModalOpen] = useState(false)
@@ -66,9 +72,8 @@ export default function InventoryList({ products }: InventoryListProps) {
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const brands = useMemo(() => {
-        const b = new Set(products.map(p => p.brand).filter(Boolean))
-        return Array.from(b).sort() as string[]
-    }, [products])
+        return allBrands.length > 0 ? allBrands : (Array.from(new Set(products.map(p => p.brand).filter(Boolean))).sort() as string[])
+    }, [allBrands, products])
 
     const colors = useMemo(() => {
         const c = new Set(products.flatMap(p => p.variants?.map((v: any) => v.color)).filter(Boolean))
@@ -125,14 +130,42 @@ export default function InventoryList({ products }: InventoryListProps) {
     const siteUrl = SITE_URL; // Base URL for lollyshop
 
     // Filter states
-    const [searchQuery, setSearchQuery] = useState('')
-    const [selectedCategory, setSelectedCategory] = useState('Toutes')
-    const [stockStatus, setStockStatus] = useState('all')
+    const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '')
+    const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'Toutes')
+    const [stockStatus, setStockStatus] = useState(searchParams.get('status') || 'all')
+
+    // Debounce search and filters URL update
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            const params = new URLSearchParams(searchParams.toString());
+            
+            if (searchQuery) params.set('q', searchQuery);
+            else params.delete('q');
+            
+            if (selectedCategory !== 'Toutes') params.set('category', selectedCategory);
+            else params.delete('category');
+            
+            if (stockStatus !== 'all') params.set('status', stockStatus);
+            else params.delete('status');
+            
+            params.set('page', '1'); // Reset to page 1 on new filter
+            
+            // Only push if something actually changed to avoid infinite loops
+            const newSearch = `?${params.toString()}`;
+            const currentSearch = window.location.search;
+            if (newSearch !== currentSearch) {
+                router.push(`/inventory${newSearch}`);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [searchQuery, selectedCategory, stockStatus, router, searchParams]);
 
     const categories = useMemo(() => {
+        if (allCategories.length > 0) return ['Toutes', ...allCategories]
         const cats = new Set(products.map(p => p.category || 'Général'))
         return ['Toutes', ...Array.from(cats)]
-    }, [products])
+    }, [allCategories, products])
 
     const categoryOptions = categories.map(cat => ({
         label: cat,
@@ -149,6 +182,8 @@ export default function InventoryList({ products }: InventoryListProps) {
     ]
 
     const filteredProducts = useMemo(() => {
+        // We still filter client-side for immediate response, 
+        // but the server will provide the authoritative full list soon after.
         return products.filter(p => {
             const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 (p.category || '').toLowerCase().includes(searchQuery.toLowerCase())
@@ -157,7 +192,6 @@ export default function InventoryList({ products }: InventoryListProps) {
 
             let matchesStatus = true
             if (p.type === 'service') {
-                // Services are always "in stock" conceptually, but we hide them if filtering specifically for stock alerts
                 matchesStatus = stockStatus === 'all'
             } else {
                 const limit = p.min_stock || 2
@@ -197,7 +231,7 @@ export default function InventoryList({ products }: InventoryListProps) {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-500">
                 <div className="md:col-span-2 space-y-2">
                     <div className="flex justify-between items-center px-2">
-                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Recherche</p>
+                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Recherche Globale</p>
                         <button
                             onClick={() => setStockStatus(stockStatus === 'out_of_stock' ? 'all' : 'out_of_stock')}
                             className={`flex items-center px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all ${stockStatus === 'out_of_stock'
@@ -212,7 +246,7 @@ export default function InventoryList({ products }: InventoryListProps) {
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-shop transition-colors" />
                         <input
                             type="text"
-                            placeholder="Nom, référence ou catégorie..."
+                            placeholder="Rechercher dans tout l'inventaire..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"

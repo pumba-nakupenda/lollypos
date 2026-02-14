@@ -9,10 +9,13 @@ import { shops, Shop } from '@/types/shop'
 import InventoryList from '@/components/InventoryList'
 import { API_URL } from '@/utils/api'
 
-export default async function InventoryPage(props: { searchParams: Promise<{ shopId?: string, page?: string }> }) {
+export default async function InventoryPage(props: { searchParams: Promise<{ shopId?: string, page?: string, q?: string, category?: string, status?: string }> }) {
   const searchParams = await props.searchParams;
   const supabase = await createClient()
   const currentPage = parseInt(searchParams.page || '1');
+  const searchQuery = searchParams.q || '';
+  const categoryFilter = searchParams.category || 'Toutes';
+  const statusFilter = searchParams.status || 'all';
   const pageSize = 50;
   const from = (currentPage - 1) * pageSize;
   const to = from + pageSize - 1;
@@ -52,28 +55,72 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
 
   let products = []
   let totalCount = 0;
+  let allProductsForStats: any[] = [];
 
   try {
-    const { data, error, count } = await supabase
+    // Build query for current page
+    let query = supabase
       .from('products')
       .select('*', { count: 'exact' })
-      .eq('shop_id', +effectiveShopId)
+      .eq('shop_id', +effectiveShopId);
+    
+    if (searchQuery) {
+        query = query.ilike('name', `%${searchQuery}%`);
+    }
+
+    if (categoryFilter !== 'Toutes') {
+        query = query.eq('category', categoryFilter);
+    }
+
+    if (statusFilter !== 'all') {
+        if (statusFilter === 'out_of_stock') {
+            query = query.lte('stock', 0);
+        } else if (statusFilter === 'low_stock') {
+            query = query.gt('stock', 0).lte('stock', 2); // Assuming 2 is default min_stock
+        } else if (statusFilter === 'in_stock') {
+            query = query.gt('stock', 2);
+        }
+    }
+
+    const { data, error, count } = await query
       .order('name', { ascending: true })
       .range(from, to);
     
     if (error) throw error;
     products = data || [];
     totalCount = count || 0;
+
+    // Fetch light data for ALL products to calculate global stats
+    const { data: statsData } = await supabase
+      .from('products')
+      .select('price, cost_price, stock, category, brand')
+      .eq('shop_id', +effectiveShopId);
+    
+    allProductsForStats = statsData || [];
   } catch (e) {
     console.error('Failed to fetch products', e)
   }
 
+  const allCategories = Array.from(new Set(allProductsForStats.map(p => p.category || 'Général'))).sort();
+  const allBrands = Array.from(new Set(allProductsForStats.map(p => p.brand).filter(Boolean))).sort() as string[];
+
   const totalPages = Math.ceil(totalCount / pageSize);
 
-  const totalValue = products.reduce((acc: number, p: any) => acc + (p.price * p.stock), 0);
-  const totalCost = products.reduce((acc: number, p: any) => acc + (Number(p.cost_price || 0) * p.stock), 0);
+  const totalValue = allProductsForStats.reduce((acc: number, p: any) => acc + (p.price * p.stock), 0);
+  const totalCost = allProductsForStats.reduce((acc: number, p: any) => acc + (Number(p.cost_price || 0) * p.stock), 0);
   const marginPercent = totalValue > 0 ? ((totalValue - totalCost) / totalValue) * 100 : 0;
-  const outOfStock = products.filter((p: any) => p.stock <= 0).length;
+  const outOfStock = allProductsForStats.filter((p: any) => p.stock <= 0).length;
+
+  // Preserve filters in pagination links
+  const getPaginationLink = (page: number) => {
+    const params = new URLSearchParams();
+    params.set('shopId', effectiveShopId);
+    params.set('page', page.toString());
+    if (searchQuery) params.set('q', searchQuery);
+    if (categoryFilter !== 'Toutes') params.set('category', categoryFilter);
+    if (statusFilter !== 'all') params.set('status', statusFilter);
+    return `/inventory?${params.toString()}`;
+  };
 
   return (
     <div className="min-h-screen pb-20">
@@ -115,7 +162,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
           <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
             <div className="relative z-10">
               <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Total Produits</p>
-              <h2 className="text-xl sm:text-2xl font-black">{products.length}</h2>
+              <h2 className="text-xl sm:text-2xl font-black">{totalCount}</h2>
             </div>
             <Package className="w-8 h-8 text-white/5 absolute right-4 group-hover:scale-110 group-hover:text-shop/20 transition-all duration-500" />
           </div>
@@ -159,7 +206,34 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
         </div>
 
         {/* Product List Container */}
-        <InventoryList products={products} />
+        <InventoryList products={products} allCategories={allCategories} allBrands={allBrands} />
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center space-x-4 pt-8">
+            {currentPage > 1 && (
+              <Link 
+                href={getPaginationLink(currentPage - 1)}
+                className="px-6 py-3 glass-card rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+              >
+                Précédent
+              </Link>
+            )}
+            <div className="glass-card px-6 py-3 rounded-xl border border-white/10">
+              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                Page {currentPage} sur {totalPages}
+              </span>
+            </div>
+            {currentPage < totalPages && (
+              <Link 
+                href={getPaginationLink(currentPage + 1)}
+                className="px-6 py-3 bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-shop/20"
+              >
+                Suivant
+              </Link>
+            )}
+          </div>
+        )}
       </main>
     </div>
   )
