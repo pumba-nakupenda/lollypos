@@ -105,15 +105,14 @@ export default function Sidebar() {
                 </div>
             </div>
 
-            {/* Navigation */}
             <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto custom-scrollbar pb-20">
                 {navGroups.map((group) => {
-                    const filteredItems = group.items.filter(item => {
+                    const filteredItems = group.items.filter((item: any) => {
                         if (item.superAdminOnly && !profile?.is_super_admin) return false
                         if (!item.roles) return true
                         if (item.name === 'Inventaire' && profile?.has_stock_access) return true
                         return item.roles.includes(profile?.role || '')
-                    }).map(item => {
+                    }).map((item: any) => {
                         // NEW: Dynamic naming for the Agency
                         if (item.href === '/sales') {
                             return { ...item, name: activeShop?.id === 3 ? 'Facturation' : 'Caisse POS' }
