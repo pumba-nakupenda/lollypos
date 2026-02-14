@@ -25,6 +25,13 @@ export default function QuickInventoryPage() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<number | null>(null);
 
+    // Restore missing modal states
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCatModalOpen, setIsCatModalOpen] = useState(false);
+    const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
+    const [isColorModalOpen, setIsColorModalOpen] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
+
     // ... (keep useMemos and other states)
     const categories = useMemo(() => {
         const cats = new Set(products.map(p => p.category || 'Général'))
