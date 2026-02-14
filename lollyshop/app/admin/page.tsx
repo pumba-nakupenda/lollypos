@@ -6,7 +6,7 @@ import {
     LayoutDashboard, ShoppingCart, Users, Package, Settings, 
     ArrowLeft, Save, Plus, Trash2, Image as ImageIcon, 
     Megaphone, Calendar, Upload, Loader2, X, Search, 
-    Sparkles, Globe, Eye, EyeOff, Star, TrendingUp, 
+    Globe, Eye, EyeOff, Star, TrendingUp, 
     Filter, CheckCircle2, Clock, Truck, AlertCircle, 
     ExternalLink, ChevronDown, UserCheck, Award, Phone, User, Ticket, Printer, MessageSquare, ThumbsUp, ThumbsDown, Pencil
 } from 'lucide-react';
@@ -1132,9 +1132,6 @@ export default function AdminDashboard() {
                                                         <div className="xl:col-span-1">
                                                             <div className="flex justify-between items-center mb-4">
                                                                 <label className="text-[9px] font-black uppercase tracking-widest text-gray-500 ml-2">Image du slide</label>
-                                                                <button onClick={() => window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(slide.title || 'luxury background')}`, '_blank')} className="text-[8px] font-black uppercase text-lolly/60 hover:text-lolly flex items-center">
-                                                                    <Globe className="w-3 h-3 mr-1" /> IA Search
-                                                                </button>
                                                             </div>
                                                             <ImageUploadField value={slide.image} onChange={(url) => updateSlide(i, 'image', url)} />
                                                         </div>

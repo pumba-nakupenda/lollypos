@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react';
-import { X, Sparkles, Loader2, Save, Package, Image as ImageIcon } from 'lucide-react';
+import { X, Loader2, Save, Package, Image as ImageIcon } from 'lucide-react';
 
 interface EditProductModalProps {
     product: any;
@@ -11,29 +11,7 @@ interface EditProductModalProps {
 
 export default function EditProductModal({ product, onClose, onSave }: EditProductModalProps) {
     const [formData, setFormData] = useState({ ...product });
-    const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-
-    const handleGenerateAI = async () => {
-        if (!formData.name) return alert("Veuillez donner un nom au produit d'abord.");
-        setIsGenerating(true);
-        try {
-            const res = await fetch('http://127.0.0.1:3005/ai/generate-description', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name: formData.name })
-            });
-            const data = await res.json();
-            if (data.description) {
-                setFormData({ ...formData, description: data.description });
-            }
-        } catch (error) {
-            console.error("AI Generation failed", error);
-            alert("L'IA n'a pas pu générer de description.");
-        } finally {
-            setIsGenerating(false);
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -132,15 +110,6 @@ export default function EditProductModal({ product, onClose, onSave }: EditProdu
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between ml-2">
                                     <label className="text-[9px] font-black uppercase text-gray-500">Description Marketing</label>
-                                    <button 
-                                        type="button"
-                                        onClick={handleGenerateAI}
-                                        disabled={isGenerating}
-                                        className="flex items-center space-x-2 text-lolly hover:text-white transition-colors disabled:opacity-50"
-                                    >
-                                        {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                                        <span className="text-[9px] font-black uppercase tracking-widest">Générer avec l'IA</span>
-                                    </button>
                                 </div>
                                 <textarea 
                                     rows={6}
