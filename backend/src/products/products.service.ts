@@ -68,10 +68,7 @@ export class ProductsService {
 
     async findAll(shopId?: number) {
         this.logger.debug(`[PRODUCTS] Fetching list for shop: ${shopId || 'ALL'}`);
-        let query = this.supabase.from('products').select(`
-            *,
-            product_reviews(rating, status)
-        `);
+        let query = this.supabase.from('products').select('*');
 
         if (shopId) {
             query = query.eq('shop_id', shopId);
@@ -84,20 +81,7 @@ export class ProductsService {
             throw new Error(error.message);
         }
 
-        // Calculate actual average rating from reviews
-        const formattedData = data.map((p: any) => {
-            const approvedReviews = p.product_reviews?.filter((r: any) => r.status === 'approved') || [];
-            const avg = approvedReviews.length > 0 
-                ? approvedReviews.reduce((acc: number, r: any) => acc + r.rating, 0) / approvedReviews.length 
-                : 5; // Default to 5 if no reviews
-            return {
-                ...p,
-                avg_rating: avg,
-                review_count: approvedReviews.length
-            };
-        });
-
-        return formattedData;
+        return data;
     }
 
     async findOne(id: number) {

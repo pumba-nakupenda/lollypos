@@ -60,7 +60,7 @@ export default async function Home(props: {
       getSiteSettings()
   ]);
 
-  const shopProducts = allProducts.filter((p: any) => (p.shop_id === 1 || p.shop_id === 2) && p.show_on_website !== false);
+  const shopProducts = allProducts.filter((p: any) => p.show_on_website !== false);
   
   // Filtering Logic
   let filteredProducts = shopProducts.filter((p: any) => {
