@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, ShoppingBag, Trash2, Send, Plus, Minus, ShieldCheck, Truck, Ticket, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
+import { useUser } from '@/context/UserContext'
 import Image from 'next/image'
 
 interface CartDrawerProps {
@@ -13,6 +14,7 @@ interface CartDrawerProps {
 
 export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDrawerProps) {
     const { cart, removeFromCart, updateQuantity, cartTotal, cartCount } = useCart()
+    const { user, profile } = useUser()
     const [couponCode, setCouponCode] = useState('')
     const [activeCoupon, setActiveCoupon] = useState<any>(null)
     const [couponError, setCouponError] = useState('')
@@ -23,6 +25,14 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
     const [orderSuccess, setOrderId] = useState<string | null>(null)
 
     useEffect(() => {
+        if (profile) {
+            setCustomerInfo({
+                name: profile.full_name || '',
+                phone: profile.phone || '',
+                address: ''
+            })
+        }
+    }, [profile])
         const fetchZones = async () => {
             try {
                 const res = await fetch('/api/shipping')
@@ -202,28 +212,43 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                         {/* Shipping Selector */}
                         {cart.length > 0 && (
                             <div className="mt-6 pt-4 border-t border-gray-50 space-y-4">
-                                <div className="grid grid-cols-2 gap-2">
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Nom Complet</label>
-                                        <input 
-                                            type="text" 
-                                            placeholder="Votre nom" 
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold outline-none focus:border-lolly"
-                                            value={customerInfo.name}
-                                            onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})}
-                                        />
+                                {(!profile?.full_name || !profile?.phone) && (
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div className="space-y-1">
+                                            <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Nom Complet</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="Votre nom" 
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold outline-none focus:border-lolly"
+                                                value={customerInfo.name}
+                                                onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})}
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Téléphone</label>
+                                            <input 
+                                                type="tel" 
+                                                placeholder="77..." 
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold outline-none focus:border-lolly"
+                                                value={customerInfo.phone}
+                                                onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Téléphone</label>
-                                        <input 
-                                            type="tel" 
-                                            placeholder="77..." 
-                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold outline-none focus:border-lolly"
-                                            value={customerInfo.phone}
-                                            onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                                        />
+                                )}
+
+                                {profile?.full_name && profile?.phone && (
+                                    <div className="bg-gray-50 p-3 rounded-2xl border border-gray-100 flex items-center justify-between">
+                                        <div className="flex flex-col">
+                                            <span className="text-[8px] font-black uppercase text-gray-400">Livraison pour</span>
+                                            <span className="text-[10px] font-bold text-gray-900">{profile.full_name}</span>
+                                        </div>
+                                        <div className="text-right flex flex-col">
+                                            <span className="text-[8px] font-black uppercase text-gray-400">Contact</span>
+                                            <span className="text-[10px] font-bold text-gray-900">{profile.phone}</span>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {shippingZones.length > 0 && (
                                     <div>
