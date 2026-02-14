@@ -1,7 +1,8 @@
+
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { ChevronDown, Check } from 'lucide-react'
+import { ChevronDown, Check, Search, X } from 'lucide-react'
 
 interface DropdownOption {
     label: string
@@ -17,6 +18,7 @@ interface CustomDropdownProps {
     placeholder?: string
     disabled?: boolean
     className?: string
+    searchable?: boolean
 }
 
 export default function CustomDropdown({ 
@@ -26,12 +28,18 @@ export default function CustomDropdown({
     label, 
     placeholder = "Sélectionner...", 
     disabled = false,
-    className = ""
+    className = "",
+    searchable = true
 }: CustomDropdownProps) {
     const [isOpen, setIsOpen] = useState(false)
+    const [searchTerm, setSearchQuery] = useState('')
     const dropdownRef = useRef<HTMLDivElement>(null)
     
     const selectedOption = options.find(opt => opt.value === value)
+
+    const filteredOptions = options.filter(opt => 
+        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+    )
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -42,6 +50,10 @@ export default function CustomDropdown({
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
+
+    useEffect(() => {
+        if (!isOpen) setSearchQuery('') // Reset search when closing
+    }, [isOpen])
 
     const handleSelect = (option: DropdownOption) => {
         onChange(option.value)
@@ -77,11 +89,24 @@ export default function CustomDropdown({
                 )}
             </button>
 
-            {/* Dropdown Menu - Higher Opacity Glass */}
+            {/* Dropdown Menu */}
             <div className={`absolute left-0 right-0 mt-2 rounded-[24px] transition-all duration-300 shadow-[0_20px_50px_rgba(0,0,0,0.6)] z-[9999] overflow-hidden border border-white/20 backdrop-blur-3xl bg-[#1a1a1e]/95
                 ${isOpen ? 'opacity-100 translate-y-0 pointer-events-auto scale-100' : 'opacity-0 translate-y-2 pointer-events-none scale-95'}`}>
+                
+                {searchable && (
+                    <div className="p-3 border-b border-white/5 relative group">
+                        <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within:text-shop transition-colors" />
+                        <input 
+                            value={searchTerm}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-2 pl-10 pr-4 text-[10px] font-bold text-white outline-none focus:border-shop/50"
+                            placeholder="Rechercher..."
+                        />
+                    </div>
+                )}
+
                 <div className="p-1.5 max-h-64 overflow-y-auto custom-scrollbar">
-                    {options.map((option) => {
+                    {filteredOptions.length > 0 ? filteredOptions.map((option) => {
                         const isSelected = option.value === value
                         return (
                             <button
@@ -102,7 +127,9 @@ export default function CustomDropdown({
                                 {isSelected && <Check className="w-3.5 h-3.5" />}
                             </button>
                         )
-                    })}
+                    }) : (
+                        <p className="p-10 text-center text-[10px] font-bold uppercase text-muted-foreground opacity-30">Aucun résultat</p>
+                    )}
                 </div>
             </div>
         </div>

@@ -3,11 +3,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
 export type UserRole = 'admin' | 'manager' | 'cashier'
+export type UserAppType = 'staff' | 'client'
 
 export interface UserProfile {
     id: string
     email: string | null
     role: UserRole
+    user_type: UserAppType
     shop_id: number | null
     shop_ids?: number[]
     has_stock_access?: boolean
@@ -39,10 +41,17 @@ export function UserProvider({
             console.log('[UserContext] Fetching profile...')
             const res = await fetch('/api/user/profile', { cache: 'no-store' })
             const contentType = res.headers.get('content-type')
-            console.log(`[UserContext] Profile response: ${res.status} (${contentType})`)
 
             if (res.ok && contentType?.includes('application/json')) {
                 const data = await res.json()
+                
+                // BLOQUER SI C'EST UN CLIENT (Lolly Shop only)
+                if (data.user_type === 'client') {
+                    setProfile(null)
+                    setError("Accès refusé : Cette application est réservée au personnel Lolly.")
+                    return
+                }
+
                 setProfile(data)
                 setError(null)
             } else {

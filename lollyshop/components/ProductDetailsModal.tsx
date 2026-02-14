@@ -17,6 +17,8 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
     const { getRelatedProducts } = useProducts();
     const [activeImage, setActiveImage] = React.useState<string>(product.image);
     const [activeTab, setActiveTab] = React.useState<'details' | 'reviews'>('details');
+    const [reviews, setReviews] = React.useState<any[]>([]);
+    const [loadingReviews, setLoadingReviews] = React.useState(false);
 
     // VARIANTS STATE
     const [selectedColor, setSelectedColor] = React.useState<string>('');
@@ -31,8 +33,22 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
             setActiveTab('details');
             setSelectedColor(colors[0] || '');
             setSelectedSize(sizes[0] || '');
+            fetchReviews();
         }
-    }, [isOpen, product.image]);
+    }, [isOpen, product.id]);
+
+    const fetchReviews = async () => {
+        setLoadingReviews(true);
+        try {
+            const res = await fetch(`/api/reviews?product_id=${product.id}`);
+            const data = await res.json();
+            if (Array.isArray(data)) setReviews(data);
+        } catch (e) {
+            console.error("Failed to fetch reviews", e);
+        } finally {
+            setLoadingReviews(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -174,7 +190,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                 onClick={() => setActiveTab('reviews')}
                                 className={`pb-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'reviews' ? 'text-[#0055ff] border-b-2 border-[#0055ff]' : 'text-gray-300 hover:text-black'}`}
                             >
-                                Avis Clients (4.8/5)
+                                Avis Clients ({product.avg_rating?.toFixed(1) || '5.0'}/5)
                             </button>
                         </div>
 
@@ -278,27 +294,32 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                             <div className="space-y-8 mb-10">
                                 <div className="p-6 bg-yellow-50 rounded-3xl border border-yellow-100">
                                     <div className="flex items-center space-x-2 mb-2">
-                                        {[1,2,3,4,5].map(i => <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />)}
-                                        <span className="textxs font-black">4.8 / 5</span>
+                                        {[1,2,3,4,5].map(i => (
+                                            <Star key={i} className={`w-4 h-4 ${i <= Math.round(product.avg_rating || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                                        ))}
+                                        <span className="text-xs font-black">{product.avg_rating?.toFixed(1) || '5.0'} / 5</span>
                                     </div>
-                                    <p className="text-[10px] font-bold text-yellow-700 uppercase tracking-widest">Basé sur 15 avis vérifiés</p>
+                                    <p className="text-[10px] font-bold text-yellow-700 uppercase tracking-widest">Basé sur {reviews.length} avis vérifiés</p>
                                 </div>
                                 
-                                <div className="space-y-6">
-                                    {[
-                                        { name: "Fatou D.", comment: "Qualité exceptionnelle, je recommande !", rating: 5 },
-                                        { name: "Moussa S.", comment: "Livraison rapide et produit conforme.", rating: 4 }
-                                    ].map((rev, i) => (
-                                        <div key={i} className="border-b border-gray-50 pb-6">
+                                <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {reviews.map((rev, i) => (
+                                        <div key={i} className="border-b border-gray-50 pb-6 last:border-0">
                                             <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs font-black uppercase">{rev.name}</span>
+                                                <span className="text-xs font-black uppercase">{rev.profiles?.full_name || 'Client Lolly'}</span>
                                                 <div className="flex space-x-1">
-                                                    {Array.from({length: rev.rating}).map((_, j) => <Star key={j} className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />)}
+                                                    {[...Array(5)].map((_, j) => (
+                                                        <Star key={j} className={`w-2.5 h-2.5 ${j < rev.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
+                                                    ))}
                                                 </div>
                                             </div>
                                             <p className="text-xs text-gray-500 font-medium italic">"{rev.comment}"</p>
+                                            <p className="text-[8px] text-gray-400 mt-2 uppercase">{new Date(rev.created_at).toLocaleDateString()}</p>
                                         </div>
                                     ))}
+                                    {reviews.length === 0 && (
+                                        <p className="text-center py-10 text-[10px] text-gray-400 font-black uppercase tracking-widest">Soyez le premier à laisser un avis !</p>
+                                    )}
                                 </div>
                             </div>
                         )}

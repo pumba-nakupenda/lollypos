@@ -1,7 +1,7 @@
 'use client'
 
-import React from 'react'
-import { X, ShoppingBag, Trash2, Send, Plus, Minus, ShieldCheck, Truck } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { X, ShoppingBag, Trash2, Send, Plus, Minus, ShieldCheck, Truck, Ticket, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import Image from 'next/image'
 
@@ -13,6 +13,62 @@ interface CartDrawerProps {
 
 export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDrawerProps) {
     const { cart, removeFromCart, updateQuantity, cartTotal, cartCount } = useCart()
+    const [couponCode, setCouponCode] = useState('')
+    const [activeCoupon, setActiveCoupon] = useState<any>(null)
+    const [couponError, setCouponError] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+    const [shippingZones, setShippingZones] = useState<any[]>([])
+    const [selectedZone, setSelectedZone] = useState<any>(null)
+
+    useEffect(() => {
+        const fetchZones = async () => {
+            try {
+                const res = await fetch('/api/shipping')
+                const data = await res.json()
+                if (Array.isArray(data)) {
+                    setShippingZones(data)
+                    if (data.length > 0) setSelectedZone(data[0])
+                }
+            } catch (e) { console.error("Error fetching zones", e) }
+        }
+        fetchZones()
+    }, [])
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode) return
+        setIsLoading(true)
+        setCouponError('')
+        try {
+            const res = await fetch('/api/coupons/validate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: couponCode, cartTotal })
+            })
+            const data = await res.json()
+            if (res.ok) {
+                setActiveCoupon(data)
+                setCouponCode('')
+            } else {
+                setCouponError(data.error || 'Code invalide')
+            }
+        } catch (e) {
+            setCouponError('Erreur de connexion')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const discountAmount = activeCoupon 
+        ? (activeCoupon.discount_type === 'percentage' 
+            ? (cartTotal * activeCoupon.discount_value / 100) 
+            : activeCoupon.discount_value)
+        : 0
+
+    const shippingCost = selectedZone 
+        ? (selectedZone.free_threshold && cartTotal >= selectedZone.free_threshold ? 0 : Number(selectedZone.price))
+        : 0
+
+    const finalTotal = Math.max(0, cartTotal - discountAmount + shippingCost)
 
     const handleWhatsAppOrder = () => {
         const phone = whatsappNumber || "221772354747"
@@ -23,7 +79,17 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
             message += `   Qté: ${item.quantity} | Prix: ${item.price.toLocaleString()} CFA\n`
         });
 
-        message += `\n*TOTAL: ${cartTotal.toLocaleString()} CFA*`
+        message += `\n*Sous-total: ${cartTotal.toLocaleString()} CFA*`
+
+        if (activeCoupon) {
+            message += `\n*Code Promo: ${activeCoupon.code} (-${discountAmount.toLocaleString()} CFA)*`
+        }
+
+        if (selectedZone) {
+            message += `\n*Livraison (${selectedZone.name}): ${shippingCost === 0 ? 'GRATUITE' : shippingCost.toLocaleString() + ' CFA'}*`
+        }
+
+        message += `\n*TOTAL FINAL: ${finalTotal.toLocaleString()} CFA*`
         message += `\n\n_Merci de confirmer ma livraison (Dakar/Région)._`
 
         const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
@@ -52,10 +118,76 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
 
                     <div className="px-6 py-6 border-b border-gray-50">
                         <h2 className="text-xl font-black uppercase tracking-tighter flex items-center">
-                            Sous-total <span className="text-[#0055ff] ml-2">({cartCount} articles)</span>
+                            Total <span className="text-[#0055ff] ml-2">({cartCount} articles)</span>
                         </h2>
-                        <p className="text-2xl font-black mt-1">{cartTotal.toLocaleString()} <span className="text-sm font-bold">CFA</span></p>
+                        <div className="mt-1">
+                            {activeCoupon ? (
+                                <div className="space-y-1">
+                                    <p className="text-sm text-gray-400 line-through font-bold">{cartTotal.toLocaleString()} CFA</p>
+                                    <p className="text-2xl font-black text-[#0055ff]">{finalTotal.toLocaleString()} <span className="text-sm font-bold">CFA</span></p>
+                                    <div className="flex items-center space-x-2 text-[10px] font-black text-green-600 uppercase">
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        <span>Code {activeCoupon.code} appliqué (-{discountAmount.toLocaleString()} CFA)</span>
+                                        <button onClick={() => setActiveCoupon(null)} className="ml-2 text-gray-400 hover:text-red-500">Effacer</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-2xl font-black">{cartTotal.toLocaleString()} <span className="text-sm font-bold">CFA</span></p>
+                            )}
+                        </div>
                         
+                        {/* Coupon Input */}
+                        {!activeCoupon && cart.length > 0 && (
+                            <div className="mt-4">
+                                <div className="flex space-x-2">
+                                    <input 
+                                        type="text" 
+                                        placeholder="CODE PROMO" 
+                                        className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:border-[#0055ff] outline-none"
+                                        value={couponCode}
+                                        onChange={(e) => setCouponCode(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                                    />
+                                    <button 
+                                        onClick={handleApplyCoupon}
+                                        disabled={isLoading}
+                                        className="px-4 py-2 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 transition-all disabled:opacity-50"
+                                    >
+                                        {isLoading ? '...' : 'OK'}
+                                    </button>
+                                </div>
+                                {couponError && (
+                                    <p className="mt-2 text-[8px] font-black text-red-500 uppercase flex items-center">
+                                        <AlertCircle className="w-2 h-2 mr-1" /> {couponError}
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Shipping Selector */}
+                        {cart.length > 0 && shippingZones.length > 0 && (
+                            <div className="mt-6 pt-4 border-t border-gray-50">
+                                <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest block mb-2">Zone de Livraison</label>
+                                <select 
+                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest focus:border-[#0055ff] outline-none appearance-none cursor-pointer"
+                                    value={selectedZone?.id}
+                                    onChange={(e) => setSelectedZone(shippingZones.find(z => z.id === e.target.value))}
+                                >
+                                    {shippingZones.map((zone) => (
+                                        <option key={zone.id} value={zone.id}>
+                                            {zone.name} ({Number(zone.price).toLocaleString()} CFA)
+                                        </option>
+                                    ))}
+                                </select>
+                                <div className="mt-3 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase">Frais de port</span>
+                                    <span className={`text-[10px] font-black ${shippingCost === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                        {shippingCost === 0 ? 'GRATUIT' : `${shippingCost.toLocaleString()} CFA`}
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+
                         <button 
                             onClick={handleWhatsAppOrder}
                             disabled={cart.length === 0}

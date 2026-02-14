@@ -17,8 +17,8 @@ export default function MobileNav() {
                 </Link>
                 
                 <Link href="/?shop=1" className="flex flex-col items-center space-y-1 group">
-                    <div className="w-2 h-2 rounded-full bg-red-600 mb-1" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 group-active:text-black">Luxya</span>
+                    <Sparkles className="w-5 h-5 text-pink-500 group-active:scale-90 transition-transform" />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-pink-500/60 group-active:text-pink-500">Luxya</span>
                 </Link>
 
                 <div className="relative -mt-8">
@@ -36,8 +36,8 @@ export default function MobileNav() {
                 </div>
 
                 <Link href="/?shop=2" className="flex flex-col items-center space-y-1 group">
-                    <div className="w-2 h-2 rounded-full bg-blue-600 mb-1" />
-                    <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 group-active:text-black">Homtek</span>
+                    <ShoppingBag className="w-5 h-5 text-blue-500 group-active:scale-90 transition-transform" />
+                    <span className="text-[8px] font-black uppercase tracking-widest text-blue-500/60 group-active:text-blue-500">Homtek</span>
                 </Link>
 
                 <Link href="/?sort=best" className="flex flex-col items-center space-y-1 group">

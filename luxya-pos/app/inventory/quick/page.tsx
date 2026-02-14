@@ -215,20 +215,22 @@ export default function QuickInventoryPage() {
                 <button onClick={fetchProducts} className="p-2 hover:bg-white/5 rounded-xl"><RefreshCw className={loading ? 'animate-spin' : ''} /></button>
             </header>
 
-            {/* Quick Stats Updated */}
-            <div className="p-4 grid grid-cols-2 gap-3 pb-2">
-                <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
-                    <p className="text-[8px] font-black uppercase text-blue-400 mb-1">Investissement</p>
-                    <p className="text-sm font-black text-white">{totalCost.toLocaleString()} CFA</p>
-                </div>
-                <div className="bg-white/5 p-4 rounded-3xl border border-white/5 relative overflow-hidden">
-                    <div className="absolute top-2 right-3 px-1.5 py-0.5 bg-green-500 text-white text-[6px] font-black rounded-full">
-                        +{marginPercent.toFixed(0)}%
+            {/* Quick Stats - Restricted to Super Admin */}
+            {profile?.is_super_admin && (
+                <div className="p-4 grid grid-cols-2 gap-3 pb-2">
+                    <div className="bg-white/5 p-4 rounded-3xl border border-white/5">
+                        <p className="text-[8px] font-black uppercase text-blue-400 mb-1">Investissement</p>
+                        <p className="text-sm font-black text-white">{totalCost.toLocaleString()} CFA</p>
                     </div>
-                    <p className="text-[8px] font-black uppercase text-shop-secondary mb-1">Valeur Vente</p>
-                    <p className="text-sm font-black text-white">{totalValue.toLocaleString()} CFA</p>
+                    <div className="bg-white/5 p-4 rounded-3xl border border-white/5 relative overflow-hidden">
+                        <div className="absolute top-2 right-3 px-1.5 py-0.5 bg-green-500 text-white text-[6px] font-black rounded-full">
+                            +{marginPercent.toFixed(0)}%
+                        </div>
+                        <p className="text-[8px] font-black uppercase text-shop-secondary mb-1">Valeur Vente</p>
+                        <p className="text-sm font-black text-white">{totalValue.toLocaleString()} CFA</p>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="px-4 pb-2 grid grid-cols-1">
                 <div className={`px-4 py-2 rounded-2xl border ${outOfStock > 0 ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'}`}>

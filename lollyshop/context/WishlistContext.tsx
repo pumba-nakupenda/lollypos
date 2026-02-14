@@ -1,20 +1,24 @@
-
 'use client'
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product } from '@/types';
+import { useUser } from './UserContext';
 
 interface WishlistContextType {
     wishlist: Product[];
-    toggleWishlist: (product: Product) => void;
+    toggleWishlist: (product: Product) => Promise<void>;
     isInWishlist: (productId: number) => boolean;
+    loading: boolean;
 }
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
+    const { user } = useUser();
     const [wishlist, setWishlist] = useState<Product[]>([]);
+    const [loading, setLoading] = useState(false);
 
+    // Initial load from localStorage
     useEffect(() => {
         const saved = localStorage.getItem('lollyshop-wishlist');
         if (saved) {
@@ -24,18 +28,59 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
         }
     }, []);
 
+    // Sync with DB if user is logged in
     useEffect(() => {
-        localStorage.setItem('lollyshop-wishlist', JSON.stringify(wishlist));
-    }, [wishlist]);
+        if (user) {
+            fetchWishlistFromDb();
+        }
+    }, [user]);
 
-    const toggleWishlist = (product: Product) => {
-        setWishlist((prev) => {
-            const exists = prev.find((item) => item.id === product.id);
-            if (exists) {
-                return prev.filter((item) => item.id !== product.id);
+    const fetchWishlistFromDb = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/user/wishlist');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                // Extract products from the joined query
+                const products = data.map(item => item.products).filter(Boolean);
+                setWishlist(products);
+                localStorage.setItem('lollyshop-wishlist', JSON.stringify(products));
             }
-            return [...prev, product];
-        });
+        } catch (error) {
+            console.error("Wishlist sync error:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleWishlist = async (product: Product) => {
+        // Optimistic UI Update
+        const exists = wishlist.some((item) => item.id === product.id);
+        const newWishlist = exists 
+            ? wishlist.filter((item) => item.id !== product.id)
+            : [...wishlist, product];
+        
+        setWishlist(newWishlist);
+        localStorage.setItem('lollyshop-wishlist', JSON.stringify(newWishlist));
+
+        // Sync with DB if logged in
+        if (user) {
+            try {
+                const res = await fetch('/api/user/wishlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ product_id: product.id })
+                });
+                
+                if (!res.ok) {
+                    // Revert if API fails
+                    fetchWishlistFromDb();
+                }
+            } catch (error) {
+                console.error("Wishlist API error:", error);
+                fetchWishlistFromDb();
+            }
+        }
     };
 
     const isInWishlist = (productId: number) => {
@@ -43,7 +88,7 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <WishlistContext.Provider value={{ wishlist, toggleWishlist, isInWishlist }}>
+        <WishlistContext.Provider value={{ wishlist, toggleWishlist, isInWishlist, loading }}>
             {children}
         </WishlistContext.Provider>
     );

@@ -21,7 +21,7 @@ export class AiService {
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
             this.model = this.genAI.getGenerativeModel({ 
-                model: 'gemini-3.0-flash',
+                model: 'gemini-1.5-flash',
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -147,6 +147,22 @@ export class AiService {
     }
 
     async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES ✨" }; }
+    
+    async generateDescription(productName: string) {
+        if (!this.model) return { description: "" };
+        try {
+            const prompt = `Génère une description marketing luxueuse, courte et captivante pour un produit nommé "${productName}". 
+            Le ton doit être professionnel, élégant et adapté à une boutique haut de gamme nommée LOLLY. 
+            Utilise environ 3-4 phrases. Réponds directement avec le texte de la description.`;
+            
+            const result = await this.model.generateContent(prompt);
+            return { description: result.response.text().trim() };
+        } catch (error) {
+            this.logger.error("AI Description Generation Error", error);
+            return { description: "" };
+        }
+    }
+
     async suggestProductPhoto(p: string) { return { urls: [] }; }
     async getStatus() { return { status: 'online' }; }
 }

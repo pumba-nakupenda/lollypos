@@ -174,13 +174,13 @@ export default function CreateProductButton() {
 
             {isOpen && (
                 <Portal>
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 backdrop-blur-md bg-background/40 animate-in fade-in duration-300">
-                        <div className="glass-panel w-full max-w-2xl rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col overflow-visible">
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-6 backdrop-blur-md bg-background/40 animate-in fade-in duration-300">
+                        <div className="glass-panel w-full max-w-2xl rounded-[32px] sm:rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-300 max-h-[96vh] sm:max-h-[90vh] flex flex-col overflow-visible">
                             {/* Modal Header */}
-                            <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02] flex-shrink-0 rounded-t-[40px]">
+                            <div className="p-6 sm:p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02] flex-shrink-0 rounded-t-[32px] sm:rounded-t-[40px]">
                                 <div>
-                                    <h3 className="text-2xl font-black shop-gradient-text uppercase tracking-tighter">Nouveau Produit</h3>
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Ajout à l'inventaire {activeShop?.name || 'Luxya'}</p>
+                                    <h3 className="text-xl sm:text-2xl font-black shop-gradient-text uppercase tracking-tighter leading-none">Nouveau Produit</h3>
+                                    <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1.5 truncate max-w-[200px] sm:max-w-none">Inventaire {activeShop?.name || 'Luxya'}</p>
                                 </div>
                                 <button
                                     onClick={() => setIsOpen(false)}

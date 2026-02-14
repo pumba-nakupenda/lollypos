@@ -42,13 +42,13 @@ export default function MegaMenu({ isOpen, onClose, categories }: MegaMenuProps)
                         <div className="space-y-4">
                             <MenuLink 
                                 href="/?shop=1" 
-                                icon={<div className="w-2 h-2 rounded-full bg-red-600 mr-3" />}
+                                icon={<div className="w-8 h-8 rounded-xl bg-pink-50 flex items-center justify-center mr-3"><Sparkles className="w-4 h-4 text-pink-500" /></div>}
                                 label="Luxya Beauté" 
                                 onClick={onClose}
                             />
                             <MenuLink 
                                 href="/?shop=2" 
-                                icon={<div className="w-2 h-2 rounded-full bg-blue-600 mr-3" />}
+                                icon={<div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center mr-3"><Laptop className="w-4 h-4 text-blue-500" /></div>}
                                 label="Homtek Tech" 
                                 onClick={onClose}
                             />

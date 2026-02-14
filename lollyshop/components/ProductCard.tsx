@@ -13,6 +13,11 @@ export default function ProductCard({ product }: { product: any }) {
     const { toggleWishlist, isInWishlist } = useWishlist();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [added, setAdded] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const trackView = async () => {
         try {
@@ -44,7 +49,7 @@ export default function ProductCard({ product }: { product: any }) {
     const hasPromo = product.promo_price && product.promo_price > 0 && Number(product.promo_price) < Number(product.price);
     const isFavorite = isInWishlist(product.id);
 
-    const isNew = new Date(product.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const isNew = mounted && new Date(product.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
     const isBestSeller = product.sales_count > 10; // Seuil à ajuster
 
     const stock = Number(product.stock);
@@ -76,20 +81,20 @@ export default function ProductCard({ product }: { product: any }) {
                         <Heart className={`w-4 h-4 ${isFavorite ? 'fill-white' : ''}`} />
                     </button>
 
-                    {/* Badges Area */}
-                    <div className="absolute top-2 left-0 z-20 flex flex-col gap-1">
+                    {/* Badges Area - More compact on mobile */}
+                    <div className="absolute top-1 sm:top-2 left-0 z-20 flex flex-col gap-0.5 sm:gap-1">
                         {hasPromo && (
-                            <div className="bg-red-600 text-white px-2 py-0.5 text-[9px] font-black uppercase rounded-r shadow-md">
-                                Offre Limitée
+                            <div className="bg-red-600 text-white px-1.5 py-0.5 text-[7px] sm:text-[9px] font-black uppercase rounded-r shadow-md">
+                                Promo
                             </div>
                         )}
                         {isBestSeller && (
-                            <div className="bg-[#e47911] text-white px-2 py-0.5 text-[9px] font-black uppercase rounded-r shadow-md">
-                                #1 Best Seller
+                            <div className="bg-[#e47911] text-white px-1.5 py-0.5 text-[7px] sm:text-[9px] font-black uppercase rounded-r shadow-md">
+                                Top Vente
                             </div>
                         )}
                         {isNew && (
-                            <div className="bg-[#007185] text-white px-2 py-0.5 text-[9px] font-black uppercase rounded-r shadow-md">
+                            <div className="bg-[#007185] text-white px-1.5 py-0.5 text-[7px] sm:text-[9px] font-black uppercase rounded-r shadow-md">
                                 Nouveau
                             </div>
                         )}
@@ -97,61 +102,63 @@ export default function ProductCard({ product }: { product: any }) {
                 </div>
 
                 {/* Content Area */}
-                <div className="p-4 flex flex-col flex-1">
-                    <div className="flex-1 space-y-1.5">
-                        <div className="flex items-center space-x-2">
-                            <span className={`text-[8px] font-black uppercase tracking-widest ${shopColor}`}>{shopName}</span>
-                            <div className="flex text-[#FF9900]"><Star className="w-2.5 h-2.5 fill-current" /><Star className="w-2.5 h-2.5 fill-current" /><Star className="w-2.5 h-2.5 fill-current" /><Star className="w-2.5 h-2.5 fill-current" /><Star className="w-2.5 h-2.5 fill-current" /></div>
+                <div className="p-2 sm:p-4 flex flex-col flex-1">
+                    <div className="flex-1 space-y-1 sm:space-y-1.5">
+                        <div className="flex items-center space-x-1 sm:space-x-2">
+                            <span className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${shopColor}`}>{shopName}</span>
+                            <div className="flex items-center space-x-1">
+                                <div className="flex text-[#FF9900] scale-75 sm:scale-100 origin-left">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star key={i} className={`w-2.5 h-2.5 ${i < Math.round(product.avg_rating || 5) ? 'fill-current' : 'text-gray-200'}`} />
+                                    ))}
+                                </div>
+                                {product.review_count > 0 && (
+                                    <span className="text-[8px] text-gray-400 font-bold">({product.review_count})</span>
+                                )}
+                            </div>
                         </div>
                         
-                        <h3 className="text-sm font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-lolly transition-colors h-9">
-                            {product.brand && <span className="font-black uppercase text-[10px] text-gray-500 block mb-0.5 tracking-tight">{product.brand}</span>}
+                        <h3 className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-lolly transition-colors h-8 sm:h-9">
+                            {product.brand && <span className="font-black uppercase text-[8px] sm:text-[10px] text-gray-500 block mb-0.5 tracking-tight">{product.brand}</span>}
                             {product.name}
                         </h3>
 
-                        {/* Price Logic */}
-                        <div className="pt-1">
+                        {/* Price Logic - Adaptive size */}
+                        <div className="pt-0.5 sm:pt-1">
                             {hasPromo ? (
-                                <div className="space-y-0.5">
-                                    <div className="flex items-baseline space-x-2">
-                                        <span className="text-lg font-black text-red-700 tracking-tight">{Number(product.promo_price).toLocaleString()} <span className="text-[10px]">CFA</span></span>
-                                        <span className="text-xs text-gray-400 line-through font-medium">{Number(product.price).toLocaleString()}</span>
+                                <div className="space-y-0">
+                                    <div className="flex items-baseline space-x-1 sm:space-x-2">
+                                        <span className="text-sm sm:text-lg font-black text-red-700 tracking-tight">{Number(product.promo_price).toLocaleString()} <span className="text-[8px] sm:text-[10px]">CFA</span></span>
+                                        <span className="text-[10px] sm:text-xs text-gray-400 line-through font-medium">{Number(product.price).toLocaleString()}</span>
                                     </div>
-                                    <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Prix le plus bas 30j</p>
+                                    <p className="hidden sm:block text-[9px] font-bold text-gray-500 uppercase tracking-widest">Meilleur prix</p>
                                 </div>
                             ) : (
-                                <p className="text-lg font-black text-gray-900 tracking-tight">
-                                    {Number(product.price).toLocaleString()} <span className="text-[10px]">CFA</span>
+                                <p className="text-sm sm:text-lg font-black text-gray-900 tracking-tight">
+                                    {Number(product.price).toLocaleString()} <span className="text-[8px] sm:text-[10px]">CFA</span>
                                 </p>
                             )}
                         </div>
 
-                        {/* Social Proof & Logistics */}
-                        <div className="space-y-1 pt-1">
+                        {/* Social Proof - Hidden on very small screens */}
+                        <div className="hidden sm:block space-y-1 pt-1">
                             <p className="text-[10px] font-medium text-green-700 flex items-center">
-                                <CheckCircle2 className="w-3 h-3 mr-1" /> Livraison Express Dakar
+                                <CheckCircle2 className="w-3 h-3 mr-1" /> Livraison Express
                             </p>
-                            {isLowStock ? (
-                                <p className="text-[10px] font-black text-red-600 uppercase flex items-center">
-                                    <Flame className="w-3 h-3 mr-1" /> Il n'en reste plus que {stock}
-                                </p>
-                            ) : (
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Stock Disponible</p>
-                            )}
                         </div>
                     </div>
 
-                    {/* Primary Button */}
-                    <div className="mt-4 pt-3 border-t border-gray-100">
+                    {/* Primary Button - More touch-friendly on mobile */}
+                    <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100">
                         <button 
                             onClick={handleAddToCart}
                             disabled={isOutOfStock}
-                            className={`w-full py-2.5 rounded-md font-black uppercase text-[10px] tracking-widest transition-all ${
+                            className={`w-full py-2 sm:py-2.5 rounded-md font-black uppercase text-[8px] sm:text-[10px] tracking-widest transition-all ${
                                 isOutOfStock ? 'bg-gray-100 text-gray-400' : 
                                 added ? 'bg-green-600 text-white shadow-inner' : 'bg-[#fde700] text-black hover:bg-[#f5d600] shadow-sm active:scale-95'
                             }`}
                         >
-                            {isOutOfStock ? 'Épuisé' : added ? 'Ajouté !' : 'Ajouter au panier'}
+                            {isOutOfStock ? 'Épuisé' : added ? 'OK !' : 'Au panier'}
                         </button>
                     </div>
                 </div>

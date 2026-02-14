@@ -3,8 +3,9 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, Menu, User, MapPin, ChevronDown, Sparkles, X } from 'lucide-react';
+import { ShoppingBag, Search, Menu, User, MapPin, ChevronDown, Sparkles, X, Tags, ShieldCheck } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useUser } from '@/context/UserContext';
 import CartDrawer from './CartDrawer';
 import MegaMenu from './MegaMenu';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -16,10 +17,17 @@ interface NavbarProps {
 
 export default function Navbar({ settings, categories = [] }: NavbarProps) {
     const { cartCount, isCartOpen, setIsCartOpen } = useCart();
+    const { user, isAdmin, signOut } = useUser();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
+    const [searchQuery, setSearchQuery] = useState('');
+
+    useEffect(() => {
+        setMounted(true);
+        setSearchQuery(searchParams.get('q') || '');
+    }, [searchParams]);
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
@@ -30,12 +38,12 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
     };
 
     return (
-        <>
+        <div className="w-full">
             {/* Main Amazon-Style Navbar */}
             <header className="z-[100] w-full bg-[#131921] text-white">
                 <div className="max-w-[1500px] mx-auto px-4 py-2 flex items-center gap-3 md:gap-8">
                     
-                    {/* Brand Logo - Updated to Image */}
+                    {/* Brand Logo */}
                     <Link href="/" className="flex-shrink-0 pt-1.5 hover:outline-1 hover:outline-white p-1 rounded-sm transition-all">
                         <img 
                             src="/logo_white.png" 
@@ -74,29 +82,48 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-1 md:gap-6 shrink-0">
-                        {/* Help / Support (Hidden on tiny mobile) */}
-                        <a 
-                            href={`https://wa.me/${settings?.whatsapp_number || "221772354747"}`}
-                            target="_blank"
-                            className="hidden xs:flex flex-col items-start hover:outline-1 hover:outline-white p-1.5 md:p-2 rounded-sm transition-all"
-                        >
-                            <span className="text-[10px] md:text-[11px] font-medium leading-none">Aide &</span>
-                            <span className="text-xs md:text-sm font-black tracking-tight uppercase">Support</span>
-                        </a>
+                        {/* Account / Login */}
+                        {user ? (
+                            <div className="flex flex-col items-start hover:outline-1 hover:outline-white p-1.5 md:p-2 rounded-sm transition-all cursor-pointer relative group">
+                                <p className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Bonjour, {user.email?.split('@')[0]}</p>
+                                <p className="text-xs md:text-sm font-black tracking-tight uppercase flex items-center">Mon Compte <ChevronDown className="w-3 h-3 ml-1" /></p>
+                                
+                                {/* Dropdown Menu */}
+                                <div className="absolute top-full right-0 mt-0 w-48 bg-white text-black shadow-2xl rounded-sm border border-gray-200 hidden group-hover:block z-50 overflow-hidden">
+                                    <div className="p-4 space-y-3">
+                                        <Link href="/account" className="flex items-center text-xs font-bold hover:text-lolly"><User className="w-3 h-3 mr-2" /> Mon Compte</Link>
+                                        {isAdmin && (
+                                            <Link href="/admin" className="flex items-center text-xs font-bold text-red-600 hover:underline"><ShieldCheck className="w-3 h-3 mr-2" /> Admin Lolly</Link>
+                                        )}
+                                        <div className="h-px bg-gray-100 my-1" />
+                                        <button onClick={signOut} className="w-full text-left text-xs font-black uppercase text-gray-500 hover:text-black">Déconnexion</button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <Link href="/login" className="flex flex-col items-start hover:outline-1 hover:outline-white p-1.5 md:p-2 rounded-sm transition-all">
+                                <span className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Bonjour, Identifiez-vous</span>
+                                <span className="text-xs md:text-sm font-black tracking-tight uppercase">Compte & Listes</span>
+                            </Link>
+                        )}
 
                         {/* Cart Button */}
                         <button 
                             onClick={() => setIsCartOpen(true)}
                             className="relative flex items-center hover:outline-1 hover:outline-white p-1.5 md:p-2 rounded-sm transition-all group"
                         >
-                            <div className="relative flex items-end">
-                                <ShoppingBag className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                                <span className="absolute -top-1 left-1/2 -translate-x-1/2 text-[#f08804] text-xs md:text-base font-black">
-                                    {cartCount}
-                                </span>
-                            </div>
-                            <div className="hidden md:block text-left mt-3 ml-1">
-                                <p className="text-sm font-black uppercase tracking-tight">Panier</p>
+                            <div className="relative flex items-center">
+                                <div className="relative">
+                                    <ShoppingBag className="w-7 h-7 md:w-9 md:h-9 text-white" />
+                                    {mounted && cartCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 md:-top-2 md:-right-2 bg-[#f08804] text-[#131921] text-[10px] md:text-xs font-black px-1.5 py-0.5 rounded-full min-w-[18px] md:min-w-[22px] flex items-center justify-center border-2 border-[#131921]">
+                                            {cartCount}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="hidden md:block text-left ml-2 mt-2">
+                                    <p className="text-xs font-black uppercase tracking-tight leading-none">Panier</p>
+                                </div>
                             </div>
                         </button>
                     </div>
@@ -111,20 +138,24 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                         >
                             <Menu className="w-4 h-4 md:w-6 md:h-6 mr-1" /> Tous
                         </button>
-                        <Link href="/?shop=1" className="text-xs md:text-sm font-medium hover:outline-1 hover:outline-white px-2 py-1 rounded-sm whitespace-nowrap flex items-center group">
-                            <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-red-600 mr-1.5 md:mr-2 shadow-[0_0_10px_rgba(220,38,38,0.5)]" />
-                            Luxya
+                        <Link href="/?shop=1" className="hover:scale-105 transition-all whitespace-nowrap shrink-0 group">
+                            <div className="bg-red-500/10 text-red-400 border border-red-500/20 px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest shadow-[0_0_15px_rgba(239,68,68,0.1)] group-hover:bg-red-500/20 group-hover:border-red-500/40 transition-all flex items-center">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2 shadow-[0_0_8px_#ef4444]" />
+                                Luxya
+                            </div>
                         </Link>
-                        <Link href="/?shop=2" className="text-xs md:text-sm font-medium hover:outline-1 hover:outline-white px-2 py-1 rounded-sm whitespace-nowrap flex items-center group">
-                            <div className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-blue-600 mr-1.5 md:mr-2 shadow-[0_0_10px_rgba(37,99,235,0.5)]" />
-                            Homtek
+                        <Link href="/?shop=2" className="hover:scale-105 transition-all whitespace-nowrap shrink-0 group">
+                            <div className="bg-blue-500/10 text-blue-400 border border-blue-500/20 px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest shadow-[0_0_15px_rgba(59,130,246,0.1)] group-hover:bg-blue-500/20 group-hover:border-blue-500/40 transition-all flex items-center">
+                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2 shadow-[0_0_8px_#3b82f6]" />
+                                Homtek
+                            </div>
                         </Link>
                         <div className="h-4 md:h-6 w-[1.5px] bg-white/20 shrink-0" />
                         <Link href="/?sort=promo" className="text-xs md:text-sm font-medium hover:outline-1 hover:outline-white px-2 py-1 rounded-sm whitespace-nowrap">Promos</Link>
                         <Link href="/?sort=best" className="text-xs md:text-sm font-medium hover:outline-1 hover:outline-white px-2 py-1 rounded-sm whitespace-nowrap">Ventes</Link>
                     </div>
                     
-                    {/* Mini Image - Hidden on small mobile to avoid layout breaking */}
+                    {/* Mini Image */}
                     {settings?.event?.mini_image && (
                         <Link href={settings.event.link || "/?sort=promo"} className="ml-auto hidden sm:block h-full transition-all overflow-hidden shrink-0">
                             <img 
@@ -148,6 +179,6 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                 onClose={() => setIsMenuOpen(false)}
                 categories={categories}
             />
-        </>
+        </div>
     );
 }

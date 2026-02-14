@@ -76,7 +76,7 @@ export default async function RootLayout({
   }
 
   const isCashier = initialProfile?.role === 'cashier';
-  const showAi = !isCashier && pathname !== '/login';
+  const showAi = initialProfile?.is_super_admin === true && pathname !== '/login';
 
   return (
     <html lang="fr" className="dark">

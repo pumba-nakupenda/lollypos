@@ -522,19 +522,19 @@ function FinancialProgressBar({ label, value, total, color, subLabel }: any) {
 function MetricMiniCard({ title, value, icon, color, trend }: any) {
     const displayValue = (value || 0).toLocaleString()
     return (
-        <div className="glass-card p-6 rounded-[32px] border-white/5 flex items-center justify-between group relative overflow-hidden">
-            <div className="relative z-10">
-                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">{title}</p>
-                <div className="flex items-baseline space-x-2">
-                    <h4 className="text-2xl font-black">{displayValue}</h4>
-                    <span className="text-[8px] font-bold opacity-50">FCFA</span>
+        <div className="glass-card p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border-white/5 flex items-center justify-between group relative overflow-hidden h-full">
+            <div className="relative z-10 min-w-0">
+                <p className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 truncate">{title}</p>
+                <div className="flex items-baseline space-x-1 sm:space-x-2 overflow-hidden">
+                    <h4 className="text-lg sm:text-2xl font-black truncate">{displayValue}</h4>
+                    <span className="text-[7px] sm:text-[8px] font-bold opacity-50 shrink-0">CFA</span>
                 </div>
-                <div className="mt-2 flex items-center text-[8px] font-black uppercase text-green-400">
-                    <ArrowUpRight className="w-3 h-3 mr-1" /> {trend} vs hier
+                <div className="mt-1 sm:mt-2 flex items-center text-[7px] sm:text-[8px] font-black uppercase text-green-400">
+                    <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" /> {trend}
                 </div>
             </div>
-            <div className={`w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-${color}`}>
-                {icon}
+            <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-${color} shrink-0 ml-2`}>
+                {React.cloneElement(icon as React.ReactElement, { className: "w-4 h-4 sm:w-6 sm:h-6" })}
             </div>
         </div>
     )

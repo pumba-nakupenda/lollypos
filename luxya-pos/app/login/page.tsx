@@ -1,8 +1,67 @@
-import { login, signup } from './actions'
-import { Mail, Lock, LogIn, UserPlus, ShieldCheck, Store } from 'lucide-react'
+'use client'
 
-export default function LoginPage({ searchParams }: { searchParams: { error?: string } }) {
-    const error = searchParams?.error
+import React, { useState, useEffect } from 'react'
+import { createClient } from '@/utils/supabase/client'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Mail, Lock, LogIn, Store, ShieldCheck, Loader2 } from 'lucide-react'
+
+export default function LoginPage() {
+    const [email, setEmail] = useState('')
+    const [password, setPassword] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const supabase = createClient()
+
+    useEffect(() => {
+        const err = searchParams.get('error')
+        if (err) setError(err)
+    }, [searchParams])
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setLoading(true)
+        setError(null)
+
+        try {
+            const { error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            })
+
+            if (authError) {
+                setError(authError.message)
+                return
+            }
+
+            // Successfully logged in - Log connection to backend
+            try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/log-connection`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            userId: session.user.id,
+                            email: session.user.email,
+                            device: navigator.userAgent,
+                            ip: 'client-side' // IP handles better on backend
+                        })
+                    })
+                }
+            } catch (e) {
+                console.warn('Logging connection failed (non-critical)')
+            }
+
+            router.push('/')
+            router.refresh()
+        } catch (err: any) {
+            setError(err.message || 'Une erreur est survenue')
+        } finally {
+            setLoading(false)
+        }
+    }
 
     return (
         <div className="min-h-[100dvh] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden bg-[#0a0a0c]">
@@ -26,7 +85,7 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                 <div className="glass-panel p-6 sm:p-10 rounded-[32px] sm:rounded-[48px] shadow-2xl relative group border-white/10">
                     <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent rounded-[32px] sm:rounded-[48px] pointer-events-none" />
                     
-                    <form className="space-y-5 sm:space-y-6 relative z-10" suppressHydrationWarning>
+                    <form onSubmit={handleLogin} className="space-y-5 sm:space-y-6 relative z-10">
                         {error && (
                             <div className="p-3 sm:p-4 rounded-2xl bg-red-500/10 border border-red-500/20 animate-in fade-in slide-in-from-top-2 duration-300">
                                 <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-red-400 text-center">
@@ -45,12 +104,11 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                                 </div>
                                 <input
                                     id="email"
-                                    name="email"
                                     type="email"
-                                    autoComplete="email"
                                     required
                                     placeholder="admin@lolly.sn"
-                                    suppressHydrationWarning
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl py-4 sm:py-5 pl-12 sm:pl-14 pr-6 text-sm focus:ring-2 focus:ring-shop/50 focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
                                 />
                             </div>
@@ -66,12 +124,11 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
                                 </div>
                                 <input
                                     id="password"
-                                    name="password"
                                     type="password"
-                                    autoComplete="current-password"
                                     required
                                     placeholder="••••••••"
-                                    suppressHydrationWarning
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl py-4 sm:py-5 pl-12 sm:pl-14 pr-6 text-sm focus:ring-2 focus:ring-shop/50 focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
                                 />
                             </div>
@@ -79,14 +136,17 @@ export default function LoginPage({ searchParams }: { searchParams: { error?: st
 
                         <div className="pt-2 sm:pt-4">
                             <button
-                                formAction={login}
+                                disabled={loading}
                                 type="submit"
-                                suppressHydrationWarning
                                 className="w-full group relative flex items-center justify-center py-4 sm:py-5 px-4 bg-shop text-white rounded-2xl sm:rounded-3xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] sm:tracking-[0.3em] shadow-2xl shadow-shop/20 hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                                <LogIn className="w-4 h-4 mr-2 sm:mr-3" />
-                                Se Connecter
+                                {loading ? (
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                    <LogIn className="w-4 h-4 mr-2 sm:mr-3" />
+                                )}
+                                {loading ? 'Connexion...' : 'Se Connecter'}
                             </button>
                         </div>
                     </form>

@@ -26,7 +26,9 @@ export async function GET(request: Request) {
             fetch(`${API_URL}/sales${query}`, { cache: 'no-store' }),
             fetch(expensesUrl, { cache: 'no-store' }),
             fetch(`${API_URL}/sales/items${query}`, { cache: 'no-store' }),
-            supabase.from('debts').select('remaining_amount, status')
+            shopId && shopId !== 'all' 
+                ? supabase.from('debts').select('remaining_amount, status').eq('shop_id', shopId)
+                : supabase.from('debts').select('remaining_amount, status')
         ])
 
         if (!salesRes.ok || !expensesRes.ok || !saleItemsRes.ok) {

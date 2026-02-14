@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
     Search, ShoppingCart, Plus, Minus, Trash2, Check, RefreshCw, 
     LayoutDashboard, User, Calendar, Banknote, Wallet, FileText, 
-    MessageSquare, Trash, Pencil, ArrowRight, Truck, PlusCircle, Sparkles, X, Clock, Receipt, LogOut 
+    MessageSquare, Trash, Pencil, ArrowRight, Truck, PlusCircle, Sparkles, X, Clock, Receipt, LogOut, Tags 
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -12,6 +12,7 @@ import { useShop } from '@/context/ShopContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
 import ShopSelector from '@/components/ShopSelector';
+import CustomDropdown from '@/components/CustomDropdown';
 import ReceiptModal from '@/components/ReceiptModal';
 import ExpiryBadge from '@/components/ExpiryBadge';
 import { API_URL } from '@/utils/api';
@@ -53,6 +54,11 @@ export default function SalesTerminal() {
 
     useEffect(() => {
         if (activeShop) {
+            // Reset filters when shop changes to avoid empty states
+            setSelectedCategory('Toutes');
+            setSelectedBrand('Toutes');
+            setSearchQuery('');
+            
             fetchProducts();
             fetchHistory();
             fetchCustomers();
@@ -68,10 +74,13 @@ export default function SalesTerminal() {
                 const data = await res.json();
                 setProducts(data);
                 
-                const cats = new Set(data.map((p: any) => p.category).filter(Boolean));
+                // Only extract categories/brands from products visible on POS
+                const visibleProducts = data.filter((p: any) => p.show_on_pos !== false);
+                
+                const cats = new Set(visibleProducts.map((p: any) => p.category).filter(Boolean));
                 setCategories(['Toutes', ...Array.from(cats) as string[]]);
 
-                const bnds = new Set(data.map((p: any) => p.brand).filter(Boolean));
+                const bnds = new Set(visibleProducts.map((p: any) => p.brand).filter(Boolean));
                 setBrands(['Toutes', ...Array.from(bnds).sort() as string[]]);
             }
         } catch (e) {
@@ -298,15 +307,17 @@ export default function SalesTerminal() {
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Top Header */}
                 <header className="h-20 sm:h-24 bg-background/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 sm:px-10 z-30 sticky top-0">
-                    <div className="flex items-center space-x-4 sm:space-x-8 overflow-hidden">
+                    <div className="flex items-center space-x-4 sm:space-x-8 overflow-hidden pl-12 lg:pl-0">
                         <div className="flex-shrink-0">
-                            <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white font-museo">
+                            <h1 className="text-lg sm:text-2xl font-black uppercase tracking-tighter text-white font-museo">
                                 LOLLY<span className="text-shop">POS</span>
                             </h1>
-                            <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">Système de Vente Premium</p>
+                            <p className="text-[7px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">Système de Vente Premium</p>
                         </div>
                         <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
-                        <ShopSelector />
+                        <div className="scale-90 sm:scale-100 origin-left">
+                            <ShopSelector />
+                        </div>
                     </div>
 
                     <div className="flex items-center space-x-2 sm:space-x-4">
@@ -345,60 +356,52 @@ export default function SalesTerminal() {
                         <div className={activeTab === 'history' ? 'hidden lg:block' : ''}>
                             {!isAgency ? (
                                 <div className="space-y-6">
-                                    {/* Combined Filters Bar */}
+                                    {/* Advanced Search and Dropdown Filters */}
                                     <div className="flex flex-col space-y-4">
                                         <div className="relative group">
                                             <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-shop transition-colors" />
                                             <input 
                                                 type="text" 
-                                                placeholder="Chercher par nom, catégorie ou marque..."
-                                                className="w-full h-16 sm:h-20 bg-white/5 border border-white/10 rounded-[24px] sm:rounded-3xl pl-16 pr-6 text-sm font-bold focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
+                                                placeholder="Chercher un produit par nom..."
+                                                className="w-full h-16 sm:h-20 bg-white/5 border border-white/10 rounded-[24px] sm:rounded-3xl pl-16 pr-6 text-sm font-bold focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 text-white"
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
                                             />
                                         </div>
 
-                                        {/* Categories Scroll */}
-                                        <div className="space-y-2">
-                                            <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest ml-4">Rayons / Catégories</p>
-                                            <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar px-2">
-                                                {categories.map(cat => (
-                                                    <button
-                                                        key={cat}
-                                                        onClick={() => setSelectedCategory(cat)}
-                                                        className={`px-6 h-12 rounded-2xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
-                                                            selectedCategory === cat 
-                                                            ? 'bg-shop border-shop text-white shadow-lg' 
-                                                            : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10 hover:text-white'
-                                                        }`}
-                                                    >
-                                                        {cat}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <CustomDropdown 
+                                                label="Rayon / Catégorie"
+                                                options={categories.map(cat => ({ 
+                                                    label: cat, 
+                                                    value: cat, 
+                                                    icon: <Tags className="w-3.5 h-3.5" /> 
+                                                }))}
+                                                value={selectedCategory}
+                                                onChange={setSelectedCategory}
+                                                placeholder="Toutes les catégories"
+                                            />
 
-                                        {/* Brands Scroll */}
-                                        {brands.length > 2 && (
-                                            <div className="space-y-2">
-                                                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest ml-4">Marques</p>
-                                                <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar px-2">
-                                                    {brands.map(brand => (
-                                                        <button
-                                                            key={brand}
-                                                            onClick={() => setSelectedBrand(brand)}
-                                                            className={`px-6 h-10 rounded-xl text-[8px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
-                                                                selectedBrand === brand 
-                                                                ? 'bg-white text-black border-white shadow-md' 
-                                                                : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
-                                                            }`}
-                                                        >
-                                                            {brand}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
+                                            {brands.length > 1 && (
+                                                <CustomDropdown 
+                                                    label="Marque"
+                                                    options={brands.map(brand => {
+                                                        const visibleProducts = products.filter(p => p.show_on_pos !== false);
+                                                        const count = brand === 'Toutes' 
+                                                            ? visibleProducts.length 
+                                                            : visibleProducts.filter(p => p.brand === brand).length;
+                                                        return {
+                                                            label: `${brand} (${count})`,
+                                                            value: brand,
+                                                            icon: <Sparkles className="w-3.5 h-3.5" />
+                                                        };
+                                                    })}
+                                                    value={selectedBrand}
+                                                    onChange={setSelectedBrand}
+                                                    placeholder="Toutes les marques"
+                                                />
+                                            )}
+                                        </div>
                                     </div>
 
                                     {loading ? (
@@ -431,7 +434,10 @@ export default function SalesTerminal() {
                                                             </div>
                                                         </div>
                                                         <div className="space-y-1 sm:space-y-2">
-                                                            <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-shop transition-colors">{p.category}</p>
+                                                            <div className="flex items-center space-x-2">
+                                                                {p.brand && <span className="text-[8px] font-black uppercase px-1.5 py-0.5 bg-shop/10 text-shop rounded border border-shop/20">{p.brand}</span>}
+                                                                <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-white transition-colors">{p.category}</p>
+                                                            </div>
                                                             <h3 className="font-bold text-xs sm:text-sm text-white line-clamp-1">{p.name}</h3>
                                                             <div className="flex items-center justify-between pt-2 sm:pt-4">
                                                                 <p className="text-sm sm:text-lg font-black text-white">{Number(p.price).toLocaleString()} <span className="text-[10px] text-muted-foreground ml-1">CFA</span></p>

@@ -87,7 +87,6 @@ export default function RootLayout({
               <Providers>
                 {children}
                 <ShoppingAssistant />
-                <MobileNav />
               </Providers>
             </body>
     </html>

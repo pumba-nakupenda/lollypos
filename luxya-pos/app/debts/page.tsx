@@ -54,9 +54,13 @@ export default function DebtsPage() {
                     customers (name, phone)
                 `)
                 .eq('type', viewType)
-                .order('created_at', { ascending: false })
 
-            const { data, error } = await query
+            // Filtrage par boutique (si pas en vue globale ID 0)
+            if (activeShop && activeShop.id !== 0) {
+                query = query.eq('shop_id', activeShop.id)
+            }
+
+            const { data, error } = await query.order('created_at', { ascending: false })
             if (error) throw error
             setDebts(data || [])
         } catch (err) {
@@ -68,6 +72,7 @@ export default function DebtsPage() {
 
     const handleCreateEntry = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (activeShop?.id === 0) return showToast("Sélectionnez une boutique spécifique avant d'ajouter une dette", "warning")
         if (newEntry.type === 'receivable' && !newEntry.customer_id) return showToast("Sélectionnez un client", "warning")
         if (newEntry.type === 'debt' && !newEntry.creditor_name) return showToast("Saisissez le nom du créancier", "warning")
         

@@ -69,9 +69,12 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         if (activeShop) {
             const root = document.documentElement;
             const colors = activeShop.id === 0 ? globalShop.colors : activeShop.colors;
-            root.style.setProperty('--shop-primary', colors.primary);
-            root.style.setProperty('--shop-secondary', colors.secondary);
-            root.style.setProperty('--shop-accent', colors.accent);
+            
+            if (colors) {
+                root.style.setProperty('--shop-primary', colors.primary);
+                root.style.setProperty('--shop-secondary', colors.secondary);
+                root.style.setProperty('--shop-accent', colors.accent);
+            }
         }
     }, [activeShop])
 
