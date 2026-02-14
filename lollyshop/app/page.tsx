@@ -60,13 +60,17 @@ export default async function Home(props: {
       getSiteSettings()
   ]);
 
+  console.log(`[DEBUG] Total products fetched: ${allProducts.length}`);
+  
   const shopProducts = allProducts.filter((p: any) => p.show_on_website !== false);
+  console.log(`[DEBUG] Products showing on website: ${shopProducts.length}`);
+  console.log(`[DEBUG] Sample shop IDs:`, shopProducts.slice(0, 5).map(p => p.shop_id));
   
   // Filtering Logic
   let filteredProducts = shopProducts.filter((p: any) => {
       const matchesSearch = !query || p.name.toLowerCase().includes(query) || (p.category || "").toLowerCase().includes(query);
       const matchesCat = catFilter === "all" || p.category === catFilter;
-      const matchesShop = shopFilter === "all" || p.shop_id.toString() === shopFilter;
+      const matchesShop = shopFilter === "all" || p.shop_id?.toString() === shopFilter;
       const matchesBrand = brandFilter === "all" || p.brand === brandFilter;
       const matchesStock = !onlyInStock || p.stock > 0;
       
@@ -151,7 +155,7 @@ export default async function Home(props: {
                   </div>
 
                   <div className="space-y-10">
-                      <UniverseSection title="Luxya" subtitle="COLLECTION BEAUTÉ" shopId="1" products={shopProducts.filter((p: any) => p.shop_id === 1)} hexColor="#dc2626" />
+                      <UniverseSection title="Luxya" subtitle="COLLECTION BEAUTÉ" shopId="1" products={shopProducts.filter((p: any) => p.shop_id == 1)} hexColor="#dc2626" />
 
                       <div className="py-4">
                         <Link href={event.link || "/?sort=best"} className="block relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-lg shadow-xl group border-2 sm:border-4 border-white">
@@ -164,7 +168,7 @@ export default async function Home(props: {
                         </Link>
                       </div>
 
-                      <UniverseSection title="Homtek" subtitle="COLLECTION TECH" shopId="2" products={shopProducts.filter((p: any) => p.shop_id === 2)} hexColor="#2563eb" />
+                      <UniverseSection title="Homtek" subtitle="COLLECTION TECH" shopId="2" products={shopProducts.filter((p: any) => p.shop_id == 2)} hexColor="#2563eb" />
                   </div>
               </main>
           </div>
