@@ -19,6 +19,8 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
     const [isLoading, setIsLoading] = useState(false)
     const [shippingZones, setShippingZones] = useState<any[]>([])
     const [selectedZone, setSelectedZone] = useState<any>(null)
+    const [customerInfo, setCustomerInfo] = useState({ name: '', phone: '', address: '' })
+    const [orderSuccess, setOrderId] = useState<string | null>(null)
 
     useEffect(() => {
         const fetchZones = async () => {
@@ -69,6 +71,39 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
         : 0
 
     const finalTotal = Math.max(0, cartTotal - discountAmount + shippingCost)
+
+    const handleStandardOrder = async () => {
+        if (!customerInfo.name || !customerInfo.phone) {
+            alert("Veuillez remplir votre nom et téléphone pour la livraison.");
+            return;
+        }
+        setIsLoading(true);
+        try {
+            const res = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: cart,
+                    customer_info: customerInfo,
+                    total_amount: finalTotal,
+                    shipping_cost: shippingCost,
+                    shipping_method: selectedZone?.name,
+                    coupon_id: activeCoupon?.id
+                })
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setOrderId(data.order_id);
+                // We don't clear the cart immediately so they can still click WhatsApp if they want
+            } else {
+                alert("Erreur lors de l'enregistrement de la commande.");
+            }
+        } catch (e) {
+            alert("Erreur de connexion.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const handleWhatsAppOrder = () => {
         const phone = whatsappNumber || "221772354747"
@@ -165,36 +200,94 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                         )}
 
                         {/* Shipping Selector */}
-                        {cart.length > 0 && shippingZones.length > 0 && (
-                            <div className="mt-6 pt-4 border-t border-gray-50">
-                                <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest block mb-2">Zone de Livraison</label>
-                                <select 
-                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest focus:border-[#0055ff] outline-none appearance-none cursor-pointer"
-                                    value={selectedZone?.id}
-                                    onChange={(e) => setSelectedZone(shippingZones.find(z => z.id === e.target.value))}
-                                >
-                                    {shippingZones.map((zone) => (
-                                        <option key={zone.id} value={zone.id}>
-                                            {zone.name} ({Number(zone.price).toLocaleString()} CFA)
-                                        </option>
-                                    ))}
-                                </select>
-                                <div className="mt-3 flex items-center justify-between">
-                                    <span className="text-[10px] font-bold text-gray-500 uppercase">Frais de port</span>
-                                    <span className={`text-[10px] font-black ${shippingCost === 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                                        {shippingCost === 0 ? 'GRATUIT' : `${shippingCost.toLocaleString()} CFA`}
-                                    </span>
+                        {cart.length > 0 && (
+                            <div className="mt-6 pt-4 border-t border-gray-50 space-y-4">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="space-y-1">
+                                        <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Nom Complet</label>
+                                        <input 
+                                            type="text" 
+                                            placeholder="Votre nom" 
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold outline-none focus:border-lolly"
+                                            value={customerInfo.name}
+                                            onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})}
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Téléphone</label>
+                                        <input 
+                                            type="tel" 
+                                            placeholder="77..." 
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold outline-none focus:border-lolly"
+                                            value={customerInfo.phone}
+                                            onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                                        />
+                                    </div>
                                 </div>
+
+                                {shippingZones.length > 0 && (
+                                    <div>
+                                        <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest block mb-2">Zone de Livraison</label>
+                                        <select 
+                                            className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest focus:border-[#0055ff] outline-none appearance-none cursor-pointer"
+                                            value={selectedZone?.id}
+                                            onChange={(e) => setSelectedZone(shippingZones.find(z => z.id === e.target.value))}
+                                        >
+                                            {shippingZones.map((zone) => (
+                                                <option key={zone.id} value={zone.id}>
+                                                    {zone.name} ({Number(zone.price).toLocaleString()} CFA)
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="mt-3 flex items-center justify-between">
+                                            <span className="text-[10px] font-bold text-gray-500 uppercase">Frais de port</span>
+                                            <span className={`text-[10px] font-black ${shippingCost === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                {shippingCost === 0 ? 'GRATUIT' : `${shippingCost.toLocaleString()} CFA`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
-                        <button 
-                            onClick={handleWhatsAppOrder}
-                            disabled={cart.length === 0}
-                            className="w-full mt-4 py-4 bg-[#fde700] text-black rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#f5d600] transition-all shadow-md active:scale-95 disabled:opacity-50"
-                        >
-                            Passer la commande
-                        </button>
+                        {orderSuccess ? (
+                            <div className="mt-6 p-6 bg-green-50 rounded-3xl border border-green-100 text-center animate-in zoom-in duration-300">
+                                <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-3" />
+                                <h3 className="text-sm font-black uppercase text-green-900">Commande Confirmée !</h3>
+                                <p className="text-[10px] font-bold text-green-700 mt-1 mb-4 uppercase">Référence : #{orderSuccess.toString().slice(-6).toUpperCase()}</p>
+                                <button 
+                                    onClick={handleWhatsAppOrder}
+                                    className="w-full py-4 bg-green-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-600 transition-all flex items-center justify-center space-x-2 shadow-lg"
+                                >
+                                    <Send className="w-4 h-4" />
+                                    <span>Envoyer sur WhatsApp</span>
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                <button 
+                                    onClick={handleStandardOrder}
+                                    disabled={cart.length === 0 || isLoading}
+                                    className="w-full mt-4 py-4 bg-black text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-900 transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center space-x-2"
+                                >
+                                    {isLoading ? <span className="animate-pulse">Traitement...</span> : (
+                                        <>
+                                            <ShoppingBag className="w-4 h-4" />
+                                            <span>Valider ma commande</span>
+                                        </>
+                                    )}
+                                </button>
+
+                                <button 
+                                    onClick={handleWhatsAppOrder}
+                                    disabled={cart.length === 0}
+                                    className="w-full py-4 bg-[#fde700] text-black rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#f5d600] transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center space-x-2"
+                                >
+                                    <Send className="w-4 h-4" />
+                                    <span>Commander via WhatsApp</span>
+                                </button>
+                            </div>
+                        )}
 
                         <button 
                             onClick={onClose}
