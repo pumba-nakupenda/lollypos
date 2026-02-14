@@ -8,6 +8,7 @@ import Image from "next/image";
 import { Suspense } from "react";
 import { createClient } from "../utils/supabase/server";
 import { API_URL } from "@/utils/api";
+import FilterBar from "@/components/FilterBar";
 
 async function getProducts() {
   try {
@@ -176,25 +177,13 @@ export default async function Home(props: {
           </div>
       ) : (
           <main className="max-w-[1500px] mx-auto px-4 lg:px-6 py-6 pb-20 bg-[#eaeded] min-h-screen">
-            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center space-x-2 text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                    <Link href="/" className="hover:text-black transition-colors">Accueil</Link>
-                    <ChevronRight className="w-3 h-3" />
-                    <span className="text-black font-black">{filteredProducts.length} articles trouvés</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-white p-1 rounded-lg border border-gray-200 shadow-sm self-end">
-                    <Link href={`/?sort=newest&shop=${shopFilter}&cat=${catFilter}&brand=${brandFilter}&price=${priceFilter}&stock=${onlyInStock}`} className={`px-3 py-1.5 rounded text-[9px] font-bold transition-all ${sort === 'newest' ? 'bg-black text-white shadow-md' : 'hover:bg-gray-100 text-gray-500'}`}>Nouveautés</Link>
-                    <Link href={`/?sort=best&shop=${shopFilter}&cat=${catFilter}&brand=${brandFilter}&price=${priceFilter}&stock=${onlyInStock}`} className={`px-3 py-1.5 rounded text-[9px] font-bold transition-all ${sort === 'best' ? 'bg-black text-white shadow-md' : 'hover:bg-gray-100 text-gray-500'}`}>Populaires</Link>
-                </div>
+            <div className="mb-8">
+                <FilterBar categories={categories} resultsCount={filteredProducts.length} />
             </div>
 
             <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
-                <aside className="w-full lg:w-64 shrink-0 bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-8 lg:sticky lg:top-28">
-                    {isFiltering && (
-                        <Link href="/" className="flex items-center justify-center space-x-2 w-full py-3 bg-red-50 text-red-600 rounded-lg border border-red-100 text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-all">
-                            <RotateCcw className="w-3 h-3" /> <span>Effacer les filtres</span>
-                        </Link>
-                    )}
+                {/* Desktop Sidebar - Now only visible on large screens */}
+                <aside className="hidden lg:block w-64 shrink-0 bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-8 lg:sticky lg:top-28">
                     <div>
                         <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Univers</h3>
                         <div className="space-y-2">

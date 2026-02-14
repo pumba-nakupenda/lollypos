@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useTransition } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search, SlidersHorizontal, X, ChevronDown, ArrowUpDown, CheckCircle2 } from 'lucide-react'
+import { Search, SlidersHorizontal, X, ChevronDown, ArrowUpDown, CheckCircle2, Filter } from 'lucide-react'
+import FilterDrawer from './FilterDrawer'
 
 interface FilterBarProps {
     categories: string[]
@@ -13,6 +14,7 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isPending, startTransition] = useTransition()
+    const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
     const [q, setQ] = useState(searchParams.get('q') || '')
     const [shop, setShop] = useState(searchParams.get('shop') || 'all')
@@ -57,7 +59,21 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
 
     return (
         <div className="w-full space-y-4" suppressHydrationWarning>
-            <div className="bg-white rounded-[32px] shadow-2xl shadow-black/5 border border-gray-100 p-3">
+            {/* Mobile Filter Button */}
+            <div className="lg:hidden flex items-center justify-between mb-4">
+                <button 
+                    onClick={() => setIsDrawerOpen(true)}
+                    className="flex items-center space-x-2 bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                >
+                    <Filter className="w-4 h-4" />
+                    <span>Filtrer & Trier</span>
+                </button>
+                <div className="text-[10px] font-bold uppercase text-gray-400">
+                    {resultsCount} articles
+                </div>
+            </div>
+
+            <div className="hidden lg:block bg-white rounded-[32px] shadow-2xl shadow-black/5 border border-gray-100 p-3">
                 <div className="flex flex-col lg:flex-row gap-3">
                     
                     {/* Search */}
@@ -132,6 +148,18 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
                     </button>
                 </div>
             )}
+
+            <FilterDrawer 
+                isOpen={isDrawerOpen} 
+                onClose={() => setIsDrawerOpen(false)} 
+                categories={categories}
+                brands={[]} // Not used in drawer for now or fetch if needed
+                activeFilters={{
+                    shop: searchParams.get('shop'),
+                    cat: searchParams.get('cat'),
+                    price: searchParams.get('price')
+                }}
+            />
         </div>
     )
 }

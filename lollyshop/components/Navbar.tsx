@@ -40,7 +40,7 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
     return (
         <div className="w-full">
             {/* Main Amazon-Style Navbar */}
-            <header className="z-[100] w-full bg-[#131921] text-white">
+            <header className="z-[100] w-full bg-[#131921] text-white sticky top-0 md:relative shadow-xl">
                 <div className="max-w-[1500px] mx-auto px-4 py-2 flex items-center gap-3 md:gap-8">
                     
                     {/* Brand Logo */}
