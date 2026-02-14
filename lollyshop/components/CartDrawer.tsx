@@ -304,15 +304,6 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                                         </>
                                     )}
                                 </button>
-
-                                <button 
-                                    onClick={handleWhatsAppOrder}
-                                    disabled={cart.length === 0}
-                                    className="w-full py-4 bg-[#fde700] text-black rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#f5d600] transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center space-x-2"
-                                >
-                                    <Send className="w-4 h-4" />
-                                    <span>Commander via WhatsApp</span>
-                                </button>
                             </div>
                         )}
 
