@@ -13,24 +13,19 @@ import ManageCategoriesModal from '@/components/ManageCategoriesModal';
 import ManageBrandsModal from '@/components/ManageBrandsModal';
 import ManageColorsModal from '@/components/ManageColorsModal';
 
+const supabase = createClient();
+
 export default function QuickInventoryPage() {
     const { activeShop } = useShop();
     const { profile, loading: profileLoading } = useUser();
     const { showToast } = useToast();
-    const supabase = createClient();
     
     const [products, setProducts] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<number | null>(null);
 
-    // Create Quick Product State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isCatModalOpen, setIsCatModalOpen] = useState(false);
-    const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
-    const [isColorModalOpen, setIsColorModalOpen] = useState(false);
-    const [isCreating, setIsCreating] = useState(false);
-
+    // ... (keep useMemos and other states)
     const categories = useMemo(() => {
         const cats = new Set(products.map(p => p.category || 'Général'))
         return Array.from(cats).sort()
@@ -126,10 +121,9 @@ export default function QuickInventoryPage() {
         e.preventDefault();
         setIsCreating(true);
         try {
-            const res = await fetch(`${API_URL}/products`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const { data, error } = await supabase
+                .from('products')
+                .insert([{
                     name: newProduct.name,
                     price: parseFloat(newProduct.price),
                     cost_price: newProduct.cost_price ? parseFloat(newProduct.cost_price) : undefined,
@@ -143,16 +137,17 @@ export default function QuickInventoryPage() {
                     created_by: profile?.id,
                     show_on_pos: true,
                     show_on_website: true
-                })
-            });
+                }])
+                .select()
+                .single();
 
-            if (res.ok) {
-                showToast("Produit ajouté !", "success");
-                setIsModalOpen(false);
-                setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', brand: '', expiry_date: '', image: '' });
-                setVariants([]);
-                fetchProducts();
-            }
+            if (error) throw error;
+
+            showToast("Produit ajouté !", "success");
+            setIsModalOpen(false);
+            setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', brand: '', expiry_date: '', image: '' });
+            setVariants([]);
+            fetchProducts();
         } catch (e) {
             showToast("Erreur de création", "error");
         } finally {
@@ -164,14 +159,13 @@ export default function QuickInventoryPage() {
         const newStock = Math.max(0, currentStock + delta);
         setUpdating(id);
         try {
-            const res = await fetch(`${API_URL}/products/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ stock: newStock })
-            });
-            if (res.ok) {
-                setProducts(products.map(p => p.id === id ? { ...p, stock: newStock } : p));
-            }
+            const { error } = await supabase
+                .from('products')
+                .update({ stock: newStock })
+                .eq('id', id);
+            
+            if (error) throw error;
+            setProducts(products.map(p => p.id === id ? { ...p, stock: newStock } : p));
         } catch (e) {
             showToast("Erreur", "error");
         } finally {
@@ -188,15 +182,16 @@ export default function QuickInventoryPage() {
             const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file);
             if (uploadError) throw uploadError;
             const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath);
-            const res = await fetch(`${API_URL}/products/${id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: publicUrl })
-            });
-            if (res.ok) {
-                setProducts(products.map(p => p.id === id ? { ...p, image: publicUrl } : p));
-                showToast("Photo mise à jour", "success");
-            }
+            
+            const { error } = await supabase
+                .from('products')
+                .update({ image: publicUrl })
+                .eq('id', id);
+            
+            if (error) throw error;
+            
+            setProducts(products.map(p => p.id === id ? { ...p, image: publicUrl } : p));
+            showToast("Photo mise à jour", "success");
         } catch (e) { showToast("Erreur", "error"); } finally { setUpdating(null); }
     };
 
