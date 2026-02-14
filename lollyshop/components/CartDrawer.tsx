@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { X, ShoppingBag, Trash2, Send, Plus, Minus, ShieldCheck, Truck, Ticket, CheckCircle2, AlertCircle } from 'lucide-react'
+import { X, ShoppingBag, Trash2, Send, Plus, Minus, ShieldCheck, Truck, Ticket, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import { useUser } from '@/context/UserContext'
 import Image from 'next/image'
