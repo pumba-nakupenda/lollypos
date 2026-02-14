@@ -46,6 +46,11 @@ async function getProducts(filters: {
     else if (filters.price === 'mid') query = query.gte('price', 10000).lte('price', 50000);
     else if (filters.price === 'high') query = query.gt('price', 50000);
 
+    // Special Filter for Promos
+    if (filters.sort === 'promo') {
+        query = query.gt('promo_price', 0).filter('promo_price', 'lt', 'price');
+    }
+
     // Sort
     if (filters.sort === 'price_asc') query = query.order('price', { ascending: true });
     else if (filters.sort === 'price_desc') query = query.order('price', { ascending: false });
