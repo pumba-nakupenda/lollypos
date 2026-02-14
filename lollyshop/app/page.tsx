@@ -11,11 +11,16 @@ import { API_URL } from "@/utils/api";
 
 async function getProducts() {
   try {
-    const res = await fetch(`${API_URL}/products`, { cache: 'no-store' });
-    if (!res.ok) return [];
-    return await res.json();
+    const supabase = await createClient();
+    const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('name', { ascending: true });
+    
+    if (error) throw error;
+    return data || [];
   } catch (e) {
-    console.error("Backend connection failed:", e);
+    console.error("Supabase fetch failed:", e);
     return [];
   }
 }
@@ -60,20 +65,14 @@ export default async function Home(props: {
       getSiteSettings()
   ]);
 
-  console.log(`[DEBUG] RAW products from API: ${allProducts.length}`);
-  if (allProducts.length > 0) {
-      console.log(`[DEBUG] First product:`, JSON.stringify(allProducts[0]).substring(0, 200));
-  }
-  
-  // RELAXED: Don't filter by show_on_website for now to debug
-  const shopProducts = allProducts; 
+  // Only show products marked for website
+  const shopProducts = allProducts.filter((p: any) => p.show_on_website !== false);
   
   // Filtering Logic
   let filteredProducts = shopProducts.filter((p: any) => {
       const matchesSearch = !query || p.name.toLowerCase().includes(query) || (p.category || "").toLowerCase().includes(query);
       const matchesCat = catFilter === "all" || p.category === catFilter;
-      // Use loose equality and handle nulls
-      const matchesShop = shopFilter === "all" || p.shop_id == shopFilter;
+      const matchesShop = shopFilter === "all" || p.shop_id?.toString() === shopFilter;
       const matchesBrand = brandFilter === "all" || p.brand === brandFilter;
       const matchesStock = !onlyInStock || p.stock > 0;
       
