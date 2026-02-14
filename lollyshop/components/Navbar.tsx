@@ -72,11 +72,11 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                                 <input 
                                     type="text" 
                                     placeholder="Chercher un produit, une marque..."
-                                    className="flex-1 bg-white border-none px-4 text-base text-black focus:ring-2 focus:ring-[#ff9900] outline-none min-w-0"
+                                    className="flex-1 bg-white border-none px-4 text-base text-black focus:ring-2 focus:ring-[#0055ff]/20 outline-none min-w-0"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
-                                <button type="submit" className="bg-[#febd69] hover:bg-[#f3a847] text-[#131921] px-5 rounded-r-md transition-all flex items-center justify-center shrink-0">
+                                <button type="submit" className="bg-[#0055ff] hover:bg-black text-white px-5 rounded-r-md transition-all flex items-center justify-center shrink-0 shadow-inner">
                                     <Search className="w-6 h-6 stroke-[3px]" />
                                 </button>
                             </div>
@@ -88,13 +88,13 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                             {user ? (
                                 <div className="flex flex-col items-center md:items-start p-1 rounded-sm transition-all cursor-pointer relative group">
                                     <User className="w-5 h-5 md:hidden text-gray-300" />
-                                    <div className="hidden md:block">
+                                    <div className="hidden md:block text-right">
                                         <p className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Bonjour, {user.email?.split('@')[0]}</p>
-                                        <p className="text-xs md:text-sm font-black tracking-tight uppercase flex items-center">Mon Compte <ChevronDown className="w-3 h-3 ml-1" /></p>
+                                        <p className="text-xs md:text-sm font-black tracking-tight uppercase flex items-center justify-end">Compte <ChevronDown className="w-3 h-3 ml-1" /></p>
                                     </div>
                                     
                                     {/* Dropdown Menu */}
-                                    <div className="absolute top-full right-0 mt-0 w-48 bg-white text-black shadow-2xl rounded-xl border border-gray-200 hidden group-hover:block z-50 overflow-hidden">
+                                    <div className="absolute top-full right-0 mt-0 w-48 bg-white text-black shadow-2xl rounded-2xl border border-gray-100 hidden group-hover:block z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
                                         <div className="p-4 space-y-3">
                                             <Link href="/account" className="flex items-center text-xs font-bold hover:text-lolly"><User className="w-3 h-3 mr-2" /> Mon Compte</Link>
                                             {isAdmin && (
@@ -121,15 +121,15 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                                 className="relative flex items-center p-1 rounded-sm transition-all group"
                             >
                                 <div className="relative">
-                                    <ShoppingBag className="w-6 h-6 md:w-9 md:h-9 text-white" />
+                                    <ShoppingBag className="w-6 h-6 md:w-9 md:h-9 text-white group-hover:text-[#0055ff] transition-colors" />
                                     {mounted && cartCount > 0 && (
-                                        <span className="absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 bg-[#f08804] text-[#131921] text-[9px] md:text-xs font-black px-1 rounded-full min-w-[16px] md:min-w-[22px] flex items-center justify-center border-2 border-[#131921] shadow-lg animate-in zoom-in">
+                                        <span className="absolute -top-1.5 -right-1.5 md:-top-2 md:-right-2 bg-[#0055ff] text-white text-[9px] md:text-xs font-black px-1 rounded-full min-w-[16px] md:min-w-[22px] flex items-center justify-center border-2 border-[#131921] shadow-xl animate-in zoom-in">
                                             {cartCount}
                                         </span>
                                     )}
                                 </div>
                                 <div className="hidden md:block text-left ml-2 mt-2">
-                                    <p className="text-xs font-black uppercase tracking-tight leading-none">Panier</p>
+                                    <p className="text-xs font-black uppercase tracking-tight leading-none group-hover:text-[#0055ff] transition-colors">Panier</p>
                                 </div>
                             </button>
                         </div>

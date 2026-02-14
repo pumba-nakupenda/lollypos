@@ -151,16 +151,16 @@ export default function ProductCard({ product }: { product: any }) {
                     </div>
 
                     {/* Primary Button - More touch-friendly on mobile */}
-                    <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-100">
+                    <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-50">
                         <button 
                             onClick={handleAddToCart}
                             disabled={isOutOfStock}
-                            className={`w-full py-2 sm:py-2.5 rounded-md font-black uppercase text-[8px] sm:text-[10px] tracking-widest transition-all ${
+                            className={`w-full py-2.5 sm:py-3 rounded-xl font-black uppercase text-[8px] sm:text-[9px] tracking-[0.15em] transition-all ${
                                 isOutOfStock ? 'bg-gray-100 text-gray-400' : 
-                                added ? 'bg-green-600 text-white shadow-inner' : 'bg-[#fde700] text-black hover:bg-[#f5d600] shadow-sm active:scale-95'
+                                added ? 'bg-blue-600 text-white shadow-lg scale-95' : 'bg-[#0055ff] text-white hover:bg-black shadow-lg shadow-blue-100 active:scale-95'
                             }`}
                         >
-                            {isOutOfStock ? 'Épuisé' : added ? 'OK !' : 'Au panier'}
+                            {isOutOfStock ? 'Rupture' : added ? 'Ajouté !' : 'Au panier'}
                         </button>
                     </div>
                 </div>

@@ -278,16 +278,18 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                         )}
 
                         {orderSuccess ? (
-                            <div className="mt-6 p-6 bg-green-50 rounded-3xl border border-green-100 text-center animate-in zoom-in duration-300">
-                                <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-3" />
-                                <h3 className="text-sm font-black uppercase text-green-900">Commande Confirmée !</h3>
-                                <p className="text-[10px] font-bold text-green-700 mt-1 mb-4 uppercase">Référence : #{orderSuccess.toString().slice(-6).toUpperCase()}</p>
+                            <div className="mt-6 p-8 bg-blue-50/50 rounded-[32px] border border-blue-100 text-center animate-in zoom-in duration-500 shadow-inner">
+                                <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
+                                    <CheckCircle2 className="w-8 h-8 text-white" />
+                                </div>
+                                <h3 className="text-lg font-black uppercase text-blue-900 tracking-tighter italic">Commande Reçue !</h3>
+                                <p className="text-[10px] font-bold text-blue-700 mt-1 mb-6 uppercase tracking-widest">Référence : #{orderSuccess.toString().slice(-6).toUpperCase()}</p>
                                 <button 
                                     onClick={handleWhatsAppOrder}
-                                    className="w-full py-4 bg-green-500 text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-green-600 transition-all flex items-center justify-center space-x-2 shadow-lg"
+                                    className="w-full py-5 bg-[#25D366] text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#20ba5a] transition-all flex items-center justify-center space-x-2 shadow-xl shadow-green-200 active:scale-95"
                                 >
                                     <Send className="w-4 h-4" />
-                                    <span>Envoyer sur WhatsApp</span>
+                                    <span>Confirmer via WhatsApp</span>
                                 </button>
                             </div>
                         ) : (
@@ -295,9 +297,9 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                                 <button 
                                     onClick={handleStandardOrder}
                                     disabled={cart.length === 0 || isLoading}
-                                    className="w-full mt-4 py-4 bg-black text-white rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-900 transition-all shadow-md active:scale-95 disabled:opacity-50 flex items-center justify-center space-x-2"
+                                    className="w-full mt-4 py-5 bg-[#0055ff] text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#0044dd] transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-50 flex items-center justify-center space-x-3"
                                 >
-                                    {isLoading ? <span className="animate-pulse">Traitement...</span> : (
+                                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                                         <>
                                             <ShoppingBag className="w-4 h-4" />
                                             <span>Valider ma commande</span>
