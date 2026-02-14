@@ -60,17 +60,20 @@ export default async function Home(props: {
       getSiteSettings()
   ]);
 
-  console.log(`[DEBUG] Total products fetched: ${allProducts.length}`);
+  console.log(`[DEBUG] RAW products from API: ${allProducts.length}`);
+  if (allProducts.length > 0) {
+      console.log(`[DEBUG] First product:`, JSON.stringify(allProducts[0]).substring(0, 200));
+  }
   
-  const shopProducts = allProducts.filter((p: any) => p.show_on_website !== false);
-  console.log(`[DEBUG] Products showing on website: ${shopProducts.length}`);
-  console.log(`[DEBUG] Sample shop IDs:`, shopProducts.slice(0, 5).map(p => p.shop_id));
+  // RELAXED: Don't filter by show_on_website for now to debug
+  const shopProducts = allProducts; 
   
   // Filtering Logic
   let filteredProducts = shopProducts.filter((p: any) => {
       const matchesSearch = !query || p.name.toLowerCase().includes(query) || (p.category || "").toLowerCase().includes(query);
       const matchesCat = catFilter === "all" || p.category === catFilter;
-      const matchesShop = shopFilter === "all" || p.shop_id?.toString() === shopFilter;
+      // Use loose equality and handle nulls
+      const matchesShop = shopFilter === "all" || p.shop_id == shopFilter;
       const matchesBrand = brandFilter === "all" || p.brand === brandFilter;
       const matchesStock = !onlyInStock || p.stock > 0;
       
