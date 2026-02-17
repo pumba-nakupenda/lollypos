@@ -40,14 +40,14 @@ export default function CreateProductButton() {
 
     // NEW: Variants management
     const [variants, setVariants] = useState<any[]>([])
-    const [newVariant, setNewVariant] = useState({ color: '', size: '', stock: '' })
+    const [newVariant, setNewVariant] = useState({ color: '', size: '', stock: '', image: '' })
 
     const addVariant = () => {
         if (!newVariant.color && !newVariant.size) {
             return showToast("Entrez au moins une couleur ou une taille", "warning")
         }
         setVariants([...variants, { ...newVariant, id: Date.now() }])
-        setNewVariant({ color: '', size: '', stock: '' })
+        setNewVariant({ color: '', size: '', stock: '', image: '' })
     }
 
     const removeVariant = (id: number) => {
@@ -419,7 +419,7 @@ export default function CreateProductButton() {
                                                     <Sparkles className="w-3 h-3 mr-2" /> Variantes (Tailles & Couleurs)
                                                 </h4>
 
-                                                <div className="grid grid-cols-3 gap-3">
+                                                <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1.5fr_auto] gap-3">
                                                     <input
                                                         value={newVariant.color}
                                                         onChange={e => setNewVariant({ ...newVariant, color: e.target.value })}
@@ -432,10 +432,16 @@ export default function CreateProductButton() {
                                                         placeholder="Taille"
                                                         className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50"
                                                     />
+                                                    <input
+                                                        value={newVariant.image}
+                                                        onChange={e => setNewVariant({ ...newVariant, image: e.target.value })}
+                                                        placeholder="URL Image (Optionnel)"
+                                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50"
+                                                    />
                                                     <button
                                                         type="button"
                                                         onClick={addVariant}
-                                                        className="bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+                                                        className="bg-shop text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
                                                     >
                                                         Ajouter
                                                     </button>
@@ -443,7 +449,12 @@ export default function CreateProductButton() {
 
                                                 <div className="flex flex-wrap gap-2">
                                                     {variants.map(v => (
-                                                        <div key={v.id} className="flex items-center space-x-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full group">
+                                                        <div key={v.id} className="flex items-center space-x-2 bg-white/5 border border-white/10 pl-1 pr-3 py-1 rounded-full group">
+                                                            {v.image && (
+                                                                <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                                                    <img src={v.image} className="w-full h-full object-cover" />
+                                                                </div>
+                                                            )}
                                                             <span className="text-[9px] font-bold uppercase text-white">
                                                                 {v.color} {v.color && v.size ? '/' : ''} {v.size}
                                                             </span>

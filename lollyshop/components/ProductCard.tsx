@@ -26,7 +26,7 @@ export default function ProductCard({ product }: { product: any }) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ shopId: product.shop_id })
             });
-        } catch (e) {}
+        } catch (e) { }
     };
 
     const handleOpenModal = () => {
@@ -43,7 +43,7 @@ export default function ProductCard({ product }: { product: any }) {
             trackView();
         }
     };
-    
+
     const shopName = product.shop_id === 1 ? "Luxya" : "Homtek";
     const shopColor = product.shop_id === 1 ? "text-pink-500" : "text-lolly";
     const hasPromo = product.promo_price && product.promo_price > 0 && Number(product.promo_price) < Number(product.price);
@@ -59,22 +59,22 @@ export default function ProductCard({ product }: { product: any }) {
     return (
         <>
             <div className="bg-white flex flex-col h-full hover:shadow-lg transition-all duration-300 rounded-lg overflow-hidden border border-gray-200/60 relative group">
-                
+
                 {/* Image Container */}
                 <div className="relative aspect-square overflow-hidden bg-white p-4 cursor-pointer" onClick={handleOpenModal}>
                     {product.image ? (
-                        <Image 
-                            src={product.image} 
-                            alt={product.name} 
-                            fill 
-                            className="object-contain p-4 transition-transform duration-500 group-hover:scale-105" 
+                        <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
                         />
                     ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-100"><ShoppingBag className="w-16 h-16" /></div>
                     )}
 
                     {/* Quick Fav */}
-                    <button 
+                    <button
                         onClick={(e) => { e.stopPropagation(); toggleWishlist(product); }}
                         className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all z-20 ${isFavorite ? 'bg-pink-500 text-white shadow-lg' : 'bg-white/80 text-gray-300 hover:text-pink-500 hover:shadow-md'}`}
                     >
@@ -99,6 +99,22 @@ export default function ProductCard({ product }: { product: any }) {
                             </div>
                         )}
                     </div>
+
+                    {/* Variant Vignettes */}
+                    {product.variants && product.variants.some((v: any) => v.image) && (
+                        <div className="absolute bottom-2 left-2 z-20 flex -space-x-1.5">
+                            {product.variants.filter((v: any) => v.image).slice(0, 3).map((v: any, i: number) => (
+                                <div key={i} className="w-5 h-5 rounded-full border border-white shadow-sm overflow-hidden bg-white">
+                                    <img src={v.image} className="w-full h-full object-cover" alt={v.color} title={v.color} />
+                                </div>
+                            ))}
+                            {product.variants.filter((v: any) => v.image).length > 3 && (
+                                <div className="w-5 h-5 rounded-full border border-white bg-gray-100 text-[6px] font-black flex items-center justify-center text-gray-500 shadow-sm">
+                                    +{product.variants.filter((v: any) => v.image).length - 3}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 {/* Content Area */}
@@ -109,9 +125,9 @@ export default function ProductCard({ product }: { product: any }) {
                             <div className="flex items-center space-x-1">
                                 <div className="flex text-[#FF9900] scale-75 sm:scale-100 origin-left">
                                     {[1, 2, 3, 4, 5].map((star) => (
-                                        <Star 
-                                            key={star} 
-                                            className={`w-2.5 h-2.5 ${star <= Math.round(product.avg_rating || 4.5) ? 'fill-current' : 'text-gray-200'}`} 
+                                        <Star
+                                            key={star}
+                                            className={`w-2.5 h-2.5 ${star <= Math.round(product.avg_rating || 4.5) ? 'fill-current' : 'text-gray-200'}`}
                                         />
                                     ))}
                                 </div>
@@ -119,7 +135,7 @@ export default function ProductCard({ product }: { product: any }) {
                                 <span className="text-[8px] text-gray-400 font-bold">({product.review_count || '12'})</span>
                             </div>
                         </div>
-                        
+
                         <h3 className="text-xs sm:text-sm font-medium text-gray-900 line-clamp-2 leading-tight group-hover:text-lolly transition-colors h-8 sm:h-9">
                             {product.brand && <span className="font-black uppercase text-[8px] sm:text-[10px] text-gray-500 block mb-0.5 tracking-tight">{product.brand}</span>}
                             {product.name}
@@ -152,13 +168,12 @@ export default function ProductCard({ product }: { product: any }) {
 
                     {/* Primary Button - More touch-friendly on mobile */}
                     <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-50">
-                        <button 
+                        <button
                             onClick={handleAddToCart}
                             disabled={isOutOfStock}
-                            className={`w-full py-2.5 sm:py-3 rounded-xl font-black uppercase text-[8px] sm:text-[9px] tracking-[0.15em] transition-all ${
-                                isOutOfStock ? 'bg-gray-100 text-gray-400' : 
-                                added ? 'bg-blue-600 text-white shadow-lg scale-95' : 'bg-[#0055ff] text-white hover:bg-black shadow-lg shadow-blue-100 active:scale-95'
-                            }`}
+                            className={`w-full py-2.5 sm:py-3 rounded-xl font-black uppercase text-[8px] sm:text-[9px] tracking-[0.15em] transition-all ${isOutOfStock ? 'bg-gray-100 text-gray-400' :
+                                    added ? 'bg-blue-600 text-white shadow-lg scale-95' : 'bg-[#0055ff] text-white hover:bg-black shadow-lg shadow-blue-100 active:scale-95'
+                                }`}
                         >
                             {isOutOfStock ? 'Rupture' : added ? 'Ajouté !' : 'Au panier'}
                         </button>

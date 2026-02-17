@@ -34,7 +34,8 @@ export async function POST(req: Request) {
             sale_id: sale.id,
             product_id: item.id,
             quantity: item.quantity,
-            price: item.price
+            price: item.price,
+            description: item.name // Store full name with variant info
         }));
 
         const { error: itemsError } = await supabase
@@ -47,9 +48,9 @@ export async function POST(req: Request) {
         for (const item of items) {
             // Only decrement if it's not a service
             if (item.type !== 'service') {
-                await supabase.rpc('decrement_stock', { 
-                    product_id: item.id, 
-                    quantity: item.quantity 
+                await supabase.rpc('decrement_stock', {
+                    product_id: item.id,
+                    quantity: item.quantity
                 });
             }
         }

@@ -76,13 +76,13 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
         }
     }
 
-    const discountAmount = activeCoupon 
-        ? (activeCoupon.discount_type === 'percentage' 
-            ? (cartTotal * activeCoupon.discount_value / 100) 
+    const discountAmount = activeCoupon
+        ? (activeCoupon.discount_type === 'percentage'
+            ? (cartTotal * activeCoupon.discount_value / 100)
             : activeCoupon.discount_value)
         : 0
 
-    const shippingCost = selectedZone 
+    const shippingCost = selectedZone
         ? (selectedZone.free_threshold && cartTotal >= selectedZone.free_threshold ? 0 : Number(selectedZone.price))
         : 0
 
@@ -124,7 +124,7 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
     const handleWhatsAppOrder = () => {
         const phone = whatsappNumber || "221772354747"
         let message = `*COMMANDE LOLLY SHOP*\n\n`
-        
+
         cart.forEach((item, index) => {
             message += `${index + 1}. *${item.name}*\n`
             message += `   Qté: ${item.quantity} | Prix: ${item.price.toLocaleString()} CFA\n`
@@ -153,10 +153,10 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
         <div className="fixed inset-0 z-[200] pointer-events-none">
             {/* Overlay ultra léger sans flou */}
             <div className="absolute inset-0 bg-black/5 pointer-events-auto" onClick={onClose} />
-            
+
             <div className="absolute inset-y-0 right-0 max-w-full flex pointer-events-auto">
                 <div className="w-screen max-w-md bg-white shadow-[-20px_0_50px_rgba(0,0,0,0.1)] animate-in slide-in-from-right duration-500 flex flex-col">
-                    
+
                     {/* Amazon-Style Sub-Header */}
                     <div className="bg-gray-50 px-6 py-3 flex items-center justify-between border-b border-gray-100">
                         <span className="text-[9px] font-black text-green-600 uppercase flex items-center">
@@ -186,20 +186,20 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                                 <p className="text-2xl font-black">{cartTotal.toLocaleString()} <span className="text-sm font-bold">CFA</span></p>
                             )}
                         </div>
-                        
+
                         {/* Coupon Input */}
                         {!activeCoupon && cart.length > 0 && (
                             <div className="mt-4">
                                 <div className="flex space-x-2">
-                                    <input 
-                                        type="text" 
-                                        placeholder="CODE PROMO" 
+                                    <input
+                                        type="text"
+                                        placeholder="CODE PROMO"
                                         className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest focus:border-[#0055ff] outline-none"
                                         value={couponCode}
                                         onChange={(e) => setCouponCode(e.target.value)}
                                         onKeyPress={(e) => e.key === 'Enter' && handleApplyCoupon()}
                                     />
-                                    <button 
+                                    <button
                                         onClick={handleApplyCoupon}
                                         disabled={isLoading}
                                         className="px-4 py-2 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-900 transition-all disabled:opacity-50"
@@ -222,22 +222,22 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                                     <div className="grid grid-cols-2 gap-2">
                                         <div className="space-y-1">
                                             <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Nom Complet</label>
-                                            <input 
-                                                type="text" 
-                                                placeholder="Votre nom" 
+                                            <input
+                                                type="text"
+                                                placeholder="Votre nom"
                                                 className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold outline-none focus:border-lolly"
                                                 value={customerInfo.name}
-                                                onChange={e => setCustomerInfo({...customerInfo, name: e.target.value})}
+                                                onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })}
                                             />
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Téléphone</label>
-                                            <input 
-                                                type="tel" 
-                                                placeholder="77..." 
+                                            <input
+                                                type="tel"
+                                                placeholder="77..."
                                                 className="w-full bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-[10px] font-bold outline-none focus:border-lolly"
                                                 value={customerInfo.phone}
-                                                onChange={e => setCustomerInfo({...customerInfo, phone: e.target.value})}
+                                                onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })}
                                             />
                                         </div>
                                     </div>
@@ -259,7 +259,7 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                                 {shippingZones.length > 0 && (
                                     <div>
                                         <label className="text-[9px] font-black uppercase text-gray-400 tracking-widest block mb-2">Zone de Livraison</label>
-                                        <select 
+                                        <select
                                             className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest focus:border-[#0055ff] outline-none appearance-none cursor-pointer"
                                             value={selectedZone?.id}
                                             onChange={(e) => setSelectedZone(shippingZones.find(z => z.id === e.target.value))}
@@ -288,7 +288,7 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                                 </div>
                                 <h3 className="text-lg font-black uppercase text-blue-900 tracking-tighter italic">Commande Reçue !</h3>
                                 <p className="text-[10px] font-bold text-blue-700 mt-1 mb-6 uppercase tracking-widest">Référence : #{orderSuccess.toString().slice(-6).toUpperCase()}</p>
-                                <button 
+                                <button
                                     onClick={handleWhatsAppOrder}
                                     className="w-full py-5 bg-[#25D366] text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#20ba5a] transition-all flex items-center justify-center space-x-2 shadow-xl shadow-green-200 active:scale-95"
                                 >
@@ -298,7 +298,7 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                             </div>
                         ) : (
                             <div className="space-y-3">
-                                <button 
+                                <button
                                     onClick={handleStandardOrder}
                                     disabled={cart.length === 0 || isLoading}
                                     className="w-full mt-4 py-5 bg-[#0055ff] text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] hover:bg-[#0044dd] transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-50 flex items-center justify-center space-x-3"
@@ -313,7 +313,7 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                             </div>
                         )}
 
-                        <button 
+                        <button
                             onClick={onClose}
                             className="w-full mt-2 py-3 bg-white text-gray-500 border border-gray-200 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-gray-50 transition-all active:scale-95"
                         >
@@ -330,7 +330,7 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                             </div>
                         ) : (
                             cart.map((item) => (
-                                <div key={item.id} className="flex space-x-4 border-b border-gray-50 pb-6 group">
+                                <div key={item.cartItemId} className="flex space-x-4 border-b border-gray-50 pb-6 group">
                                     <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100">
                                         {item.image ? (
                                             <Image src={item.image} alt={item.name} fill className="object-cover" />
@@ -344,14 +344,14 @@ export default function CartDrawer({ isOpen, onClose, whatsappNumber }: CartDraw
                                             <p className="text-[#0055ff] font-black text-sm mt-1">{item.price.toLocaleString()} CFA</p>
                                             <p className="text-[9px] font-bold text-green-600 uppercase mt-1">En stock</p>
                                         </div>
-                                        
+
                                         <div className="flex items-center space-x-4 mt-2">
                                             <div className="flex items-center bg-gray-100 rounded-lg p-1 border border-gray-200">
-                                                <button onClick={() => updateQuantity(item.id, -1)} className="p-1 hover:text-[#0055ff] transition-colors"><Minus className="w-3 h-3" /></button>
+                                                <button onClick={() => updateQuantity(item.cartItemId, -1)} className="p-1 hover:text-[#0055ff] transition-colors"><Minus className="w-3 h-3" /></button>
                                                 <span className="text-xs font-black w-6 text-center">{item.quantity}</span>
-                                                <button onClick={() => updateQuantity(item.id, 1)} className="p-1 hover:text-[#0055ff] transition-colors"><Plus className="w-3 h-3" /></button>
+                                                <button onClick={() => updateQuantity(item.cartItemId, 1)} className="p-1 hover:text-[#0055ff] transition-colors"><Plus className="w-3 h-3" /></button>
                                             </div>
-                                            <button onClick={() => removeFromCart(item.id)} className="text-[10px] font-bold text-red-500 uppercase hover:underline">Supprimer</button>
+                                            <button onClick={() => removeFromCart(item.cartItemId)} className="text-[10px] font-bold text-red-500 uppercase hover:underline">Supprimer</button>
                                         </div>
                                     </div>
                                 </div>

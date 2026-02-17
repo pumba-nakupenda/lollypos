@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Search, ShoppingCart, Plus, Minus, Trash2, Check, RefreshCw,
     LayoutDashboard, User, Calendar, Banknote, Wallet, FileText,
-    MessageSquare, Trash, Pencil, ArrowRight, Truck, PlusCircle, Sparkles, X, Clock, Receipt, LogOut, Tags
+    MessageSquare, Trash, Pencil, ArrowRight, Truck, PlusCircle, Sparkles, X, Clock, Receipt, LogOut, Tags, Image as ImageIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -14,6 +14,7 @@ import { useToast } from '@/context/ToastContext';
 import ShopSelector from '@/components/ShopSelector';
 import CustomDropdown from '@/components/CustomDropdown';
 import ReceiptModal from '@/components/ReceiptModal';
+import Portal from '@/components/Portal';
 import ExpiryBadge from '@/components/ExpiryBadge';
 import { API_URL } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
@@ -56,6 +57,9 @@ export default function SalesTerminal() {
 
     // NEW: Image Error Handling
     const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+
+    // NEW: Variant Selection
+    const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
 
     useEffect(() => {
         if (activeShop) {
@@ -129,23 +133,42 @@ export default function SalesTerminal() {
         } catch (e) { }
     };
 
-    const addToCart = (product: any) => {
+    const addToCart = (product: any, variant?: any) => {
         if (product.stock <= 0 && product.type !== 'service') {
             showToast("Produit épuisé !", "warning");
             return;
         }
-        const existing = cart.find(item => item.id === product.id);
+
+        // If product has variants and no variant is selected, show selection modal
+        if (product.variants && product.variants.length > 0 && !variant) {
+            setSelectedProductForVariant(product);
+            return;
+        }
+
+        const cartItemId = variant ? `${product.id}-${variant.color}-${variant.size}` : product.id;
+        const itemName = variant ? `${product.name} (${variant.color}${variant.color && variant.size ? '/' : ''}${variant.size})` : product.name;
+        const itemImage = variant?.image || product.image;
+
+        const existing = cart.find(item => item.cartItemId === cartItemId);
         if (existing) {
             setCart(cart.map(item =>
-                item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item
             ));
         } else {
-            setCart([...cart, { ...product, quantity: 1 }]);
+            setCart([...cart, {
+                ...product,
+                id: product.id, // Keep original ID for stock deduction
+                cartItemId,
+                name: itemName,
+                image: itemImage,
+                quantity: 1,
+                variantInfo: variant
+            }]);
         }
     };
 
-    const updateCartItemPrice = (id: number, newPrice: number) => {
-        setCart(cart.map(item => item.id === id ? { ...item, price: newPrice } : item));
+    const updateCartItemPrice = (cartItemId: string | number, newPrice: number) => {
+        setCart(cart.map(item => item.cartItemId === cartItemId ? { ...item, price: newPrice } : item));
     };
 
     const filteredProducts = products.filter(p => {
@@ -197,7 +220,8 @@ export default function SalesTerminal() {
                     sale_id: sale.id,
                     product_id: item.id,
                     quantity: item.quantity,
-                    price: item.price
+                    price: item.price,
+                    description: item.name // Store full name with variant info
                 }));
 
                 const { error: itemsError } = await supabase.from('sale_items').insert(saleItems);
@@ -690,7 +714,13 @@ export default function SalesTerminal() {
                         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar">
                             {cart.map(item => (
                                 <div key={item.id} className="glass-card p-3 sm:p-4 rounded-3xl flex items-center space-x-4 border-transparent hover:border-shop/20 transition-all group">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 flex items-center justify-center font-black text-shop flex-shrink-0 text-base sm:text-lg uppercase">{item.name.charAt(0)}</div>
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0 text-base sm:text-lg uppercase">
+                                        {item.image ? (
+                                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="font-black text-shop">{item.name.charAt(0)}</span>
+                                        )}
+                                    </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-[10px] sm:text-xs truncate text-white">{item.name}</h4>
                                         <div className="flex items-center">
@@ -699,11 +729,11 @@ export default function SalesTerminal() {
                                         </div>
                                     </div>
                                     <div className="flex items-center bg-white/5 rounded-xl border border-white/5 p-1">
-                                        <button onClick={() => setCart(cart.map(i => i.id === item.id && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i))} className="p-1 hover:text-shop transition-colors"><Minus className="w-3 h-3 text-white" /></button>
+                                        <button onClick={() => setCart(cart.map(i => i.cartItemId === item.cartItemId && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i))} className="p-1 hover:text-shop transition-colors"><Minus className="w-3 h-3 text-white" /></button>
                                         <span className="w-6 sm:w-8 text-center text-[10px] sm:text-xs font-black text-white">{item.quantity}</span>
-                                        <button onClick={() => { const p = products.find(p => p.id === item.id); if (p) addToCart(p); }} className="p-1 hover:text-shop transition-colors"><Plus className="w-3 h-3 text-white" /></button>
+                                        <button onClick={() => { const p = products.find(p => p.id === item.id); if (p) addToCart(p, item.variantInfo); }} className="p-1 hover:text-shop transition-colors"><Plus className="w-3 h-3 text-white" /></button>
                                     </div>
-                                    <button onClick={() => setCart(cart.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-red-400 p-1"><Trash2 className="w-4 h-4" /></button>
+                                    <button onClick={() => setCart(cart.filter(i => i.cartItemId !== item.cartItemId))} className="text-muted-foreground hover:text-red-400 p-1"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                             ))}
                         </div>
@@ -743,6 +773,79 @@ export default function SalesTerminal() {
             )}
 
             {lastSale && <ReceiptModal isOpen={isReceiptOpen} onClose={() => setIsReceiptOpen(false)} saleData={lastSale} shop={activeShop} />}
+
+            {/* Variant Selection Modal */}
+            {selectedProductForVariant && (
+                <Portal>
+                    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setSelectedProductForVariant(null)} />
+                        <div className="relative glass-card w-full max-w-lg p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                            <button onClick={() => setSelectedProductForVariant(null)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+
+                            <div className="flex flex-col items-center text-center space-y-6">
+                                <div className="w-32 h-32 rounded-3xl bg-white/5 border border-white/10 overflow-hidden relative shadow-2xl">
+                                    <Image
+                                        src={selectedProductForVariant.image}
+                                        alt={selectedProductForVariant.name}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black uppercase tracking-tight text-white">{selectedProductForVariant.name}</h3>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Sélectionner une Variante</p>
+                                </div>
+
+                                <div className="w-full space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {selectedProductForVariant.variants.map((v: any, i: number) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => {
+                                                    addToCart(selectedProductForVariant, v);
+                                                    setSelectedProductForVariant(null);
+                                                }}
+                                                className="group flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 hover:border-shop/50 hover:bg-shop/5 transition-all w-full text-left"
+                                            >
+                                                <div className="flex items-center space-x-4">
+                                                    <div className="w-12 h-12 rounded-xl bg-black/20 overflow-hidden border border-white/5">
+                                                        {v.image ? (
+                                                            <img src={v.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                                        ) : (
+                                                            <div className="w-full h-full flex items-center justify-center bg-white/5">
+                                                                <ImageIcon className="w-4 h-4 text-white/10" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-white uppercase">{v.color || 'Standard'}</p>
+                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{v.size || 'Unique'}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-shop group-hover:text-white transition-all">
+                                                    <Plus className="w-4 h-4" />
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        addToCart(selectedProductForVariant, { color: 'Standard', size: 'N/A' });
+                                        setSelectedProductForVariant(null);
+                                    }}
+                                    className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white transition-colors py-2"
+                                >
+                                    Continuer sans variante spécifique
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </Portal>
+            )}
         </div>
     );
 }

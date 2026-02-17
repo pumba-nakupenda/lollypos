@@ -23,11 +23,11 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
     const [preview, setPreview] = useState<string | null>(product.image)
     const [gallery, setGallery] = useState<string[]>(product.images || [])
     const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([])
-    
+
     // Refs for direct DOM access (used for AI generation and cleaning)
     const nameRef = useRef<HTMLInputElement>(null)
     const descRef = useRef<HTMLTextAreaElement>(null)
-    
+
     const [itemType, setItemType] = useState<'product' | 'service'>(product.type || 'product')
     const [showOnPos, setShowOnPos] = useState<boolean>(product.show_on_pos !== false)
     const [showOnWebsite, setShowOnWebsite] = useState<boolean>(product.show_on_website !== false)
@@ -40,12 +40,12 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
     const [existingBrands, setExistingBrands] = useState<string[]>([])
 
     const [variants, setVariants] = useState<any[]>(product.variants || [])
-    const [newVariant, setNewVariant] = useState({ color: '', size: '' })
+    const [newVariant, setNewVariant] = useState({ color: '', size: '', image: '' })
 
     const addVariant = () => {
         if (!newVariant.color && !newVariant.size) return;
         setVariants([...variants, { ...newVariant, id: Date.now() }])
-        setNewVariant({ color: '', size: '' })
+        setNewVariant({ color: '', size: '', image: '' })
     }
 
     const removeVariant = (id: number) => {
@@ -102,7 +102,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         formData.set('show_on_pos', showOnPos.toString())
         formData.set('show_on_website', showOnWebsite.toString())
         formData.set('is_featured', isFeatured.toString())
-        
+
         if (newBrandMode && customBrand) {
             formData.set('brand', customBrand)
         } else {
@@ -111,7 +111,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
 
         formData.set('variants', JSON.stringify(variants))
         formData.set('existingGallery', JSON.stringify(gallery))
-        
+
         if (newCategoryMode && customCategory) {
             formData.set('category', customCategory)
         } else {
@@ -150,14 +150,14 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                     <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto custom-scrollbar overflow-x-visible pr-2">
                         {/* Type Selection */}
                         <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10 w-full mb-2">
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => setItemType('product')}
                                 className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${itemType === 'product' ? 'bg-white text-black shadow-xl' : 'text-muted-foreground hover:text-white'}`}
                             >
                                 <Package className="w-3.5 h-3.5 mr-2" /> Produit Physique
                             </button>
-                            <button 
+                            <button
                                 type="button"
                                 onClick={() => setItemType('service')}
                                 className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${itemType === 'service' ? 'bg-shop text-white shadow-xl' : 'text-muted-foreground hover:text-white'}`}
@@ -210,12 +210,12 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                     ))}
                                     <label className="aspect-square border border-dashed border-white/20 rounded-lg flex items-center justify-center cursor-pointer hover:bg-white/5 transition-colors">
                                         <Plus className="w-4 h-4 text-muted-foreground" />
-                                        <input 
-                                            type="file" name="gallery" multiple accept="image/*" className="hidden" 
+                                        <input
+                                            type="file" name="gallery" multiple accept="image/*" className="hidden"
                                             onChange={(e) => {
                                                 const files = Array.from(e.target.files || [])
                                                 setNewGalleryPreviews(prev => [...prev, ...files.map(f => URL.createObjectURL(f))])
-                                            }} 
+                                            }}
                                         />
                                     </label>
                                 </div>
@@ -227,8 +227,8 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                             <div className="space-y-2 md:col-span-2">
                                 <div className="flex justify-between items-center ml-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nom du produit</label>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={focusSearch}
                                         className="text-[8px] font-black uppercase text-muted-foreground hover:text-white transition-colors flex items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/10"
                                     >
@@ -253,7 +253,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                 {newBrandMode ? (
                                     <input value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-4 text-sm focus:ring-2 focus:ring-shop/50 outline-none transition-all text-white" placeholder="Nom de la nouvelle marque..." autoFocus />
                                 ) : (
-                                    <CustomDropdown 
+                                    <CustomDropdown
                                         options={[
                                             { label: 'Aucune marque', value: '', icon: <Tag className="w-3.5 h-3.5" /> },
                                             ...existingBrands.map(b => ({ label: b, value: b, icon: <Tag className="w-3.5 h-3.5" /> }))
@@ -324,24 +324,30 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-shop flex items-center">
                                     <Sparkles className="w-3 h-3 mr-2" /> Variantes (Tailles & Couleurs)
                                 </h4>
-                                
-                                <div className="grid grid-cols-3 gap-3">
-                                    <input 
-                                        value={newVariant.color} 
-                                        onChange={e => setNewVariant({...newVariant, color: e.target.value})}
-                                        placeholder="Couleur" 
-                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50 text-white" 
+
+                                <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1.5fr_auto] gap-3">
+                                    <input
+                                        value={newVariant.color}
+                                        onChange={e => setNewVariant({ ...newVariant, color: e.target.value })}
+                                        placeholder="Couleur"
+                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50 text-white"
                                     />
-                                    <input 
-                                        value={newVariant.size} 
-                                        onChange={e => setNewVariant({...newVariant, size: e.target.value})}
-                                        placeholder="Taille" 
-                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50 text-white" 
+                                    <input
+                                        value={newVariant.size}
+                                        onChange={e => setNewVariant({ ...newVariant, size: e.target.value })}
+                                        placeholder="Taille"
+                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50 text-white"
                                     />
-                                    <button 
-                                        type="button" 
+                                    <input
+                                        value={newVariant.image}
+                                        onChange={e => setNewVariant({ ...newVariant, image: e.target.value })}
+                                        placeholder="URL Image (Optionnel)"
+                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50 text-white"
+                                    />
+                                    <button
+                                        type="button"
                                         onClick={addVariant}
-                                        className="bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+                                        className="bg-shop text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
                                     >
                                         Ajouter
                                     </button>
@@ -349,7 +355,12 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
 
                                 <div className="flex flex-wrap gap-2">
                                     {variants.map(v => (
-                                        <div key={v.id} className="flex items-center space-x-2 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full group">
+                                        <div key={v.id} className="flex items-center space-x-2 bg-white/5 border border-white/10 pl-1 pr-3 py-1 rounded-full group">
+                                            {v.image && (
+                                                <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
+                                                    <img src={v.image} className="w-full h-full object-cover" />
+                                                </div>
+                                            )}
                                             <span className="text-[9px] font-bold uppercase text-white">
                                                 {v.color} {v.color && v.size ? '/' : ''} {v.size}
                                             </span>
@@ -369,8 +380,8 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                     <button type="button" onClick={() => setNewCategoryMode(!newCategoryMode)} className="text-[8px] font-black uppercase text-shop hover:underline">
                                         {newCategoryMode ? 'Choisir existante' : '+ Nouvelle'}
                                     </button>
-                                    <button 
-                                        type="button" 
+                                    <button
+                                        type="button"
                                         onClick={() => setIsManageCatsOpen(true)}
                                         className="text-[8px] font-black uppercase text-muted-foreground hover:text-white ml-2 pl-2 border-l border-white/10"
                                     >
@@ -380,7 +391,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                 {newCategoryMode ? (
                                     <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-4 text-sm focus:ring-2 focus:ring-shop/50 outline-none transition-all text-white" placeholder="Nom de la catégorie..." autoFocus />
                                 ) : (
-                                    <CustomDropdown 
+                                    <CustomDropdown
                                         options={[{ label: 'Général', value: 'Général', icon: <Tags className="w-3.5 h-3.5" /> }, ...existingCategories.filter(cat => cat !== 'Général').map(cat => ({ label: cat, value: cat, icon: <Tags className="w-3.5 h-3.5" /> }))]}
                                         value={selectedCategory} onChange={setSelectedCategory}
                                     />
@@ -393,7 +404,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                     <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center ml-2">
                                         <PlusCircle className="w-3 h-3 mr-1.5" /> Description
                                     </label>
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={async () => {
                                             const name = nameRef.current?.value;
@@ -452,7 +463,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                 </div>
             </div>
 
-            <ManageCategoriesModal 
+            <ManageCategoriesModal
                 isOpen={isManageCatsOpen}
                 onClose={() => setIsManageCatsOpen(false)}
                 categories={existingCategories}

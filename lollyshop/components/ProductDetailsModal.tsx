@@ -31,11 +31,32 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
         if (isOpen) {
             setActiveImage(product.image);
             setActiveTab('details');
-            setSelectedColor(colors[0] || '');
-            setSelectedSize(sizes[0] || '');
+
+            // Set initial variant selection
+            const initialColor = colors[0] || '';
+            const initialSize = sizes[0] || '';
+            setSelectedColor(initialColor);
+            setSelectedSize(initialSize);
+
+            // If the first color variant has an image, use it
+            const firstColorWithImage = product.variants?.find((v: any) => v.color === initialColor && v.image);
+            if (firstColorWithImage?.image) {
+                setActiveImage(firstColorWithImage.image);
+            }
+
             fetchReviews();
         }
     }, [isOpen, product.id]);
+
+    // Update active image when color changes
+    React.useEffect(() => {
+        if (selectedColor) {
+            const variant = product.variants?.find((v: any) => v.color === selectedColor && v.image);
+            if (variant?.image) {
+                setActiveImage(variant.image);
+            }
+        }
+    }, [selectedColor, product.variants]);
 
     const fetchReviews = async () => {
         setLoadingReviews(true);
@@ -53,17 +74,21 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
     if (!isOpen) return null;
 
     const handleAddToCartWithVariant = () => {
+        const variant = product.variants?.find((v: any) => v.color === selectedColor && v.size === selectedSize);
         const productWithVariant = {
             ...product,
             selectedColor,
             selectedSize,
-            name: `${product.name}${selectedColor ? ` - ${selectedColor}` : ''}${selectedSize ? ` (${selectedSize})` : ''}`
+            name: `${product.name}${selectedColor ? ` - ${selectedColor}` : ''}${selectedSize ? ` (${selectedSize})` : ''}`,
+            image: variant?.image || product.image // Ensure variant image goes to cart
         };
         addToCart(productWithVariant);
         onClose();
     };
 
-    const gallery = product.images && product.images.length > 0 ? product.images : (product.image ? [product.image] : []);
+    const variantImages = product.variants?.map((v: any) => v.image).filter(Boolean) || [];
+    const baseGallery = product.images && product.images.length > 0 ? product.images : (product.image ? [product.image] : []);
+    const gallery = Array.from(new Set([...baseGallery, ...variantImages]));
     const related = getRelatedProducts(product.id, product.category);
     const shopName = product.shop_id === 1 ? "Luxya" : "Homtek";
     const shopColor = product.shop_id === 1 ? "text-red-500" : "text-blue-600";
@@ -86,20 +111,20 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                 text: `Découvrez cet article chez Lolly !`,
                 url: shareUrl
             });
-        } catch (e) {}
+        } catch (e) { }
     };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose} />
-            
+
             <div className="relative w-full max-w-6xl bg-white rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 max-h-[90vh] flex flex-col">
-                
+
                 {/* Scrollable Container */}
                 <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col md:flex-row">
-                    
+
                     {/* Close Button */}
-                    <button 
+                    <button
                         onClick={onClose}
                         className="absolute top-6 right-6 z-50 p-3 bg-white/80 backdrop-blur-md rounded-full text-black hover:bg-black hover:text-white transition-all shadow-xl"
                     >
@@ -125,10 +150,10 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                 <Image src={activeImage} alt={product.name} fill className="object-cover" />
                             ) : product.video_url && activeImage === 'video' ? (
                                 <div className="w-full h-full bg-black flex items-center justify-center relative">
-                                    <iframe 
-                                        src={product.video_url.replace('watch?v=', 'embed/')} 
+                                    <iframe
+                                        src={product.video_url.replace('watch?v=', 'embed/')}
                                         className="w-full h-full"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
                                     />
                                 </div>
@@ -139,7 +164,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                     <ShoppingBag className="w-24 h-24" />
                                 </div>
                             )}
-                            
+
                             {/* Floating Badges */}
                             <div className="absolute top-8 left-8 flex flex-col gap-3">
                                 <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-xl bg-white ${shopColor}`}>
@@ -157,7 +182,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                         {(gallery.length > 1 || product.video_url) && (
                             <div className="p-6 bg-white border-t border-gray-100 flex gap-3 overflow-x-auto custom-scrollbar">
                                 {product.video_url && (
-                                    <button 
+                                    <button
                                         onClick={() => setActiveImage('video')}
                                         className={`relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 flex items-center justify-center bg-black transition-all ${activeImage === 'video' ? 'border-[#0055ff] scale-105 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
                                     >
@@ -165,8 +190,8 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                     </button>
                                 )}
                                 {gallery.filter((img: string) => img && img !== "").map((img: string, idx: number) => (
-                                    <button 
-                                        key={idx} 
+                                    <button
+                                        key={idx}
                                         onClick={() => setActiveImage(img)}
                                         className={`relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${activeImage === img ? 'border-[#0055ff] scale-105 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
                                     >
@@ -181,13 +206,13 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                     <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col bg-white">
                         {/* Tabs */}
                         <div className="flex space-x-8 border-b border-gray-100 mb-8">
-                            <button 
+                            <button
                                 onClick={() => setActiveTab('details')}
                                 className={`pb-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'details' ? 'text-[#0055ff] border-b-2 border-[#0055ff]' : 'text-gray-300 hover:text-black'}`}
                             >
                                 Détails Produit
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setActiveTab('reviews')}
                                 className={`pb-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'reviews' ? 'text-[#0055ff] border-b-2 border-[#0055ff]' : 'text-gray-300 hover:text-black'}`}
                             >
@@ -207,7 +232,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                     <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter text-gray-900 leading-tight mb-6">
                                         {product.name}
                                     </h2>
-                                    
+
                                     <div className="flex items-center gap-6 p-6 bg-gray-50 rounded-[32px] border border-gray-100">
                                         {hasPromo ? (
                                             <div className="flex flex-col">
@@ -223,7 +248,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                                 {Number(product.price).toLocaleString()} <span className="text-sm">CFA</span>
                                             </p>
                                         )}
-                                        
+
                                         <div className="ml-auto text-right">
                                             {Number(product.stock) <= 5 && Number(product.stock) > 0 ? (
                                                 <span className="text-[10px] font-black uppercase text-orange-500 animate-pulse">Dernières unités !</span>
@@ -243,7 +268,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Couleur : <span className="text-black">{selectedColor}</span></p>
                                             <div className="flex flex-wrap gap-2">
                                                 {colors.map(color => (
-                                                    <button 
+                                                    <button
                                                         key={color}
                                                         onClick={() => setSelectedColor(color)}
                                                         className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${selectedColor === color ? 'bg-black text-white shadow-lg' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
@@ -260,7 +285,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                                             <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Taille : <span className="text-black">{selectedSize}</span></p>
                                             <div className="flex flex-wrap gap-2">
                                                 {sizes.map(size => (
-                                                    <button 
+                                                    <button
                                                         key={size}
                                                         onClick={() => setSelectedSize(size)}
                                                         className={`min-w-[48px] h-12 rounded-xl text-xs font-black uppercase transition-all border-2 flex items-center justify-center ${selectedSize === size ? 'border-black bg-black text-white shadow-lg' : 'border-gray-100 bg-white text-gray-500 hover:border-gray-300'}`}
@@ -295,14 +320,14 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
                             <div className="space-y-8 mb-10">
                                 <div className="p-6 bg-yellow-50 rounded-3xl border border-yellow-100">
                                     <div className="flex items-center space-x-2 mb-2">
-                                        {[1,2,3,4,5].map(i => (
+                                        {[1, 2, 3, 4, 5].map(i => (
                                             <Star key={i} className={`w-4 h-4 ${i <= Math.round(product.avg_rating || 5) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
                                         ))}
                                         <span className="text-xs font-black">{product.avg_rating?.toFixed(1) || '5.0'} / 5</span>
                                     </div>
                                     <p className="text-[10px] font-bold text-yellow-700 uppercase tracking-widest">Basé sur {reviews.length} avis vérifiés</p>
                                 </div>
-                                
+
                                 <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                                     {reviews.map((rev, i) => (
                                         <div key={i} className="border-b border-gray-50 pb-6 last:border-0">
@@ -327,7 +352,7 @@ export default function ProductDetailsModal({ product, isOpen, onClose }: Produc
 
                         {/* Add to Cart & WhatsApp */}
                         <div className="flex flex-col gap-3 mt-auto">
-                            <button 
+                            <button
                                 onClick={handleAddToCartWithVariant}
                                 disabled={product.stock <= 0 && product.type !== 'service'}
                                 className="w-full py-5 bg-black text-white rounded-[24px] font-black uppercase text-xs tracking-[0.2em] flex items-center justify-center hover:bg-[#0055ff] transition-all shadow-2xl active:scale-95 disabled:opacity-50"

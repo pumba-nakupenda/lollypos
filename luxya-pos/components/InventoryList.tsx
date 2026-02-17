@@ -338,6 +338,22 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                         </span>
                                         {product.type === 'service' && <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-md border border-blue-500/20 text-[8px] sm:text-[10px] font-black uppercase tracking-widest">Service</span>}
 
+                                        {/* Variant Image Previews */}
+                                        {product.variants && product.variants.length > 0 && (
+                                            <div className="flex -space-x-1.5 ml-2">
+                                                {product.variants.filter((v: any) => v.image).slice(0, 4).map((v: any, i: number) => (
+                                                    <div key={i} className="w-5 h-5 rounded-full border border-white/20 overflow-hidden bg-black/20 ring-1 ring-black/50">
+                                                        <img src={v.image} className="w-full h-full object-cover" title={`${v.color || ''} ${v.size || ''}`} />
+                                                    </div>
+                                                ))}
+                                                {product.variants.filter((v: any) => v.image).length > 4 && (
+                                                    <div className="w-5 h-5 rounded-full border border-white/20 bg-white/5 text-[6px] font-black flex items-center justify-center text-muted-foreground ring-1 ring-black/50">
+                                                        +{product.variants.filter((v: any) => v.image).length - 4}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center space-x-1.5 sm:ml-2">
                                             <div className={`w-1.5 h-1.5 rounded-full ${product.show_on_pos !== false ? 'bg-green-400' : 'bg-red-400'}`} title="Caisse" />
                                             <div className={`w-1.5 h-1.5 rounded-full ${product.show_on_website !== false ? 'bg-blue-400' : 'bg-red-400/30'}`} title="Site" />
