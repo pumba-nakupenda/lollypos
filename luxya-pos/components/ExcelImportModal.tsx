@@ -51,18 +51,36 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
         setLoading(true)
         try {
             // Mapping des colonnes (Gestion des noms de colonnes courants)
-            const mappedProducts = data.map(item => ({
-                name: item.Nom || item.name || item.Name,
-                description: item.Description || item.description || '',
-                price: Number(item.Prix || item.price || item.Price || 0),
-                cost_price: Number(item['Prix d\'achat'] || item.cost_price || item.Cost || 0),
-                stock: Number(item.Stock || item.stock || 0),
-                category: item.Catégorie || item.category || 'Général',
-                brand: item.Marque || item.brand || '',
-                min_stock: Number(item['Stock Min'] || item.min_stock || 2),
-                expiry_date: item['Date d\'expiration'] || item.expiry_date || null,
-                image: item.Image || item.Photo || item.image || item.imageUrl || '',
-            }))
+            const mappedProducts = data.map(item => {
+                const parsedVariants = (item.Variantes || item.variants || '').split(';').filter(Boolean).map((vStr: string) => {
+                    const [color, size, stock, variantImage] = vStr.split(':').map(s => s.trim());
+                    return {
+                        id: Date.now() + Math.floor(Math.random() * 1000),
+                        color: color || '',
+                        size: size || '',
+                        stock: stock || '',
+                        image: variantImage || ''
+                    };
+                })
+
+                const totalVariantStock = parsedVariants.reduce((sum: number, v: any) => sum + (parseInt(v.stock) || 0), 0)
+                const globalStock = parsedVariants.length > 0 ? totalVariantStock : Number(item.Stock || item.stock || 0)
+
+                return {
+                    name: item.Nom || item.name || item.Name,
+                    description: item.Description || item.description || '',
+                    price: Number(item.Prix || item.price || item.Price || 0),
+                    promo_price: Number(item['Prix Promo'] || item.promo_price || item.promo || 0) || null,
+                    cost_price: Number(item['Prix d\'achat'] || item.cost_price || item.Cost || 0),
+                    stock: globalStock,
+                    category: item.Catégorie || item.category || 'Général',
+                    brand: item.Marque || item.brand || '',
+                    min_stock: Number(item['Stock Min'] || item.min_stock || 2),
+                    expiry_date: item['Date d\'expiration'] || item.expiry_date || null,
+                    image: item.Image || item.Photo || item.image || item.imageUrl || '',
+                    variants: parsedVariants
+                }
+            })
 
             // Validation minimale
             const finalProducts = mappedProducts.filter(p => p.name)
@@ -94,13 +112,15 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
                 Nom: 'Produit Exemple',
                 Description: 'Une brève description',
                 Prix: 1500,
+                "Prix Promo": 1200,
                 "Prix d'achat": 1000,
                 Stock: 10,
                 Catégorie: 'Général',
                 Marque: 'Ma Marque',
                 "Stock Min": 2,
                 "Date d'expiration": '2025-12-31',
-                Image: 'https://example.com/photo.jpg'
+                Image: 'https://example.com/photo.jpg',
+                Variantes: 'Rouge:XL:5:https://example.com/red.jpg;Bleu:L:5:https://example.com/blue.jpg'
             }
         ]
         const ws = XLSX.utils.json_to_sheet(template)
@@ -180,6 +200,7 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
                                                 <th className="p-4">Prix</th>
                                                 <th className="p-4">Stock</th>
                                                 <th className="p-4">Catégorie</th>
+                                                <th className="p-4">Variantes</th>
                                                 <th className="p-4">Image</th>
                                             </tr>
                                         </thead>
@@ -193,6 +214,9 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
                                                         <span className="bg-white/5 px-2 py-1 rounded-md border border-white/10 text-[9px] font-bold">
                                                             {row.Catégorie || row.category || 'Général'}
                                                         </span>
+                                                    </td>
+                                                    <td className="p-4 text-[9px] text-muted-foreground whitespace-nowrap">
+                                                        {row.Variantes || row.variants || '---'}
                                                     </td>
                                                     <td className="p-4 text-[9px] truncate max-w-[100px] text-muted-foreground whitespace-nowrap">
                                                         {row.Image || row.Photo || row.image || '---'}

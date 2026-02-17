@@ -10,7 +10,7 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
     const supabase = await createClient();
-    
+
     const { data: product } = await supabase
         .from('products')
         .select('*')
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     const title = `${product.name} - Lollyshop Dakar`;
     const description = product.description || `Découvrez ${product.name} chez Lolly. Qualité premium et livraison rapide au Sénégal.`;
-    
+
     return {
         title,
         description,
@@ -42,11 +42,47 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
 }
 
-// 2. PAGE CONTENT (Redirects to Home with the product ID in URL to open modal)
+// 2. PAGE CONTENT
+import Navbar from '@/components/Navbar';
+import ProductDisplay from '@/components/ProductDisplay';
+
 export default async function ProductPage({ params }: Props) {
     const { id } = await params;
-    
-    // Redirect to home page with a query param that will trigger the product modal
-    // Example: lollyshop.sn/?openProduct=123
-    redirect(`/?openProduct=${id}`);
+    const supabase = await createClient();
+
+    // Fetch product details
+    const { data: product } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+    if (!product) {
+        return (
+            <div className="min-h-screen flex flex-col">
+                <Navbar />
+                <div className="flex-1 flex flex-center flex-col items-center justify-center p-10">
+                    <h1 className="text-2xl font-black uppercase mb-4">Produit non trouvé</h1>
+                    <a href="/" className="px-8 py-4 bg-black text-white rounded-2xl font-black uppercase text-xs">Retour à l'accueil</a>
+                </div>
+            </div>
+        );
+    }
+
+    // Fetch related products (same category)
+    const { data: related } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', product.category)
+        .neq('id', product.id)
+        .limit(4);
+
+    return (
+        <div className="min-h-screen flex flex-col bg-white">
+            <Navbar />
+            <main className="flex-1">
+                <ProductDisplay product={product} related={related || []} isPage={true} />
+            </main>
+        </div>
+    );
 }

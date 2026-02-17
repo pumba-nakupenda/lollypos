@@ -77,7 +77,7 @@ export async function createProduct(formData: FormData) {
         }
     }
 
-    const rawData = {
+    const rawData: any = {
         name,
         brand,
         description,
@@ -98,6 +98,27 @@ export async function createProduct(formData: FormData) {
         show_on_website,
         variants,
     }
+
+    // Handle Variant Images Upload
+    const parsedVariants = [...variants]
+    for (let i = 0; i < parsedVariants.length; i++) {
+        const variant = parsedVariants[i]
+        const vFile = formData.get(`variant_image_${variant.id}`) as File | null
+
+        if (vFile && vFile.size > 0 && typeof vFile !== 'string') {
+            const fileExt = vFile.name.split('.').pop()
+            const fileName = `variant_${variant.id}_${Date.now()}.${fileExt}`
+            const { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(fileName, vFile)
+
+            if (!uploadError) {
+                const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+                parsedVariants[i].image = publicUrl
+            }
+        }
+    }
+    rawData.variants = parsedVariants
 
     try {
         const response = await fetch(`${API_URL}/products`, {
@@ -179,7 +200,7 @@ export async function updateProduct(productId: number, formData: FormData) {
         }
     }
 
-    const updateData = {
+    const updateData: any = {
         name,
         brand,
         description,
@@ -199,6 +220,27 @@ export async function updateProduct(productId: number, formData: FormData) {
         variants,
         is_featured: formData.get('is_featured') === 'true'
     }
+
+    // Handle Variant Images Upload
+    const parsedVariants = [...variants]
+    for (let i = 0; i < parsedVariants.length; i++) {
+        const variant = parsedVariants[i]
+        const vFile = formData.get(`variant_image_${variant.id}`) as File | null
+
+        if (vFile && vFile.size > 0 && typeof vFile !== 'string') {
+            const fileExt = vFile.name.split('.').pop()
+            const fileName = `variant_${variant.id}_${Date.now()}.${fileExt}`
+            const { error: uploadError } = await supabase.storage
+                .from('products')
+                .upload(fileName, vFile)
+
+            if (!uploadError) {
+                const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+                parsedVariants[i].image = publicUrl
+            }
+        }
+    }
+    updateData.variants = parsedVariants
 
     try {
         const response = await fetch(`${API_URL}/products/${productId}`, {

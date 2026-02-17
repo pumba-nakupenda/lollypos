@@ -7,6 +7,7 @@ import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
 import CustomDropdown from './CustomDropdown'
 import Portal from './Portal'
+import ImageLightbox from './ImageLightbox'
 import { API_URL } from '@/utils/api'
 
 export default function CreateProductButton() {
@@ -40,32 +41,90 @@ export default function CreateProductButton() {
 
     // NEW: Variants management
     const [variants, setVariants] = useState<any[]>([])
-    const [newVariant, setNewVariant] = useState({ color: '', size: '', stock: '', image: '' })
-
-    const addVariant = () => {
-        if (!newVariant.color && !newVariant.size) {
-            return showToast("Entrez au moins une couleur ou une taille", "warning")
-        }
-        setVariants([...variants, { ...newVariant, id: Date.now() }])
-        setNewVariant({ color: '', size: '', stock: '', image: '' })
-    }
-
-    const removeVariant = (id: number) => {
-        setVariants(variants.filter(v => v.id !== id))
-    }
-
-    const focusSearch = () => {
-        const name = nameRef.current?.value;
-        if (!name) return showToast("Entrez d'abord un nom de produit", "warning");
-        window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(name)}`, '_blank');
-    };
+    const [variantFiles, setVariantFiles] = useState<Record<number, File>>({})
+    const [newVariant, setNewVariant] = useState({ id: Date.now(), color: '', size: '', stock: '', image: '' })
+    const variantFileInputRef = useRef<HTMLInputElement>(null)
+    const [activeVariantId, setActiveVariantId] = useState<number | null>(null)
 
     // NEW: Visibility states
     const [showOnPos, setShowOnPos] = useState<boolean>(true)
     const [showOnWebsite, setShowOnWebsite] = useState<boolean>(true)
 
     const [selectedShopId, setSelectedShopId] = useState<number>(1)
+    const [globalStock, setGlobalStock] = useState<string>('0')
+    const [lightbox, setLightbox] = useState<{ isOpen: boolean, src: string }>({ isOpen: false, src: '' })
     const isGlobalView = !activeShop || activeShop.id === 0
+
+    const addVariant = () => {
+        if (!newVariant.color && !newVariant.size) {
+            return showToast("Entrez au moins une couleur ou une taille", "warning")
+        }
+        setVariants([...variants, { ...newVariant }])
+        setNewVariant({ id: Date.now(), color: '', size: '', stock: '', image: '' })
+    }
+
+    const removeVariant = (id: number) => {
+        setVariants(variants.filter(v => v.id !== id))
+        const newFiles = { ...variantFiles }
+        delete newFiles[id]
+        setVariantFiles(newFiles)
+    }
+
+    const updateVariantStock = (id: number, stock: string) => {
+        setVariants(variants.map(v => v.id === id ? { ...v, stock } : v))
+    }
+
+    const handleVariantImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file && activeVariantId !== null) {
+            setVariantFiles({ ...variantFiles, [activeVariantId]: file })
+            const url = URL.createObjectURL(file)
+
+            // If it's the new variant being edited
+            if (newVariant && activeVariantId === newVariant.id) {
+                setNewVariant({ ...newVariant, image: url })
+            } else {
+                setVariants(variants.map(v => v.id === activeVariantId ? { ...v, image: url } : v))
+            }
+            setActiveVariantId(null)
+        }
+    }
+
+    const handleVariantPaste = async (e: React.ClipboardEvent, variantId: number) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    setVariantFiles({ ...variantFiles, [variantId]: file })
+                    const url = URL.createObjectURL(file)
+
+                    if (newVariant && variantId === newVariant.id) {
+                        setNewVariant({ ...newVariant, image: url })
+                    } else {
+                        setVariants(variants.map(v => v.id === variantId ? { ...v, image: url } : v))
+                    }
+                    showToast("Image collée avec succès !", "success")
+                }
+            }
+        }
+    }
+
+    // Auto-calculate global stock from variants
+    useEffect(() => {
+        if (variants.length > 0) {
+            const total = variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0)
+            setGlobalStock(total.toString())
+        }
+    }, [variants])
+
+    const focusSearch = () => {
+        const name = nameRef.current?.value;
+        if (!name) return showToast("Entrez d'abord un nom de produit", "warning");
+        window.open(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(name)}`, '_blank');
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -109,7 +168,6 @@ export default function CreateProductButton() {
 
     const clearGalleryItem = (index: number) => {
         setGalleryPreviews(prev => prev.filter((_, i) => i !== index))
-        // Note: Real file input management for multiple files is tricky without a custom state for files
     }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -130,6 +188,11 @@ export default function CreateProductButton() {
             formData.set('category', selectedCategory)
         }
 
+        // Add Variant Images
+        Object.entries(variantFiles).forEach(([id, file]) => {
+            formData.append(`variant_image_${id}`, file)
+        })
+
         if (newBrandMode && customBrand) {
             formData.set('brand', customBrand)
         } else {
@@ -146,6 +209,8 @@ export default function CreateProductButton() {
             setNewCategoryMode(false)
             setCustomCategory('')
             setSelectedCategory('Général')
+            setVariants([])
+            setVariantFiles({})
         }
         setLoading(false)
     }
@@ -395,9 +460,18 @@ export default function CreateProductButton() {
                                         <>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center ml-2">
-                                                    <Hash className="w-3 h-3 mr-1.5" /> Stock Initial
+                                                    <Hash className="w-3 h-3 mr-1.5" /> Stock Initial {variants.length > 0 && <span className="ml-2 text-shop text-[8px] animate-pulse">(Calculé via variantes)</span>}
                                                 </label>
-                                                <input name="stock" type="number" required className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all" placeholder="0" />
+                                                <input
+                                                    name="stock"
+                                                    type="number"
+                                                    value={globalStock}
+                                                    onChange={(e) => setGlobalStock(e.target.value)}
+                                                    readOnly={variants.length > 0}
+                                                    required
+                                                    className={`w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm outline-none transition-all ${variants.length > 0 ? 'opacity-50 cursor-not-allowed bg-shop/5 border-shop/20' : 'focus:border-shop/50'}`}
+                                                    placeholder="0"
+                                                />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center ml-2">
@@ -419,7 +493,7 @@ export default function CreateProductButton() {
                                                     <Sparkles className="w-3 h-3 mr-2" /> Variantes (Tailles & Couleurs)
                                                 </h4>
 
-                                                <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1.5fr_auto] gap-3">
+                                                <div className="grid grid-cols-[1fr_1fr_1fr_80px_auto] gap-2">
                                                     <input
                                                         value={newVariant.color}
                                                         onChange={e => setNewVariant({ ...newVariant, color: e.target.value })}
@@ -432,11 +506,32 @@ export default function CreateProductButton() {
                                                         placeholder="Taille"
                                                         className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50"
                                                     />
+                                                    <div className="relative flex items-center bg-white/5 border border-white/10 rounded-xl px-3 focus-within:border-shop/50">
+                                                        <input
+                                                            value={newVariant.image}
+                                                            onChange={e => setNewVariant({ ...newVariant, image: e.target.value })}
+                                                            onPaste={(e) => handleVariantPaste(e, newVariant.id)}
+                                                            placeholder="URL/Image"
+                                                            className="bg-transparent border-none py-2 text-[10px] outline-none w-full"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                setActiveVariantId(newVariant.id)
+                                                                variantFileInputRef.current?.click()
+                                                            }}
+                                                            className={`p-1 rounded-lg transition-colors ${variantFiles[newVariant.id] ? 'text-shop' : 'text-muted-foreground hover:text-white'}`}
+                                                            title="Uploader une image"
+                                                        >
+                                                            <Upload className="w-3.5 h-3.5" />
+                                                        </button>
+                                                    </div>
                                                     <input
-                                                        value={newVariant.image}
-                                                        onChange={e => setNewVariant({ ...newVariant, image: e.target.value })}
-                                                        placeholder="URL Image (Optionnel)"
-                                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50"
+                                                        type="number"
+                                                        value={newVariant.stock}
+                                                        onChange={e => setNewVariant({ ...newVariant, stock: e.target.value })}
+                                                        placeholder="Stock"
+                                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50 w-20"
                                                     />
                                                     <button
                                                         type="button"
@@ -447,27 +542,73 @@ export default function CreateProductButton() {
                                                     </button>
                                                 </div>
 
-                                                <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-3">
                                                     {variants.map(v => (
-                                                        <div key={v.id} className="flex items-center space-x-2 bg-white/5 border border-white/10 pl-1 pr-3 py-1 rounded-full group">
-                                                            {v.image && (
-                                                                <div className="w-6 h-6 rounded-full overflow-hidden border border-white/10 shrink-0">
-                                                                    <img src={v.image} className="w-full h-full object-cover" />
+                                                        <div
+                                                            key={v.id}
+                                                            className={`flex items-center space-x-3 bg-white/5 border border-white/10 pl-1.5 pr-4 py-1.5 rounded-full group transition-all hover:border-shop/30 ${parseInt(v.stock || 0) <= 0 ? 'opacity-40 grayscale border-white/5' : ''}`}
+                                                        >
+                                                            <div className="relative group/var-img">
+                                                                {v.image ? (
+                                                                    <div
+                                                                        className="w-8 h-8 rounded-full overflow-hidden border-2 border-white/10 shrink-0 cursor-zoom-in group-hover/var-img:scale-110 transition-transform"
+                                                                        onClick={() => setLightbox({ isOpen: true, src: v.image })}
+                                                                    >
+                                                                        <img src={v.image} className="w-full h-full object-cover" />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div
+                                                                        onClick={() => {
+                                                                            setActiveVariantId(v.id)
+                                                                            variantFileInputRef.current?.click()
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border-2 border-dashed border-white/20 cursor-pointer hover:bg-shop/20 transition-all text-muted-foreground hover:text-shop"
+                                                                    >
+                                                                        <Upload className="w-4 h-4" />
+                                                                    </div>
+                                                                )}
+                                                                <input
+                                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                                    onPaste={(e) => handleVariantPaste(e, v.id)}
+                                                                    title="Coller une image (Ctrl+V)"
+                                                                />
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <span className={`text-[10px] font-black uppercase shrink-0 tracking-tight ${parseInt(v.stock || 0) <= 0 ? 'text-white/40' : 'text-white'}`}>
+                                                                    {v.color} {v.color && v.size ? '/' : ''} {v.size}
+                                                                </span>
+                                                                <div className={`flex items-center bg-black/40 rounded-xl px-2 py-1 border transition-all ${parseInt(v.stock || 0) <= 0 ? 'border-white/5' : 'border-white/10 group-focus-within:border-shop/50 shadow-inner'}`}>
+                                                                    <span className="text-[9px] font-black text-white/30 mr-1.5">STOCK:</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        value={v.stock || 0}
+                                                                        onChange={(e) => updateVariantStock(v.id, e.target.value)}
+                                                                        className="w-10 bg-transparent border-none text-[10px] font-black text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                    />
                                                                 </div>
-                                                            )}
-                                                            <span className="text-[9px] font-bold uppercase text-white">
-                                                                {v.color} {v.color && v.size ? '/' : ''} {v.size}
-                                                            </span>
-                                                            <button type="button" onClick={() => removeVariant(v.id)} className="text-red-400 hover:text-red-500">
-                                                                <X className="w-3 h-3" />
+                                                            </div>
+                                                            <button type="button" onClick={() => removeVariant(v.id)} className="text-red-400 hover:text-red-500 pl-1 hover:scale-110 transition-transform">
+                                                                <X className="w-4 h-4" />
                                                             </button>
                                                         </div>
                                                     ))}
                                                 </div>
+                                                <input
+                                                    type="file"
+                                                    ref={variantFileInputRef}
+                                                    onChange={handleVariantImageChange}
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                />
                                             </div>
                                         </>
                                     )}
 
+                                    <ImageLightbox
+                                        isOpen={lightbox.isOpen}
+                                        src={lightbox.src}
+                                        onClose={() => setLightbox({ ...lightbox, isOpen: false })}
+                                    />
                                     {/* Dynamic Category */}
                                     <div className="space-y-2 md:col-span-2">
                                         <div className="flex justify-between items-center mb-1">
@@ -536,7 +677,9 @@ export default function CreateProductButton() {
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 resize-none"
                                             placeholder="Description détaillée du produit..."
                                         />
-                                    </div>                                    {/* Visibility Settings */}
+                                    </div>
+
+                                    {/* Visibility Settings */}
                                     <div className="md:col-span-2 space-y-4 p-6 glass-panel rounded-3xl border border-white/5 bg-white/[0.01]">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center">
                                             <Sparkles className="w-3 h-3 mr-2 text-shop" /> Paramètres d'affichage

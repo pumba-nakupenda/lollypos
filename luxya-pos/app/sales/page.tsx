@@ -139,6 +139,11 @@ export default function SalesTerminal() {
             return;
         }
 
+        if (variant && variant.stock !== undefined && parseInt(variant.stock) <= 0 && product.type !== 'service') {
+            showToast("Cette variante est épuisée !", "warning");
+            return;
+        }
+
         // If product has variants and no variant is selected, show selection modal
         if (product.variants && product.variants.length > 0 && !variant) {
             setSelectedProductForVariant(product);
@@ -232,7 +237,8 @@ export default function SalesTerminal() {
                     if (item.type !== 'service') {
                         await supabase.rpc('decrement_stock', {
                             product_id: item.id,
-                            quantity: item.quantity
+                            quantity: item.quantity,
+                            p_variant_id: item.variantInfo?.id?.toString() || null
                         });
                     }
                 }
@@ -803,11 +809,12 @@ export default function SalesTerminal() {
                                         {selectedProductForVariant.variants.map((v: any, i: number) => (
                                             <button
                                                 key={i}
+                                                disabled={v.stock !== undefined && parseInt(v.stock) <= 0}
                                                 onClick={() => {
                                                     addToCart(selectedProductForVariant, v);
                                                     setSelectedProductForVariant(null);
                                                 }}
-                                                className="group flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 hover:border-shop/50 hover:bg-shop/5 transition-all w-full text-left"
+                                                className={`group flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 transition-all w-full text-left ${v.stock !== undefined && parseInt(v.stock) <= 0 ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:border-shop/50 hover:bg-shop/5'}`}
                                             >
                                                 <div className="flex items-center space-x-4">
                                                     <div className="w-12 h-12 rounded-xl bg-black/20 overflow-hidden border border-white/5">
@@ -820,7 +827,14 @@ export default function SalesTerminal() {
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <p className="text-sm font-bold text-white uppercase">{v.color || 'Standard'}</p>
+                                                        <div className="flex items-center space-x-2">
+                                                            <p className="text-sm font-bold text-white uppercase">{v.color || 'Standard'}</p>
+                                                            {v.stock !== undefined && (
+                                                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border ${parseInt(v.stock) <= 2 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'}`}>
+                                                                    S: {v.stock}
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{v.size || 'Unique'}</p>
                                                     </div>
                                                 </div>

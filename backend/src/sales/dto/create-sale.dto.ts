@@ -12,5 +12,6 @@ export class CreateSaleDto {
         quantity: number;
         price: number;
         name?: string;
+        variantId?: string;
     }[];
 }

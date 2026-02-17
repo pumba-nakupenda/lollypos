@@ -14,7 +14,7 @@ export class SalesService {
 
     async create(createSaleDto: CreateSaleDto) {
         this.logger.log(`[SALES] Starting creation for shop ${createSaleDto.shopId}, amount ${createSaleDto.totalAmount}`);
-        
+
         try {
             // 1. Insert the main sale
             const { data: sale, error: saleError } = await this.supabase
@@ -68,12 +68,13 @@ export class SalesService {
                     p_qty: item.quantity
                 });
 
-                this.logger.debug(`[SALES] Updating stock for PID ${item.productId}: -${item.quantity}`);
+                this.logger.debug(`[SALES] Updating stock for PID ${item.productId}${item.variantId ? ` (Var: ${item.variantId})` : ''}: -${item.quantity}`);
                 const { error: rpcError } = await this.supabase.rpc('decrement_stock', {
                     p_id: item.productId,
-                    p_qty: item.quantity
+                    p_qty: item.quantity,
+                    p_variant_id: item.variantId || null
                 });
-                
+
                 if (rpcError) {
                     this.logger.warn(`[SALES] Stock RPC Error for PID ${item.productId}: ${rpcError.message}`);
                 }
@@ -148,7 +149,7 @@ export class SalesService {
 
     async update(id: string, updateSaleDto: any) {
         this.logger.log(`[SALES] Updating sale ID: ${id}`);
-        
+
         try {
             // 1. Update master record
             const { data: sale, error: saleError } = await this.supabase
