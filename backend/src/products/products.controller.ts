@@ -13,6 +13,11 @@ export class ProductsController {
         return this.productsService.create(createProductDto);
     }
 
+    @Post('bulk')
+    bulkCreate(@Body() createProductDtos: CreateProductDto[]) {
+        return this.productsService.bulkCreate(createProductDtos);
+    }
+
     @Get()
     findAll(@Query('shopId') shopId?: string) {
         return this.productsService.findAll(shopId ? +shopId : undefined);

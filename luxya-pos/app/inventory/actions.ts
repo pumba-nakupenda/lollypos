@@ -215,3 +215,71 @@ export async function updateProduct(productId: number, formData: FormData) {
         return { error: 'Erreur de connexion' }
     }
 }
+
+export async function bulkCreateProducts(products: any[]) {
+    const supabaseServer = await createClient()
+    const { data: { user } } = await supabaseServer.auth.getUser()
+    if (!user) return { error: 'Non authentifié' }
+
+    const { data: profile } = await supabaseServer
+        .from('profiles')
+        .select('role, shop_id')
+        .eq('id', user.id)
+        .single()
+
+    const productsWithMeta = products.map(p => ({
+        ...p,
+        shop_id: profile?.shop_id || p.shop_id || 1,
+        created_by: user.id
+    }))
+
+    try {
+        console.log(`[BULK] Attempting bulk creation of ${products.length} products on ${API_URL}`);
+        const response = await fetch(`${API_URL}/products/bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productsWithMeta),
+        })
+
+        if (response.ok) {
+            revalidatePath('/inventory')
+            return { success: true }
+        }
+
+        // FALLBACK: If bulk fails (e.g. 404 not deployed, or 504 timeout), try one by one
+        console.warn(`[BULK] Bulk endpoint failed (${response.status}). Falling back to individual creation.`);
+
+        let successCount = 0;
+        let errors = [];
+
+        for (const product of productsWithMeta) {
+            try {
+                const singleRes = await fetch(`${API_URL}/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(product),
+                });
+                if (singleRes.ok) successCount++;
+                else {
+                    const errData = await singleRes.json().catch(() => ({}));
+                    errors.push(`${product.name}: ${errData.message || 'Error'}`);
+                }
+            } catch (e) {
+                errors.push(`${product.name}: Connection error`);
+            }
+        }
+
+        if (successCount > 0) {
+            revalidatePath('/inventory')
+            return {
+                success: true,
+                message: `${successCount} produits importés. ${errors.length > 0 ? `(${errors.length} échecs)` : ''}`
+            }
+        }
+
+        return { error: errors[0] || 'Échec de l\'importation' }
+    } catch (error) {
+        console.error('[BULK] Connection error:', error);
+        return { error: 'Erreur de connexion au serveur Render' }
+    }
+}

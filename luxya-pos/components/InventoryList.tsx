@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState, useMemo, useRef, useEffect } from 'react'
-import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink, Plus, Camera, Loader2, PlusCircle, DollarSign, TrendingUp, Sparkles } from 'lucide-react'
+import { Package, Edit2, Search, Filter, Tag, AlertTriangle, CheckCircle2, X, Tags, Trash2, Calendar, ShoppingCart, ExternalLink, Plus, Camera, Loader2, PlusCircle, DollarSign, TrendingUp, Sparkles, FileSpreadsheet } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import EditProductModal from './EditProductModal'
+import ExcelImportModal from './ExcelImportModal'
 import CustomDropdown from './CustomDropdown'
 import ExpiryBadge from './ExpiryBadge'
 import ManageCategoriesModal from './ManageCategoriesModal'
@@ -34,6 +35,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isCatModalOpen, setIsCatModalOpen] = useState(false)
     const [isBrandModalOpen, setIsBrandModalOpen] = useState(false)
+    const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
     // Quick Creation State
     const [isQuickModalOpen, setIsQuickModalOpen] = useState(false)
@@ -268,12 +270,29 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                     onChange={setStockStatus}
                 />
 
-                <button
-                    onClick={() => setIsQuickModalOpen(true)}
-                    className="flex items-center justify-center px-6 py-3.5 bg-shop text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-shop/20"
-                >
-                    <PlusCircle className="w-4 h-4 mr-2" /> Ajout Rapide
-                </button>
+                <div className="flex flex-col gap-2">
+                    <button
+                        onClick={() => setIsQuickModalOpen(true)}
+                        className="flex items-center justify-center px-6 py-3.5 bg-shop text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-shop/20"
+                    >
+                        <PlusCircle className="w-4 h-4 mr-2" /> Ajout Rapide
+                    </button>
+                    <button
+                        onClick={() => setIsBrandModalOpen(true)}
+                        className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center"
+                    >
+                        <TrendingUp className="w-3.5 h-3.5 mr-2 text-shop" />
+                        Gérer Marques
+                    </button>
+
+                    <button
+                        onClick={() => setIsImportModalOpen(true)}
+                        className="px-4 py-2 bg-shop/10 text-shop border border-shop/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-shop/20 transition-all flex items-center"
+                    >
+                        <FileSpreadsheet className="w-3.5 h-3.5 mr-2" />
+                        Import Excel
+                    </button>
+                </div>
             </div>
 
             {/* Product List */}
@@ -460,8 +479,8 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                                 type="button"
                                                 onClick={() => setNewProduct({ ...newProduct, category: cat })}
                                                 className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${newProduct.category === cat
-                                                        ? 'bg-shop text-white shadow-lg shadow-shop/20'
-                                                        : 'bg-white/5 text-muted-foreground border border-white/10 hover:border-shop/30'
+                                                    ? 'bg-shop text-white shadow-lg shadow-shop/20'
+                                                    : 'bg-white/5 text-muted-foreground border border-white/10 hover:border-shop/30'
                                                     }`}
                                             >
                                                 {cat}
@@ -564,6 +583,14 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                     </div>
                 </div>
             )}
+
+            <ExcelImportModal
+                isOpen={isImportModalOpen}
+                onClose={() => setIsImportModalOpen(false)}
+                onSuccess={() => {
+                    router.refresh()
+                }}
+            />
 
             <ManageCategoriesModal
                 isOpen={isCatModalOpen}

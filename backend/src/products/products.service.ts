@@ -66,9 +66,66 @@ export class ProductsService {
         }
     }
 
+    async bulkCreate(createProductDtos: CreateProductDto[]) {
+        this.logger.log(`[PRODUCTS] Bulk creating ${createProductDtos.length} products`);
+        try {
+            const productsToInsert: any[] = [];
+
+            for (const dto of createProductDtos) {
+                // Generate Embedding for each (essential for search)
+                const embeddingText = `${dto.name} ${dto.description || ''} ${dto.category || ''}`;
+                let embedding: number[] | null = null;
+                try {
+                    embedding = await this.aiService.generateEmbedding(embeddingText);
+                } catch (e) {
+                    this.logger.warn(`Failed to generate embedding for ${dto.name}`);
+                }
+
+                productsToInsert.push({
+                    name: dto.name,
+                    description: dto.description,
+                    price: dto.price || 0,
+                    cost_price: dto.cost_price || 0,
+                    promo_price: dto.promo_price,
+                    stock: dto.stock || 0,
+                    min_stock: dto.min_stock || 2,
+                    category: dto.category || 'Général',
+                    brand: dto.brand || '',
+                    shop_id: dto.shop_id,
+                    created_by: dto.created_by,
+                    image: dto.image || '',
+                    images: dto.images || [],
+                    type: dto.type || 'product',
+                    expiry_date: dto.expiry_date,
+                    show_on_pos: dto.show_on_pos !== false,
+                    show_on_website: dto.show_on_website !== false,
+                    is_featured: dto.is_featured || false,
+                    variants: dto.variants || [],
+                    embedding: embedding
+                });
+            }
+
+            const { data, error } = await this.supabase
+                .from('products')
+                .insert(productsToInsert)
+                .select();
+
+            if (error) {
+                this.logger.error(`[PRODUCTS] Bulk Insert FAILED: ${error.message}`);
+                throw new Error(error.message);
+            }
+
+            this.logger.log(`[PRODUCTS] Bulk Success! Created ${data?.length || 0} products`);
+            return { count: data?.length || 0 };
+        } catch (err) {
+            this.logger.error(`[PRODUCTS] Critical Bulk Failure: ${err.message}`);
+            throw err;
+        }
+    }
+
     async findAll(shopId?: number) {
         this.logger.debug(`[PRODUCTS] Fetching list for shop: ${shopId || 'ALL'}`);
-        
+
         // On essaie de récupérer les avis avec les produits
         let query = this.supabase.from('products').select(`
             *,
@@ -88,7 +145,7 @@ export class ProductsService {
 
         return data.map((p: any) => {
             const approvedReviews = p.product_reviews?.filter((r: any) => r.status === 'approved') || [];
-            
+
             let avgRating: number;
             let reviewCount: number;
 
@@ -101,7 +158,7 @@ export class ProductsService {
                 const seed = (p.id * 7) % 13; // Génère un nombre entre 0 et 12
                 avgRating = 3.8 + (seed / 10);
                 if (avgRating > 5) avgRating = 5;
-                
+
                 // Nombre d'avis simulé (entre 5 et 25)
                 reviewCount = 5 + (p.id % 21);
             }
@@ -129,7 +186,7 @@ export class ProductsService {
         this.logger.log(`[PRODUCTS] Updating product ID: ${id}`);
         try {
             const updates: any = { ...updateProductDto };
-            
+
             // Re-generate embedding if key info changed
             if (updateProductDto.name || updateProductDto.description || updateProductDto.category) {
                 const current = await this.findOne(id);
@@ -173,7 +230,7 @@ export class ProductsService {
         this.logger.log(`[PRODUCTS] Renaming category from "${oldName}" to "${newName}"`);
         let query = this.supabase.from('products').update({ category: newName }).eq('category', oldName);
         if (shopId) query = query.eq('shop_id', shopId);
-        
+
         const { data, error } = await query.select();
         if (error) throw new Error(error.message);
         return { count: data?.length || 0 };
@@ -183,7 +240,7 @@ export class ProductsService {
         this.logger.log(`[PRODUCTS] Renaming brand from "${oldName}" to "${newName}"`);
         let query = this.supabase.from('products').update({ brand: newName }).eq('brand', oldName);
         if (shopId) query = query.eq('shop_id', shopId);
-        
+
         const { data, error } = await query.select();
         if (error) throw new Error(error.message);
         return { count: data?.length || 0 };
@@ -202,17 +259,17 @@ export class ProductsService {
     // GLOBAL COLOR MANAGEMENT
     async updateColor(oldColor: string, newColor: string, shopId?: number) {
         this.logger.log(`[PRODUCTS] Global rename color "${oldColor}" to "${newColor}"`);
-        
+
         // Fetch all products that have this color in variants
         let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', `[{"color": "${oldColor}"}]`);
         if (shopId) query = query.eq('shop_id', shopId);
-        
+
         const { data: products, error: fetchError } = await query;
         if (fetchError) throw fetchError;
 
         let updatedCount = 0;
         for (const product of products || []) {
-            const newVariants = product.variants.map((v: any) => 
+            const newVariants = product.variants.map((v: any) =>
                 v.color === oldColor ? { ...v, color: newColor } : v
             );
             await this.supabase.from('products').update({ variants: newVariants }).eq('id', product.id);
@@ -225,7 +282,7 @@ export class ProductsService {
         this.logger.log(`[PRODUCTS] Global delete color "${color}"`);
         let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', `[{"color": "${color}"}]`);
         if (shopId) query = query.eq('shop_id', shopId);
-        
+
         const { data: products, error: fetchError } = await query;
         if (fetchError) throw fetchError;
 
