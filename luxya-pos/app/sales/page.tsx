@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { 
-    Search, ShoppingCart, Plus, Minus, Trash2, Check, RefreshCw, 
-    LayoutDashboard, User, Calendar, Banknote, Wallet, FileText, 
-    MessageSquare, Trash, Pencil, ArrowRight, Truck, PlusCircle, Sparkles, X, Clock, Receipt, LogOut, Tags 
+import {
+    Search, ShoppingCart, Plus, Minus, Trash2, Check, RefreshCw,
+    LayoutDashboard, User, Calendar, Banknote, Wallet, FileText,
+    MessageSquare, Trash, Pencil, ArrowRight, Truck, PlusCircle, Sparkles, X, Clock, Receipt, LogOut, Tags
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -36,7 +36,7 @@ export default function SalesTerminal() {
     const [brands, setBrands] = useState<string[]>(['Toutes']);
     const [selectedBrand, setSelectedBrand] = useState('Toutes');
     const [isAgency, setIsAgency] = useState(false);
-    
+
     // Agency state
     const [agencyLines, setAgencyLines] = useState<any[]>([]);
     const [docType, setDocType] = useState<'quote' | 'invoice' | 'delivery_note'>('quote');
@@ -54,13 +54,16 @@ export default function SalesTerminal() {
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'shop' | 'history'>('shop');
 
+    // NEW: Image Error Handling
+    const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+
     useEffect(() => {
         if (activeShop) {
             // Reset filters when shop changes to avoid empty states
             setSelectedCategory('Toutes');
             setSelectedBrand('Toutes');
             setSearchQuery('');
-            
+
             fetchProducts();
             fetchHistory();
             fetchCustomers();
@@ -80,10 +83,10 @@ export default function SalesTerminal() {
             if (error) throw error;
             if (data) {
                 setProducts(data);
-                
+
                 // Only extract categories/brands from products visible on POS
                 const visibleProducts = data.filter((p: any) => p.show_on_pos !== false);
-                
+
                 const cats = new Set(visibleProducts.map((p: any) => p.category).filter(Boolean));
                 setCategories(['Toutes', ...Array.from(cats) as string[]]);
 
@@ -111,7 +114,7 @@ export default function SalesTerminal() {
 
             if (error) throw error;
             if (data) setAgencyHistory(data);
-        } catch (e) {}
+        } catch (e) { }
     };
 
     const fetchCustomers = async () => {
@@ -120,10 +123,10 @@ export default function SalesTerminal() {
                 .from('profiles')
                 .select('*')
                 .eq('user_type', 'client');
-            
+
             if (error) throw error;
             if (data) setAllCustomers(data);
-        } catch (e) {}
+        } catch (e) { }
     };
 
     const addToCart = (product: any) => {
@@ -133,7 +136,7 @@ export default function SalesTerminal() {
         }
         const existing = cart.find(item => item.id === product.id);
         if (existing) {
-            setCart(cart.map(item => 
+            setCart(cart.map(item =>
                 item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
             ));
         } else {
@@ -146,16 +149,16 @@ export default function SalesTerminal() {
     };
 
     const filteredProducts = products.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            (p.brand || '').toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (p.brand || '').toLowerCase().includes(searchQuery.toLowerCase());
         const matchesCategory = selectedCategory === 'Toutes' || p.category === selectedCategory;
         const matchesBrand = selectedBrand === 'Toutes' || p.brand === selectedBrand;
         return matchesSearch && matchesCategory && matchesBrand && p.show_on_pos !== false;
     });
 
     const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const totalAmount = isAgency 
+    const totalAmount = isAgency
         ? agencyLines.reduce((sum, l) => sum + (l.price * l.quantity), 0)
         : cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -203,9 +206,9 @@ export default function SalesTerminal() {
                 // Decrement stock using RPC
                 for (const item of cart) {
                     if (item.type !== 'service') {
-                        await supabase.rpc('decrement_stock', { 
-                            product_id: item.id, 
-                            quantity: item.quantity 
+                        await supabase.rpc('decrement_stock', {
+                            product_id: item.id,
+                            quantity: item.quantity
                         });
                     }
                 }
@@ -350,13 +353,13 @@ export default function SalesTerminal() {
 
                 {/* Mobile Tabs Controller */}
                 <div className="lg:hidden flex p-2 bg-black/20 backdrop-blur-md border-b border-white/5 sticky top-20 sm:top-24 z-20">
-                    <button 
+                    <button
                         onClick={() => setActiveTab('shop')}
                         className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground'}`}
                     >
                         <ShoppingCart className="w-3.5 h-3.5 mr-2" /> Catalogue
                     </button>
-                    <button 
+                    <button
                         onClick={() => setActiveTab('history')}
                         className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground'}`}
                     >
@@ -374,8 +377,8 @@ export default function SalesTerminal() {
                                     <div className="flex flex-col space-y-4">
                                         <div className="relative group">
                                             <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-shop transition-colors" />
-                                            <input 
-                                                type="text" 
+                                            <input
+                                                type="text"
                                                 placeholder="Chercher un produit par nom..."
                                                 className="w-full h-16 sm:h-20 bg-white/5 border border-white/10 rounded-[24px] sm:rounded-3xl pl-16 pr-6 text-sm font-bold focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 text-white"
                                                 value={searchQuery}
@@ -384,12 +387,12 @@ export default function SalesTerminal() {
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <CustomDropdown 
+                                            <CustomDropdown
                                                 label="Rayon / Catégorie"
-                                                options={categories.map(cat => ({ 
-                                                    label: cat, 
-                                                    value: cat, 
-                                                    icon: <Tags className="w-3.5 h-3.5" /> 
+                                                options={categories.map(cat => ({
+                                                    label: cat,
+                                                    value: cat,
+                                                    icon: <Tags className="w-3.5 h-3.5" />
                                                 }))}
                                                 value={selectedCategory}
                                                 onChange={setSelectedCategory}
@@ -397,12 +400,12 @@ export default function SalesTerminal() {
                                             />
 
                                             {brands.length > 1 && (
-                                                <CustomDropdown 
+                                                <CustomDropdown
                                                     label="Marque"
                                                     options={brands.map(brand => {
                                                         const visibleProducts = products.filter(p => p.show_on_pos !== false);
-                                                        const count = brand === 'Toutes' 
-                                                            ? visibleProducts.length 
+                                                        const count = brand === 'Toutes'
+                                                            ? visibleProducts.length
                                                             : visibleProducts.filter(p => p.brand === brand).length;
                                                         return {
                                                             label: `${brand} (${count})`,
@@ -429,15 +432,21 @@ export default function SalesTerminal() {
                                             {filteredProducts.map(p => {
                                                 const isOutOfStock = p.stock <= 0 && p.type !== 'service';
                                                 return (
-                                                    <button 
+                                                    <button
                                                         key={p.id}
                                                         onClick={() => addToCart(p)}
                                                         disabled={isOutOfStock}
                                                         className={`group relative bg-white/[0.03] border border-white/5 rounded-[32px] sm:rounded-[40px] p-4 sm:p-6 text-left hover:bg-white/[0.08] hover:border-shop/30 hover:scale-[1.02] active:scale-95 transition-all duration-500 overflow-hidden shadow-lg ${isOutOfStock ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
                                                     >
                                                         <div className="relative aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden mb-4 sm:mb-6 bg-black/20">
-                                                            {p.image ? (
-                                                                <Image src={p.image} alt={p.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                                                            {p.image && !imageErrors[p.id] ? (
+                                                                <Image
+                                                                    src={p.image}
+                                                                    alt={p.name}
+                                                                    fill
+                                                                    className="object-cover group-hover:scale-110 transition-transform duration-700"
+                                                                    onError={() => setImageErrors(prev => ({ ...prev, [p.id]: true }))}
+                                                                />
                                                             ) : (
                                                                 <div className="w-full h-full flex items-center justify-center">
                                                                     <LayoutDashboard className="w-8 h-8 text-white/10" />
@@ -461,9 +470,8 @@ export default function SalesTerminal() {
                                                             </div>
                                                         </div>
                                                         <div className="absolute top-4 left-4">
-                                                            <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border backdrop-blur-md ${
-                                                                p.stock <= 5 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'
-                                                            }`}>
+                                                            <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border backdrop-blur-md ${p.stock <= 5 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'
+                                                                }`}>
                                                                 Stock: {p.stock}
                                                             </div>
                                                         </div>
@@ -514,7 +522,7 @@ export default function SalesTerminal() {
                                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Recherche Produit Rapide</label>
                                                 <div className="relative group">
                                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-shop transition-colors" />
-                                                    <input 
+                                                    <input
                                                         list="agency-product-list"
                                                         value={productSearch}
                                                         onChange={e => setProductSearch(e.target.value)}
@@ -527,8 +535,8 @@ export default function SalesTerminal() {
                                                                 }
                                                             }
                                                         }}
-                                                        placeholder="Chercher..." 
-                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white" 
+                                                        placeholder="Chercher..."
+                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                                     />
                                                     <datalist id="agency-product-list">
                                                         {products.map(p => <option key={p.id} value={p.name}>{p.price.toLocaleString()} FCFA</option>)}
@@ -614,11 +622,10 @@ export default function SalesTerminal() {
                                                     <td className="px-8 py-6 text-[10px] font-bold text-muted-foreground uppercase">{new Date(sale.created_at).toLocaleDateString()}</td>
                                                     <td className="px-8 py-6">
                                                         <div className="flex flex-col">
-                                                            <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase w-fit ${
-                                                                sale.type === 'quote' ? 'bg-orange-500/20 text-orange-400' : 
-                                                                sale.type === 'delivery_note' ? 'bg-blue-500/20 text-blue-400' : 
-                                                                'bg-green-500/20 text-green-400'
-                                                            }`}>
+                                                            <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase w-fit ${sale.type === 'quote' ? 'bg-orange-500/20 text-orange-400' :
+                                                                sale.type === 'delivery_note' ? 'bg-blue-500/20 text-blue-400' :
+                                                                    'bg-green-500/20 text-green-400'
+                                                                }`}>
                                                                 {sale.type === 'quote' ? 'Devis' : sale.type === 'delivery_note' ? 'Bon de Livraison' : 'Facture'}
                                                             </span>
                                                             {sale.invoice_number && (
@@ -630,8 +637,8 @@ export default function SalesTerminal() {
                                                     <td className="px-8 py-6 text-center">
                                                         <div className="flex items-center justify-center space-x-2">
                                                             {isAgency && sale.type === 'quote' && (
-                                                                <button 
-                                                                    onClick={() => handleTransformDocument(sale, 'invoice')} 
+                                                                <button
+                                                                    onClick={() => handleTransformDocument(sale, 'invoice')}
                                                                     title="Transformer en Facture"
                                                                     className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
                                                                 >
@@ -639,8 +646,8 @@ export default function SalesTerminal() {
                                                                 </button>
                                                             )}
                                                             {isAgency && sale.type === 'invoice' && (
-                                                                <button 
-                                                                    onClick={() => handleTransformDocument(sale, 'delivery_note')} 
+                                                                <button
+                                                                    onClick={() => handleTransformDocument(sale, 'delivery_note')}
                                                                     title="Transformer en Bon de Livraison"
                                                                     className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white transition-all"
                                                                 >

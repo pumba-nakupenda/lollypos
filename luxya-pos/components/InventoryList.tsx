@@ -60,6 +60,9 @@ export default function InventoryList({ products, allCategories = [], allBrands 
     const [newBrandMode, setNewBrandMode] = useState(false)
     const [customBrand, setCustomBrand] = useState('')
 
+    // NEW: Image Error Handling
+    const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({})
+
     const addVariant = () => {
         if (!newVariant.color && !newVariant.size) return
         setVariants([...variants, { ...newVariant, id: Date.now() }])
@@ -311,13 +314,14 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                         >
                             <div className="flex items-center space-x-4 sm:space-x-6">
                                 <div className="h-14 w-14 sm:h-16 sm:w-16 glass-panel rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden bg-white/5 shrink-0">
-                                    {product.image ? (
+                                    {product.image && !imageErrors[product.id] ? (
                                         <Image
                                             className="h-full w-full object-cover transition-transform lg:group-hover:scale-110"
                                             src={product.image}
                                             alt={product.name}
                                             fill
                                             sizes="64px"
+                                            onError={() => setImageErrors(prev => ({ ...prev, [product.id]: true }))}
                                         />
                                     ) : (
                                         <Package className="h-6 w-6 sm:h-8 sm:w-8 text-white/10" />
