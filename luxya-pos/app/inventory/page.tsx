@@ -49,7 +49,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
 
   // SHOP RESTRICTION
   const effectiveShopId = profile.shop_id ? profile.shop_id.toString() : (searchParams.shopId || '1');
-  
+
   const activeShop = shops.find(s => s.id === +effectiveShopId) || shops[0];
   const shopName = activeShop.name;
 
@@ -63,29 +63,29 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
       .from('products')
       .select('*', { count: 'exact' })
       .eq('shop_id', +effectiveShopId);
-    
+
     if (searchQuery) {
-        query = query.ilike('name', `%${searchQuery}%`);
+      query = query.ilike('name', `%${searchQuery}%`);
     }
 
     if (categoryFilter !== 'Toutes') {
-        query = query.eq('category', categoryFilter);
+      query = query.eq('category', categoryFilter);
     }
 
     if (statusFilter !== 'all') {
-        if (statusFilter === 'out_of_stock') {
-            query = query.lte('stock', 0);
-        } else if (statusFilter === 'low_stock') {
-            query = query.gt('stock', 0).lte('stock', 2); // Assuming 2 is default min_stock
-        } else if (statusFilter === 'in_stock') {
-            query = query.gt('stock', 2);
-        }
+      if (statusFilter === 'out_of_stock') {
+        query = query.lte('stock', 0);
+      } else if (statusFilter === 'low_stock') {
+        query = query.gt('stock', 0).lte('stock', 2); // Assuming 2 is default min_stock
+      } else if (statusFilter === 'in_stock') {
+        query = query.gt('stock', 2);
+      }
     }
 
     const { data, error, count } = await query
       .order('name', { ascending: true })
       .range(from, to);
-    
+
     if (error) throw error;
     products = data || [];
     totalCount = count || 0;
@@ -95,7 +95,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
       .from('products')
       .select('price, cost_price, stock, category, brand')
       .eq('shop_id', +effectiveShopId);
-    
+
     allProductsForStats = statsData || [];
   } catch (e) {
     console.error('Failed to fetch products', e)
@@ -141,7 +141,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <Link 
+            <Link
               href="/inventory/quick"
               className="hidden sm:flex items-center px-4 py-2 bg-white/5 text-shop border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-shop/10 transition-all"
             >
@@ -149,7 +149,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
               Inventaire Rapide
             </Link>
             <div className="hidden md:block">
-               <ShopSelector />
+              <ShopSelector />
             </div>
             <CreateProductButton />
           </div>
@@ -175,7 +175,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
                   <h2 className="text-xl sm:text-2xl font-black text-blue-400 tracking-tight">{totalCost.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center absolute right-4 group-hover:bg-blue-500/20 transition-all">
-                    <TrendingUp className="w-4 h-4 text-blue-400" />
+                  <TrendingUp className="w-4 h-4 text-blue-400" />
                 </div>
               </div>
 
@@ -188,7 +188,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
                   <h2 className="text-xl sm:text-2xl font-black text-shop-secondary tracking-tight">{totalValue.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
                 </div>
                 <div className="w-8 h-8 rounded-full bg-shop-secondary/10 flex items-center justify-center absolute right-4 group-hover:bg-shop-secondary/20 transition-all">
-                    <TrendingUp className="w-4 h-4 text-shop-secondary" />
+                  <TrendingUp className="w-4 h-4 text-shop-secondary" />
                 </div>
               </div>
             </>
@@ -212,7 +212,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
         {totalPages > 1 && (
           <div className="flex justify-center items-center space-x-4 pt-8">
             {currentPage > 1 && (
-              <Link 
+              <Link
                 href={getPaginationLink(currentPage - 1)}
                 className="px-6 py-3 glass-card rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
               >
@@ -225,7 +225,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
               </span>
             </div>
             {currentPage < totalPages && (
-              <Link 
+              <Link
                 href={getPaginationLink(currentPage + 1)}
                 className="px-6 py-3 bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-shop/20"
               >

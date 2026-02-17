@@ -29,7 +29,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
     const router = useRouter()
     const searchParams = useSearchParams()
     const supabase = createClient()
-    
+
     const [selectedProduct, setSelectedProduct] = useState<any>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isCatModalOpen, setIsCatModalOpen] = useState(false)
@@ -38,22 +38,22 @@ export default function InventoryList({ products, allCategories = [], allBrands 
     // Quick Creation State
     const [isQuickModalOpen, setIsQuickModalOpen] = useState(false)
     const [isCreating, setIsCreating] = useState(false)
-    const [newProduct, setNewProduct] = useState({ 
-        name: '', 
-        price: '', 
+    const [newProduct, setNewProduct] = useState({
+        name: '',
+        price: '',
         cost_price: '',
-        stock: '1', 
-        category: 'Général', 
+        stock: '1',
+        category: 'Général',
         brand: '',
         expiry_date: '',
-        image: '' 
+        image: ''
     })
-    
+
     // NEW: Variants State for Quick Add
     const [variants, setVariants] = useState<any[]>([])
     const [newColorMode, setNewColorMode] = useState(false)
     const [newVariant, setNewVariant] = useState({ color: '', size: '' })
-    
+
     // NEW: Brand Selection State
     const [newBrandMode, setNewBrandMode] = useState(false)
     const [customBrand, setCustomBrand] = useState('')
@@ -138,18 +138,18 @@ export default function InventoryList({ products, allCategories = [], allBrands 
     useEffect(() => {
         const timer = setTimeout(() => {
             const params = new URLSearchParams(searchParams.toString());
-            
+
             if (searchQuery) params.set('q', searchQuery);
             else params.delete('q');
-            
+
             if (selectedCategory !== 'Toutes') params.set('category', selectedCategory);
             else params.delete('category');
-            
+
             if (stockStatus !== 'all') params.set('status', stockStatus);
             else params.delete('status');
-            
+
             params.set('page', '1'); // Reset to page 1 on new filter
-            
+
             // Only push if something actually changed to avoid infinite loops
             const newSearch = `?${params.toString()}`;
             const currentSearch = window.location.search;
@@ -268,7 +268,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                     onChange={setStockStatus}
                 />
 
-                <button 
+                <button
                     onClick={() => setIsQuickModalOpen(true)}
                     className="flex items-center justify-center px-6 py-3.5 bg-shop text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-shop/20"
                 >
@@ -314,7 +314,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                             {product.category || 'Général'}
                                         </span>
                                         {product.type === 'service' && <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-md border border-blue-500/20 text-[8px] sm:text-[10px] font-black uppercase tracking-widest">Service</span>}
-                                        
+
                                         <div className="flex items-center space-x-1.5 sm:ml-2">
                                             <div className={`w-1.5 h-1.5 rounded-full ${product.show_on_pos !== false ? 'bg-green-400' : 'bg-red-400'}`} title="Caisse" />
                                             <div className={`w-1.5 h-1.5 rounded-full ${product.show_on_website !== false ? 'bg-blue-400' : 'bg-red-400/30'}`} title="Site" />
@@ -379,9 +379,13 @@ export default function InventoryList({ products, allCategories = [], allBrands 
 
             {selectedProduct && (
                 <EditProductModal
+                    key={selectedProduct.id}
                     product={selectedProduct}
                     isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
+                    onClose={() => {
+                        setIsModalOpen(false)
+                        setSelectedProduct(null)
+                    }}
                 />
             )}
 
@@ -389,20 +393,20 @@ export default function InventoryList({ products, allCategories = [], allBrands 
             {isQuickModalOpen && (
                 <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 backdrop-blur-xl bg-black/40">
                     <div className="relative glass-card w-full max-w-md p-8 sm:p-10 rounded-[48px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
-                        <button onClick={() => setIsQuickModalOpen(false)} className="absolute top-8 right-8 p-2 hover:bg-white/5 rounded-full"><X/></button>
+                        <button onClick={() => setIsQuickModalOpen(false)} className="absolute top-8 right-8 p-2 hover:bg-white/5 rounded-full"><X /></button>
                         <h2 className="text-2xl font-black uppercase mb-8 flex items-center tracking-tighter italic">Ajout <span className="text-shop ml-2">Express.</span></h2>
                         <form onSubmit={handleCreateQuick} className="space-y-6">
-                            <div 
-                                onClick={() => fileInputRef.current?.click()} 
+                            <div
+                                onClick={() => fileInputRef.current?.click()}
                                 className="h-40 bg-white/5 rounded-[32px] border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden active:bg-white/10 cursor-pointer transition-all"
                             >
-                                {newProduct.image ? <img src={newProduct.image} className="w-full h-full object-cover" /> : <><Camera className="text-muted-foreground mb-2 w-8 h-8"/><p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Prendre / Charger Photo</p></>}
+                                {newProduct.image ? <img src={newProduct.image} className="w-full h-full object-cover" /> : <><Camera className="text-muted-foreground mb-2 w-8 h-8" /><p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Prendre / Charger Photo</p></>}
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileUpload} />
                             </div>
 
                             <div className="space-y-4">
-                                <input required placeholder="Nom du produit" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.name} onChange={e => setNewProduct({...newProduct, name: e.target.value})} />
-                                
+                                <input required placeholder="Nom du produit" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.name} onChange={e => setNewProduct({ ...newProduct, name: e.target.value })} />
+
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center px-1">
                                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Marque</p>
@@ -410,12 +414,12 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                             <button type="button" onClick={() => setNewBrandMode(!newBrandMode)} className="text-[10px] font-black uppercase text-shop hover:underline">
                                                 {newBrandMode ? 'Choisir' : '+ Nouvelle'}
                                             </button>
-                                            <button 
+                                            <button
                                                 type="button"
                                                 onClick={() => setIsBrandModalOpen(true)}
                                                 className="text-[10px] font-black uppercase text-muted-foreground hover:text-white flex items-center border-l border-white/10 pl-2 ml-2"
                                             >
-                                                <Edit2 className="w-3 h-3 mr-1"/> Gérer
+                                                <Edit2 className="w-3 h-3 mr-1" /> Gérer
                                             </button>
                                         </div>
                                     </div>
@@ -424,10 +428,10 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                     ) : (
                                         <div className="flex flex-wrap gap-2 py-1 max-h-24 overflow-y-auto no-scrollbar">
                                             {brands.length > 0 ? brands.map(b => (
-                                                <button 
-                                                    key={b} 
-                                                    type="button" 
-                                                    onClick={() => setNewProduct({...newProduct, brand: b})}
+                                                <button
+                                                    key={b}
+                                                    type="button"
+                                                    onClick={() => setNewProduct({ ...newProduct, brand: b })}
                                                     className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${newProduct.brand === b ? 'bg-white text-black shadow-lg' : 'bg-white/5 text-muted-foreground border border-white/10'}`}
                                                 >
                                                     {b}
@@ -440,26 +444,25 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                 <div className="space-y-2">
                                     <div className="flex justify-between items-center px-1">
                                         <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Catégorie</p>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => setIsCatModalOpen(true)}
                                             className="text-[10px] font-black uppercase text-shop hover:underline flex items-center"
                                         >
-                                            <Edit2 className="w-3 h-3 mr-1"/> Gérer
+                                            <Edit2 className="w-3 h-3 mr-1" /> Gérer
                                         </button>
                                     </div>
-                                    
+
                                     <div className="flex flex-wrap gap-2 mb-2 max-h-24 overflow-y-auto p-1 bg-white/[0.02] rounded-xl border border-white/5">
                                         {categories.filter(c => c !== 'Toutes').map(cat => (
                                             <button
                                                 key={cat}
                                                 type="button"
-                                                onClick={() => setNewProduct({...newProduct, category: cat})}
-                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
-                                                    newProduct.category === cat 
-                                                    ? 'bg-shop text-white shadow-lg shadow-shop/20' 
-                                                    : 'bg-white/5 text-muted-foreground border border-white/10 hover:border-shop/30'
-                                                }`}
+                                                onClick={() => setNewProduct({ ...newProduct, category: cat })}
+                                                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${newProduct.category === cat
+                                                        ? 'bg-shop text-white shadow-lg shadow-shop/20'
+                                                        : 'bg-white/5 text-muted-foreground border border-white/10 hover:border-shop/30'
+                                                    }`}
                                             >
                                                 {cat}
                                             </button>
@@ -468,39 +471,39 @@ export default function InventoryList({ products, allCategories = [], allBrands 
 
                                     <div className="relative">
                                         <Tags className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input placeholder="Nouvelle ou existante..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.category} onChange={e => setNewProduct({...newProduct, category: e.target.value})} />
+                                        <input placeholder="Nouvelle ou existante..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.category} onChange={e => setNewProduct({ ...newProduct, category: e.target.value })} />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="relative">
                                         <Package className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input required type="number" placeholder="Stock" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.stock} onChange={e => setNewProduct({...newProduct, stock: e.target.value})} />
+                                        <input required type="number" placeholder="Stock" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.stock} onChange={e => setNewProduct({ ...newProduct, stock: e.target.value })} />
                                     </div>
                                     <div className="relative">
                                         <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input required type="number" placeholder="Prix Vente" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.price} onChange={e => setNewProduct({...newProduct, price: e.target.value})} />
+                                        <input required type="number" placeholder="Prix Vente" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.price} onChange={e => setNewProduct({ ...newProduct, price: e.target.value })} />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="relative">
                                         <TrendingUp className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input type="number" placeholder="Prix Revient" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.cost_price} onChange={e => setNewProduct({...newProduct, cost_price: e.target.value})} />
+                                        <input type="number" placeholder="Prix Revient" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.cost_price} onChange={e => setNewProduct({ ...newProduct, cost_price: e.target.value })} />
                                     </div>
                                     <div className="relative">
                                         <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                        <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.expiry_date} onChange={e => setNewProduct({...newProduct, expiry_date: e.target.value})} />
+                                        <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50" value={newProduct.expiry_date} onChange={e => setNewProduct({ ...newProduct, expiry_date: e.target.value })} />
                                     </div>
                                 </div>
 
                                 {/* VARIANTS SECTION (Quick Add) */}
                                 <div className="space-y-4 p-6 bg-white/[0.03] rounded-[32px] border border-white/10">
                                     <div className="flex items-center justify-between">
-                                        <p className="text-[10px] font-black uppercase text-shop tracking-widest flex items-center"><Sparkles className="w-3 h-3 mr-2"/> Tailles & Couleurs</p>
+                                        <p className="text-[10px] font-black uppercase text-shop tracking-widest flex items-center"><Sparkles className="w-3 h-3 mr-2" /> Tailles & Couleurs</p>
                                         <span className="text-[8px] font-bold text-muted-foreground uppercase">{variants.length} ajoutées</span>
                                     </div>
-                                    
+
                                     <div className="space-y-3">
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center px-1">
@@ -509,22 +512,22 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                                     {newColorMode ? 'Choisir' : '+ Nouvelle'}
                                                 </button>
                                             </div>
-                                            
+
                                             {newColorMode ? (
-                                                <input 
-                                                    placeholder="Nom de la couleur..." 
-                                                    className="w-full bg-white/10 border border-shop/30 rounded-xl py-3 px-3 text-xs outline-none text-white animate-in slide-in-from-top-1" 
-                                                    value={newVariant.color} 
-                                                    onChange={e => setNewVariant({...newVariant, color: e.target.value})} 
+                                                <input
+                                                    placeholder="Nom de la couleur..."
+                                                    className="w-full bg-white/10 border border-shop/30 rounded-xl py-3 px-3 text-xs outline-none text-white animate-in slide-in-from-top-1"
+                                                    value={newVariant.color}
+                                                    onChange={e => setNewVariant({ ...newVariant, color: e.target.value })}
                                                     autoFocus
                                                 />
                                             ) : (
                                                 <div className="flex flex-wrap gap-2 py-1 max-h-24 overflow-y-auto no-scrollbar">
                                                     {colors.length > 0 ? colors.map(c => (
-                                                        <button 
-                                                            key={c} 
-                                                            type="button" 
-                                                            onClick={() => setNewVariant({...newVariant, color: c})}
+                                                        <button
+                                                            key={c}
+                                                            type="button"
+                                                            onClick={() => setNewVariant({ ...newVariant, color: c })}
                                                             className={`px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center space-x-2 ${newVariant.color === c ? 'bg-white text-black' : 'bg-white/5 text-muted-foreground border border-white/10'}`}
                                                         >
                                                             <div className="w-2 h-2 rounded-full border border-white/20" style={{ backgroundColor: c.toLowerCase() }} />
@@ -536,7 +539,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                         </div>
 
                                         <div className="flex gap-2">
-                                            <input placeholder="Taille" className="flex-1 bg-white/10 border border-white/10 rounded-xl py-3 px-3 text-xs outline-none focus:border-shop/50 text-white" value={newVariant.size} onChange={e => setNewVariant({...newVariant, size: e.target.value})} />
+                                            <input placeholder="Taille" className="flex-1 bg-white/10 border border-white/10 rounded-xl py-3 px-3 text-xs outline-none focus:border-shop/50 text-white" value={newVariant.size} onChange={e => setNewVariant({ ...newVariant, size: e.target.value })} />
                                             <button type="button" onClick={addVariant} className="px-6 bg-white text-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-90 transition-all">OK</button>
                                         </div>
                                     </div>
@@ -546,7 +549,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                             {variants.map(v => (
                                                 <div key={v.id} className="flex items-center space-x-2 bg-shop/20 border border-shop/30 px-3 py-1.5 rounded-full animate-in zoom-in-50 duration-200">
                                                     <span className="text-[9px] font-black uppercase text-shop">{v.color} {v.size}</span>
-                                                    <button type="button" onClick={() => removeVariant(v.id)} className="text-shop/60 hover:text-shop"><X className="w-3 h-3"/></button>
+                                                    <button type="button" onClick={() => removeVariant(v.id)} className="text-shop/60 hover:text-shop"><X className="w-3 h-3" /></button>
                                                 </div>
                                             ))}
                                         </div>
@@ -555,21 +558,21 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                             </div>
 
                             <button type="submit" disabled={isCreating} className="w-full py-5 bg-white text-black hover:bg-shop hover:text-white font-black uppercase rounded-[24px] shadow-xl transition-all active:scale-95">
-                                {isCreating ? <Loader2 className="animate-spin mx-auto"/> : "Valider l'ajout"}
+                                {isCreating ? <Loader2 className="animate-spin mx-auto" /> : "Valider l'ajout"}
                             </button>
                         </form>
                     </div>
                 </div>
             )}
 
-            <ManageCategoriesModal 
+            <ManageCategoriesModal
                 isOpen={isCatModalOpen}
                 onClose={() => setIsCatModalOpen(false)}
                 categories={categories}
                 shopId={activeShop?.id}
                 onRefresh={() => window.location.reload()}
             />
-            <ManageBrandsModal 
+            <ManageBrandsModal
                 isOpen={isBrandModalOpen}
                 onClose={() => setIsBrandModalOpen(false)}
                 brands={brands}

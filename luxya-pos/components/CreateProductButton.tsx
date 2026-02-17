@@ -19,7 +19,7 @@ export default function CreateProductButton() {
     const [galleryPreviews, setGalleryPreviews] = useState<string[]>([])
     const fileInputRef = useRef<HTMLInputElement>(null)
     const galleryInputRef = useRef<HTMLInputElement>(null)
-    
+
     // Refs for AI generation
     const nameRef = useRef<HTMLInputElement>(null)
     const descRef = useRef<HTMLTextAreaElement>(null)
@@ -27,14 +27,14 @@ export default function CreateProductButton() {
     const [newCategoryMode, setNewCategoryMode] = useState(false)
     const [customCategory, setCustomCategory] = useState('')
     const [selectedCategory, setSelectedCategory] = useState('Général')
-    
+
     const [newBrandMode, setNewBrandMode] = useState(false)
     const [customBrand, setCustomBrand] = useState('')
     const [selectedBrand, setSelectedBrand] = useState('')
-    
+
     const [existingCategories, setExistingCategories] = useState<string[]>([])
     const [existingBrands, setExistingBrands] = useState<string[]>([])
-    
+
     // NEW: Type selection
     const [itemType, setItemType] = useState<'product' | 'service'>('product')
 
@@ -79,7 +79,7 @@ export default function CreateProductButton() {
                 .then(data => {
                     const cats = new Set(data.map((p: any) => p.category).filter(Boolean))
                     setExistingCategories(Array.from(cats) as string[])
-                    
+
                     const bnds = new Set(data.map((p: any) => p.brand).filter(Boolean))
                     setExistingBrands(Array.from(bnds).sort() as string[])
                 })
@@ -123,7 +123,7 @@ export default function CreateProductButton() {
         formData.set('show_on_pos', showOnPos.toString())
         formData.set('show_on_website', showOnWebsite.toString())
         formData.set('variants', JSON.stringify(variants))
-        
+
         if (newCategoryMode && customCategory) {
             formData.set('category', customCategory)
         } else {
@@ -201,14 +201,14 @@ export default function CreateProductButton() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {/* Type Selection */}
                                     <div className="md:col-span-2 flex p-1 bg-white/5 rounded-2xl border border-white/10 w-full">
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => setItemType('product')}
                                             className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${itemType === 'product' ? 'bg-white text-black shadow-xl' : 'text-muted-foreground hover:text-white'}`}
                                         >
                                             <Package className="w-3.5 h-3.5 mr-2" /> Produit Physique
                                         </button>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => setItemType('service')}
                                             className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${itemType === 'service' ? 'bg-shop text-white shadow-xl' : 'text-muted-foreground hover:text-white'}`}
@@ -220,9 +220,9 @@ export default function CreateProductButton() {
                                     {/* Shop Selection (Only in Global View) */}
                                     {isGlobalView && (
                                         <div className="space-y-2 md:col-span-2">
-                                            <CustomDropdown 
+                                            <CustomDropdown
                                                 label="Boutique de destination"
-                                                options={shops.filter(s => s.id !== 0).map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5"/> }))}
+                                                options={shops.filter(s => s.id !== 0).map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5" /> }))}
                                                 value={selectedShopId}
                                                 onChange={setSelectedShopId}
                                             />
@@ -266,13 +266,13 @@ export default function CreateProductButton() {
                                         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center ml-2">
                                             <Sparkles className="w-3 h-3 mr-1.5 text-blue-400" /> Galerie Photos (Multiples)
                                         </label>
-                                        
+
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                                             {galleryPreviews.map((url, index) => (
                                                 <div key={index} className="relative aspect-square rounded-2xl overflow-hidden bg-white/5 border border-white/10 group">
                                                     <img src={url} alt={`Gallery ${index}`} className="w-full h-full object-cover" />
-                                                    <button 
-                                                        type="button" 
+                                                    <button
+                                                        type="button"
                                                         onClick={() => clearGalleryItem(index)}
                                                         className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                                                     >
@@ -280,7 +280,7 @@ export default function CreateProductButton() {
                                                     </button>
                                                 </div>
                                             ))}
-                                            
+
                                             <button
                                                 type="button"
                                                 onClick={() => galleryInputRef.current?.click()}
@@ -290,14 +290,14 @@ export default function CreateProductButton() {
                                                 <span className="text-[8px] font-black uppercase text-muted-foreground">Ajouter</span>
                                             </button>
                                         </div>
-                                        <input 
-                                            type="file" 
-                                            name="gallery" 
-                                            ref={galleryInputRef} 
-                                            onChange={handleGalleryChange} 
-                                            className="hidden" 
-                                            accept="image/*" 
-                                            multiple 
+                                        <input
+                                            type="file"
+                                            name="gallery"
+                                            ref={galleryInputRef}
+                                            onChange={handleGalleryChange}
+                                            className="hidden"
+                                            accept="image/*"
+                                            multiple
                                         />
                                     </div>
 
@@ -307,20 +307,20 @@ export default function CreateProductButton() {
                                             <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center">
                                                 <Package className="w-3 h-3 mr-1.5" /> Nom du Produit
                                             </label>
-                                            <button 
-                                                type="button" 
+                                            <button
+                                                type="button"
                                                 onClick={focusSearch}
                                                 className="text-[8px] font-black uppercase text-muted-foreground hover:text-white transition-colors flex items-center bg-white/5 px-3 py-1.5 rounded-lg border border-white/10"
                                             >
                                                 <Globe className="w-3 h-3 mr-1.5" /> Chercher une photo (Google)
                                             </button>
                                         </div>
-                                        <input 
-                                            name="name" 
+                                        <input
+                                            name="name"
                                             ref={nameRef}
-                                            required 
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 text-white" 
-                                            placeholder="Ex: Chemise Silk Premium" 
+                                            required
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 text-white"
+                                            placeholder="Ex: Chemise Silk Premium"
                                         />
                                     </div>
 
@@ -334,11 +334,11 @@ export default function CreateProductButton() {
                                                 {newBrandMode ? 'Choisir existante' : '+ Nouvelle'}
                                             </button>
                                         </div>
-                                        
+
                                         {newBrandMode ? (
                                             <input value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-4 text-sm focus:ring-2 focus:ring-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 text-white animate-in slide-in-from-top-2" placeholder="Nom de la nouvelle marque..." autoFocus />
                                         ) : (
-                                            <CustomDropdown 
+                                            <CustomDropdown
                                                 options={[
                                                     { label: 'Aucune marque', value: '', icon: <Tag className="w-3.5 h-3.5" /> },
                                                     ...existingBrands.map(b => ({ label: b, value: b, icon: <Tag className="w-3.5 h-3.5" /> }))
@@ -355,10 +355,10 @@ export default function CreateProductButton() {
                                         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center ml-2">
                                             <PlayCircle className="w-3 h-3 mr-1.5 text-red-400" /> Lien Vidéo (YouTube / MP4)
                                         </label>
-                                        <input 
-                                            name="video_url" 
-                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30" 
-                                            placeholder="Ex: https://www.youtube.com/watch?v=..." 
+                                        <input
+                                            name="video_url"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
+                                            placeholder="Ex: https://www.youtube.com/watch?v=..."
                                         />
                                     </div>
                                     {/* Prices */}
@@ -418,22 +418,22 @@ export default function CreateProductButton() {
                                                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-shop flex items-center">
                                                     <Sparkles className="w-3 h-3 mr-2" /> Variantes (Tailles & Couleurs)
                                                 </h4>
-                                                
+
                                                 <div className="grid grid-cols-3 gap-3">
-                                                    <input 
-                                                        value={newVariant.color} 
-                                                        onChange={e => setNewVariant({...newVariant, color: e.target.value})}
-                                                        placeholder="Couleur" 
-                                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50" 
+                                                    <input
+                                                        value={newVariant.color}
+                                                        onChange={e => setNewVariant({ ...newVariant, color: e.target.value })}
+                                                        placeholder="Couleur"
+                                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50"
                                                     />
-                                                    <input 
-                                                        value={newVariant.size} 
-                                                        onChange={e => setNewVariant({...newVariant, size: e.target.value})}
-                                                        placeholder="Taille" 
-                                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50" 
+                                                    <input
+                                                        value={newVariant.size}
+                                                        onChange={e => setNewVariant({ ...newVariant, size: e.target.value })}
+                                                        placeholder="Taille"
+                                                        className="bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-xs outline-none focus:border-shop/50"
                                                     />
-                                                    <button 
-                                                        type="button" 
+                                                    <button
+                                                        type="button"
                                                         onClick={addVariant}
                                                         className="bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
                                                     >
@@ -467,11 +467,11 @@ export default function CreateProductButton() {
                                                 {newCategoryMode ? 'Choisir existante' : '+ Nouvelle'}
                                             </button>
                                         </div>
-                                        
+
                                         {newCategoryMode ? (
                                             <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-4 text-sm focus:ring-2 focus:ring-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 animate-in slide-in-from-top-2" placeholder="Nom de la nouvelle catégorie..." autoFocus />
                                         ) : (
-                                            <CustomDropdown 
+                                            <CustomDropdown
                                                 options={categoryOptions}
                                                 value={selectedCategory}
                                                 onChange={setSelectedCategory}
@@ -480,63 +480,63 @@ export default function CreateProductButton() {
                                         )}
                                     </div>
 
-                                                                    {/* Description */}
-                                                                    <div className="space-y-2 md:col-span-2">
-                                                                        <div className="flex justify-between items-center mb-1">
-                                                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center ml-2">
-                                                                                <FileText className="w-3 h-3 mr-1.5" /> Description
-                                                                            </label>
-                                                                                                                    <button 
-                                                                                                                        type="button"
-                                                                                                                        onClick={async () => {
-                                                                                                                            const name = nameRef.current?.value;
-                                                                                                                            const category = selectedCategory;
-                                                                                                                            if (!name) {
-                                                                                                                                setError("Veuillez d'abord saisir un nom de produit");
-                                                                                                                                return;
-                                                                                                                            }
-                                                                                                                            
-                                                                                                                            try {
-                                                                                                                                const res = await fetch(`${API_URL}/ai/analyze`, {
-                                                                                                                                    method: 'POST',
-                                                                                                                                    headers: { 'Content-Type': 'application/json' },
-                                                                                                                                    body: JSON.stringify({ 
-                                                                                                                                        question: `Rédige une description de vente très courte (2 phrases maximum), élégante et persuasive pour un produit nommé "${name}" dans la catégorie "${category}". Ne réponds QUE par la description, sans introduction ni guillemets.` 
-                                                                                                                                    })
-                                                                                                                                });
-                                                                                                                                if (res.ok) {
-                                                                                                                                    const data = await res.json();
-                                                                                                                                    if (descRef.current) {
-                                                                                                                                        descRef.current.value = data.answer.trim().replace(/^"|"$/g, '');
-                                                                                                                                    }
-                                                                                                                                }
-                                                                                                                            } catch (e) {}
-                                                                                                                        }}
-                                                                                                                        className="flex items-center space-x-1.5 px-3 py-1 bg-shop/10 text-shop rounded-lg hover:bg-shop/20 transition-all text-[8px] font-black uppercase border border-shop/20"
-                                                                                                                    >
-                                                                                                                        <Sparkles className="w-3 h-3" />
-                                                                                                                        <span>Générer par IA</span>
-                                                                                                                    </button>
-                                                                                                                </div>
-                                                                                                                <textarea 
-                                                                                                                    name="description" 
-                                                                                                                    ref={descRef}
-                                                                                                                    rows={2} 
-                                                                                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 resize-none" 
-                                                                                                                    placeholder="Description détaillée du produit..." 
-                                                                                                                />
-                                                                                                            </div>                                    {/* Visibility Settings */}
+                                    {/* Description */}
+                                    <div className="space-y-2 md:col-span-2">
+                                        <div className="flex justify-between items-center mb-1">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest flex items-center ml-2">
+                                                <FileText className="w-3 h-3 mr-1.5" /> Description
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    const name = nameRef.current?.value;
+                                                    const category = selectedCategory;
+                                                    if (!name) {
+                                                        setError("Veuillez d'abord saisir un nom de produit");
+                                                        return;
+                                                    }
+
+                                                    try {
+                                                        const res = await fetch(`${API_URL}/ai/analyze`, {
+                                                            method: 'POST',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({
+                                                                question: `Rédige une description de vente très courte (2 phrases maximum), élégante et persuasive pour un produit nommé "${name}" dans la catégorie "${category}". Ne réponds QUE par la description, sans introduction ni guillemets.`
+                                                            })
+                                                        });
+                                                        if (res.ok) {
+                                                            const data = await res.json();
+                                                            if (descRef.current) {
+                                                                descRef.current.value = data.answer.trim().replace(/^"|"$/g, '');
+                                                            }
+                                                        }
+                                                    } catch (e) { }
+                                                }}
+                                                className="flex items-center space-x-1.5 px-3 py-1 bg-shop/10 text-shop rounded-lg hover:bg-shop/20 transition-all text-[8px] font-black uppercase border border-shop/20"
+                                            >
+                                                <Sparkles className="w-3 h-3" />
+                                                <span>Générer par IA</span>
+                                            </button>
+                                        </div>
+                                        <textarea
+                                            name="description"
+                                            ref={descRef}
+                                            rows={2}
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 resize-none"
+                                            placeholder="Description détaillée du produit..."
+                                        />
+                                    </div>                                    {/* Visibility Settings */}
                                     <div className="md:col-span-2 space-y-4 p-6 glass-panel rounded-3xl border border-white/5 bg-white/[0.01]">
                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground flex items-center">
                                             <Sparkles className="w-3 h-3 mr-2 text-shop" /> Paramètres d'affichage
                                         </h4>
-                                        
+
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-xs font-bold">Afficher sur la Caisse</p>
                                                 <p className="text-[8px] text-muted-foreground uppercase">Rendre visible pour la vente</p>
                                             </div>
-                                            <button 
+                                            <button
                                                 type="button"
                                                 onClick={() => setShowOnPos(!showOnPos)}
                                                 className={`w-12 h-6 rounded-full relative transition-all duration-300 ${showOnPos ? 'bg-shop shadow-[0_0_15px_rgba(var(--shop-primary),0.3)]' : 'bg-white/10'}`}
@@ -550,7 +550,7 @@ export default function CreateProductButton() {
                                                 <p className="text-xs font-bold">Afficher sur le Site Web</p>
                                                 <p className="text-[8px] text-muted-foreground uppercase">Disponible pour les clients en ligne</p>
                                             </div>
-                                            <button 
+                                            <button
                                                 type="button"
                                                 onClick={() => setShowOnWebsite(!showOnWebsite)}
                                                 className={`w-12 h-6 rounded-full relative transition-all duration-300 ${showOnWebsite ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]' : 'bg-white/10'}`}
