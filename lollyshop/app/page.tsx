@@ -73,6 +73,9 @@ async function getProducts(filters: {
 async function getFilterData(shopId?: string) {
     try {
         const supabase = await createClient();
+
+        // Fetch ALL products to get complete category and brand lists
+        // This is independent of pagination to ensure all categories are always visible
         let query = supabase
             .from('products')
             .select('category, brand')
@@ -82,11 +85,12 @@ async function getFilterData(shopId?: string) {
             query = query.eq('shop_id', shopId);
         }
 
+        // No pagination here - we need all unique categories/brands
         const { data, error } = await query;
         if (error) throw error;
 
-        const categories = Array.from(new Set(data.map((p: any) => p.category).filter(Boolean))).sort() as string[];
-        const brands = Array.from(new Set(data.map((p: any) => p.brand).filter(Boolean))).sort() as string[];
+        const categories = Array.from(new Set(data?.map((p: any) => p.category).filter(Boolean) || [])).sort() as string[];
+        const brands = Array.from(new Set(data?.map((p: any) => p.brand).filter(Boolean) || [])).sort() as string[];
 
         return { categories, brands };
     } catch (e) {
