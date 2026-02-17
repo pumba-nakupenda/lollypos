@@ -488,6 +488,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                         </div>
                     ))}
                 </div>
+            )}
 
             {selectedProduct && (
                 <EditProductModal
