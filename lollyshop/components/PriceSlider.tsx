@@ -18,25 +18,21 @@ export default function PriceSlider({
 }: PriceSliderProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
+    const [mounted, setMounted] = useState(false)
 
     // Parse current price from URL: "min-max"
     const currentPriceParam = searchParams.get('price') || ''
-    const initialRange = currentPriceParam.includes('-')
-        ? currentPriceParam.split('-').map(Number)
-        : [min, max]
 
     const [range, setRange] = useState({
-        min: !isNaN(initialRange[0]) ? initialRange[0] : min,
-        max: !isNaN(initialRange[1]) ? initialRange[1] : max
+        min: min,
+        max: max
     })
 
-    // Update local state if URL changes (e.g. on reset)
     useEffect(() => {
-        if (!currentPriceParam) {
-            setRange({ min, max })
-        } else if (currentPriceParam.includes('-')) {
+        setMounted(true)
+        if (currentPriceParam.includes('-')) {
             const [uMin, uMax] = currentPriceParam.split('-').map(Number)
-            setRange({ min: uMin, max: uMax })
+            setRange({ min: !isNaN(uMin) ? uMin : min, max: !isNaN(uMax) ? uMax : max })
         }
     }, [currentPriceParam, min, max])
 
@@ -63,16 +59,25 @@ export default function PriceSlider({
 
     // Debounce URL update when user stops sliding
     useEffect(() => {
+        if (!mounted) return
         const timer = setTimeout(() => {
-            if (range.min !== initialRange[0] || range.max !== initialRange[1]) {
+            const [urlMin, urlMax] = currentPriceParam.includes('-')
+                ? currentPriceParam.split('-').map(Number)
+                : [min, max]
+
+            if (range.min !== urlMin || range.max !== urlMax) {
                 updateUrl(range.min, range.max)
             }
         }, 500)
         return () => clearTimeout(timer)
-    }, [range, updateUrl, initialRange])
+    }, [range, updateUrl, currentPriceParam, min, max, mounted])
 
     const minPos = ((range.min - min) / (max - min)) * 100
     const maxPos = ((range.max - min) / (max - min)) * 100
+
+    if (!mounted) return <div className="w-full h-32 animate-pulse bg-gray-50 rounded-2xl" />
+
+    const inputClass = "absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0055ff] [&::-webkit-slider-thumb]:shadow-lg active:[&::-webkit-slider-thumb]:scale-125 transition-transform"
 
     return (
         <div className="w-full px-2 py-4">
@@ -105,11 +110,7 @@ export default function PriceSlider({
                     step={step}
                     value={range.min}
                     onChange={handleMinChange}
-                    className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none cursor-pointer z-10 
-                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto 
-                    [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full 
-                    [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0055ff] 
-                    [&::-webkit-slider-thumb]:shadow-lg active:[&::-webkit-slider-thumb]:scale-125 transition-transform"
+                    className={`${inputClass} z-10`}
                 />
 
                 {/* Max Input */}
@@ -120,11 +121,7 @@ export default function PriceSlider({
                     step={step}
                     value={range.max}
                     onChange={handleMaxChange}
-                    className="absolute w-full h-1.5 appearance-none bg-transparent pointer-events-none cursor-pointer z-20
-                    [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto 
-                    [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full 
-                    [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#0055ff] 
-                    [&::-webkit-slider-thumb]:shadow-lg active:[&::-webkit-slider-thumb]:scale-125 transition-transform"
+                    className={`${inputClass} z-20`}
                 />
             </div>
 
