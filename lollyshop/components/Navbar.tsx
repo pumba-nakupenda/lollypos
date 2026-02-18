@@ -23,6 +23,7 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState('');
+    const [isAccountOpen, setIsAccountOpen] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -42,14 +43,14 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
             {/* Main Modern Navbar */}
             <header className="z-[100] w-full bg-[#131921]/95 backdrop-blur-md text-white sticky top-0 md:relative border-b border-white/5">
                 <div className="max-w-[1500px] mx-auto px-4 py-2">
-                    
+
                     {/* Top Row: Logo & Actions */}
                     <div className="flex items-center justify-between mb-2 md:mb-0 md:gap-8">
                         {/* Brand Logo */}
                         <Link href="/" className="flex-shrink-0 pt-1.5 hover:opacity-80 transition-all">
-                            <img 
-                                src="/logo_white.png" 
-                                alt="Lolly Shop" 
+                            <img
+                                src="/logo_white.png"
+                                alt="Lolly Shop"
                                 className="h-7 md:h-10 w-auto object-contain"
                             />
                         </Link>
@@ -69,8 +70,8 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                                 <div className="bg-[#f3f3f3] hover:bg-[#dadada] px-3 rounded-l-md border-r border-gray-300 text-[11px] font-bold items-center text-gray-600 cursor-pointer transition-all shrink-0 flex">
                                     Tout <ChevronDown className="w-3 h-3 ml-1" />
                                 </div>
-                                <input 
-                                    type="text" 
+                                <input
+                                    type="text"
                                     placeholder="Chercher un produit, une marque..."
                                     className="flex-1 bg-white border-none px-4 text-base text-black focus:ring-2 focus:ring-[#0055ff]/20 outline-none min-w-0"
                                     value={searchQuery}
@@ -85,38 +86,47 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                         {/* Right Actions */}
                         <div className="flex items-center gap-3 md:gap-6 shrink-0">
                             {/* Account / Login */}
-                            {user ? (
-                                <div className="flex flex-col items-center md:items-start p-1 rounded-sm transition-all cursor-pointer relative group">
-                                    <User className="w-5 h-5 md:hidden text-gray-300" />
-                                    <div className="hidden md:block text-right">
-                                        <p className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Bonjour, {user.email?.split('@')[0]}</p>
-                                        <p className="text-xs md:text-sm font-black tracking-tight uppercase flex items-center justify-end">Compte <ChevronDown className="w-3 h-3 ml-1" /></p>
-                                    </div>
-                                    
-                                    {/* Dropdown Menu */}
-                                    <div className="absolute top-full right-0 mt-0 w-48 bg-white text-black shadow-2xl rounded-2xl border border-gray-100 hidden group-hover:block z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                                        <div className="p-4 space-y-3">
-                                            <Link href="/account" className="flex items-center text-xs font-bold hover:text-lolly"><User className="w-3 h-3 mr-2" /> Mon Compte</Link>
-                                            {isAdmin && (
-                                                <Link href="/admin" className="flex items-center text-xs font-bold text-red-600 hover:underline"><ShieldCheck className="w-3 h-3 mr-2" /> Admin Lolly</Link>
-                                            )}
-                                            <div className="h-px bg-gray-100 my-1" />
-                                            <button onClick={signOut} className="w-full text-left text-xs font-black uppercase text-gray-500 hover:text-black">Déconnexion</button>
+                            {mounted && (
+                                user ? (
+                                    <div
+                                        className="flex flex-col items-center md:items-start p-1 rounded-sm transition-all cursor-pointer relative"
+                                        onMouseEnter={() => setIsAccountOpen(true)}
+                                        onMouseLeave={() => setIsAccountOpen(false)}
+                                        onClick={() => setIsAccountOpen(!isAccountOpen)}
+                                    >
+                                        <User className="w-5 h-5 md:hidden text-gray-300" />
+                                        <div className="hidden md:block text-right">
+                                            <p className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Bonjour, {user.email?.split('@')[0]}</p>
+                                            <p className="text-xs md:text-sm font-black tracking-tight uppercase flex items-center justify-end">Compte <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${isAccountOpen ? 'rotate-180' : ''}`} /></p>
                                         </div>
+
+                                        {/* Dropdown Menu */}
+                                        {isAccountOpen && (
+                                            <div className="absolute top-full right-0 mt-0 w-48 bg-white text-black shadow-2xl rounded-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                                                <div className="p-4 space-y-3">
+                                                    <Link href="/account" className="flex items-center text-xs font-bold hover:text-lolly"><User className="w-3 h-3 mr-2" /> Mon Compte</Link>
+                                                    {isAdmin && (
+                                                        <Link href="/admin" className="flex items-center text-xs font-bold text-red-600 hover:underline"><ShieldCheck className="w-3 h-3 mr-2" /> Admin Lolly</Link>
+                                                    )}
+                                                    <div className="h-px bg-gray-100 my-1" />
+                                                    <button onClick={signOut} className="w-full text-left text-xs font-black uppercase text-gray-500 hover:text-black">Déconnexion</button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            ) : (
-                                <Link href="/login" className="flex flex-col items-center md:items-start p-1 transition-all">
-                                    <User className="w-5 h-5 md:hidden text-gray-300" />
-                                    <div className="hidden md:block">
-                                        <span className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Identifiez-vous</span>
-                                        <span className="text-xs md:text-sm font-black tracking-tight uppercase block">Compte</span>
-                                    </div>
-                                </Link>
+                                ) : (
+                                    <Link href="/login" className="flex flex-col items-center md:items-start p-1 transition-all">
+                                        <User className="w-5 h-5 md:hidden text-gray-300" />
+                                        <div className="hidden md:block">
+                                            <span className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Identifiez-vous</span>
+                                            <span className="text-xs md:text-sm font-black tracking-tight uppercase block">Compte</span>
+                                        </div>
+                                    </Link>
+                                )
                             )}
 
                             {/* Cart Button */}
-                            <button 
+                            <button
                                 onClick={() => setIsCartOpen(true)}
                                 className="relative flex items-center p-1 rounded-sm transition-all group"
                             >
@@ -138,8 +148,8 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                     {/* Mobile Search Bar (Only visible on mobile) */}
                     <div className="md:hidden w-full pb-2">
                         <form onSubmit={handleSearch} className="relative flex h-10 w-full">
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 placeholder="Chercher un article..."
                                 className="w-full bg-white/10 border border-white/10 rounded-xl px-4 pl-10 text-sm text-white placeholder:text-gray-400 focus:bg-white focus:text-black focus:placeholder:text-gray-300 outline-none transition-all"
                                 value={searchQuery}
@@ -153,7 +163,7 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                 {/* Sub-Navbar - RESPONSIVE HEIGHT */}
                 <div className="bg-[#232f3e] pl-4 pr-0 py-0 overflow-x-auto no-scrollbar flex items-center shadow-md h-10 md:h-[60px] border-t border-white/5">
                     <div className="flex items-center space-x-4 md:space-x-6 h-full py-1 pr-4 shrink-0">
-                        <button 
+                        <button
                             onClick={() => setIsMenuOpen(true)}
                             className="flex items-center space-x-1 hover:outline-1 hover:outline-white px-2 py-1 rounded-sm text-xs md:text-sm font-bold whitespace-nowrap"
                         >
@@ -175,13 +185,13 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                         <Link href="/?sort=promo" className="text-xs md:text-sm font-medium hover:outline-1 hover:outline-white px-2 py-1 rounded-sm whitespace-nowrap">Promos</Link>
                         <Link href="/?sort=best" className="text-xs md:text-sm font-medium hover:outline-1 hover:outline-white px-2 py-1 rounded-sm whitespace-nowrap">Ventes</Link>
                     </div>
-                    
+
                     {/* Mini Image */}
                     {settings?.event?.mini_image && (
                         <Link href={settings.event.link || "/?sort=promo"} className="ml-auto hidden sm:block h-full transition-all overflow-hidden shrink-0">
-                            <img 
-                                src={settings.event.mini_image} 
-                                alt="Promo" 
+                            <img
+                                src={settings.event.mini_image}
+                                alt="Promo"
                                 className="h-full w-auto object-contain max-w-[250px] md:max-w-[600px]"
                             />
                         </Link>
@@ -189,13 +199,13 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                 </div>
             </header>
 
-            <CartDrawer 
-                isOpen={isCartOpen} 
-                onClose={() => setIsCartOpen(false)} 
+            <CartDrawer
+                isOpen={isCartOpen}
+                onClose={() => setIsCartOpen(false)}
                 whatsappNumber={settings?.whatsapp_number}
             />
 
-            <MegaMenu 
+            <MegaMenu
                 isOpen={isMenuOpen}
                 onClose={() => setIsMenuOpen(false)}
                 categories={categories}

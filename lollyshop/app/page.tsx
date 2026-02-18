@@ -121,10 +121,28 @@ async function getFilterData(filters: { shopId?: string, cat?: string }) {
 
         const brands = Array.from(new Set(brandData?.map((p: any) => p.brand).filter(Boolean) || [])).sort() as string[];
 
-        return { categories, brands };
+        // 3. Fetch Price Range (min/max)
+        let priceQuery = supabase
+            .from('products')
+            .select('price')
+            .neq('show_on_website', false);
+
+        if (filters.shopId && filters.shopId !== 'all') {
+            priceQuery = priceQuery.eq('shop_id', filters.shopId);
+        }
+        if (filters.cat && filters.cat !== 'all') {
+            priceQuery = priceQuery.eq('category', filters.cat);
+        }
+
+        const { data: priceData } = await priceQuery;
+        const prices = priceData?.map((p: any) => p.price).filter(Number) || [];
+        const min_price = prices.length > 0 ? Math.floor(Math.min(...prices)) : 0;
+        const max_price = prices.length > 0 ? Math.ceil(Math.max(...prices)) : 200000;
+
+        return { categories, brands, min_price, max_price };
     } catch (e) {
         console.error("getFilterData failed:", e);
-        return { categories: [], brands: [] };
+        return { categories: [], brands: [], min_price: 0, max_price: 200000 };
     }
 }
 
@@ -168,7 +186,7 @@ export default async function Home(props: {
     const onlyInStock = searchParams.stock || "false";
 
     // Dynamic loading of products based on filters
-    const [{ products: filteredProducts, totalCount }, siteSettings, { categories, brands }] = await Promise.all([
+    const [{ products: filteredProducts, totalCount }, siteSettings, { categories, brands, min_price, max_price }] = await Promise.all([
         getProducts({
             page: currentPage,
             shopId: shopFilter,
@@ -312,14 +330,14 @@ export default async function Home(props: {
                                 {brands.length > 0 && (
                                     <div>
                                         <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Marques</h3>
-                                        <div className="flex lg:flex-col gap-4 lg:gap-2 max-h-48 overflow-y-auto custom-scrollbar">{brands.map(brand => (<Link key={brand} href={`/?brand=${brand}&shop=${shopFilter}&cat=${catFilter}&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`block text-[11px] font-bold whitespace-nowrap transition-colors ${brandFilter === brand ? 'text-[#0055ff] lg:translate-x-1' : 'text-gray-500 hover:text-black'}`}>{brand}</Link>))}</div>
+                                        <div className="flex lg:flex-col gap-4 lg:gap-2 max-h-48 overflow-y-auto custom-scrollbar">{brands.map((brand: string) => (<Link key={brand} href={`/?brand=${brand}&shop=${shopFilter}&cat=${catFilter}&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`block text-[11px] font-bold whitespace-nowrap transition-colors ${brandFilter === brand ? 'text-[#0055ff] lg:translate-x-1' : 'text-gray-500 hover:text-black'}`}>{brand}</Link>))}</div>
                                     </div>
                                 )}
 
 
                                 <div>
                                     <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Budget</h3>
-                                    <PriceSlider />
+                                    <PriceSlider min={min_price} max={max_price} />
                                 </div>
                             </div>
                         </aside>
