@@ -30,13 +30,7 @@ export default function PriceSlider({
         max: !isNaN(initialRange[1]) ? initialRange[1] : max
     })
 
-    const [isMounted, setIsMounted] = useState(false)
-
-    useEffect(() => {
-        setIsMounted(true)
-    }, [])
-
-    // Update local state if URL changes (e.g. on reset) or props change
+    // Update local state if URL changes (e.g. on reset)
     useEffect(() => {
         if (!currentPriceParam) {
             setRange({ min, max })
@@ -79,12 +73,6 @@ export default function PriceSlider({
 
     const minPos = ((range.min - min) / (max - min)) * 100
     const maxPos = ((range.max - min) / (max - min)) * 100
-
-    // IMPORTANT: Return placeholder until mounted to avoid hydration mismatch
-    // But do it AFTER all hooks are declared to satisfy Rules of Hooks
-    if (!isMounted) {
-        return <div className="w-full h-24 bg-gray-50/50 animate-pulse rounded-2xl border border-gray-100/50" />
-    }
 
     return (
         <div className="w-full px-2 py-4">

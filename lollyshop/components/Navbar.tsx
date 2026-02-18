@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Search, Menu, User, MapPin, ChevronDown, Sparkles, X, Tags, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, Search, Menu, User, MapPin, ChevronDown, Sparkles, X, Tags, ShieldCheck, LogOut } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useUser } from '@/context/UserContext';
 import CartDrawer from './CartDrawer';
@@ -24,6 +24,7 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
     const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState('');
     const [isAccountOpen, setIsAccountOpen] = useState(false);
+    const accountTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
     useEffect(() => {
         setMounted(true);
@@ -36,6 +37,17 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
         if (searchQuery) params.set('q', searchQuery);
         else params.delete('q');
         router.push(`/?${params.toString()}`);
+    };
+
+    const handleAccountEnter = () => {
+        if (accountTimerRef.current) clearTimeout(accountTimerRef.current);
+        setIsAccountOpen(true);
+    };
+
+    const handleAccountLeave = () => {
+        accountTimerRef.current = setTimeout(() => {
+            setIsAccountOpen(false);
+        }, 150);
     };
 
     return (
@@ -86,43 +98,60 @@ export default function Navbar({ settings, categories = [] }: NavbarProps) {
                         {/* Right Actions */}
                         <div className="flex items-center gap-3 md:gap-6 shrink-0">
                             {/* Account / Login */}
-                            {mounted && (
-                                user ? (
-                                    <div
-                                        className="flex flex-col items-center md:items-start p-1 rounded-sm transition-all cursor-pointer relative"
-                                        onMouseEnter={() => setIsAccountOpen(true)}
-                                        onMouseLeave={() => setIsAccountOpen(false)}
-                                        onClick={() => setIsAccountOpen(!isAccountOpen)}
-                                    >
-                                        <User className="w-5 h-5 md:hidden text-gray-300" />
-                                        <div className="hidden md:block text-right">
-                                            <p className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Bonjour, {user.email?.split('@')[0]}</p>
-                                            <p className="text-xs md:text-sm font-black tracking-tight uppercase flex items-center justify-end">Compte <ChevronDown className={`w-3 h-3 ml-1 transition-transform ${isAccountOpen ? 'rotate-180' : ''}`} /></p>
-                                        </div>
+                            {user ? (
+                                <div
+                                    className="flex flex-col items-center md:items-start p-1 rounded-sm transition-all cursor-pointer relative"
+                                    onMouseEnter={handleAccountEnter}
+                                    onMouseLeave={handleAccountLeave}
+                                >
+                                    <User className="w-5 h-5 md:hidden text-gray-300" />
+                                    <div className="hidden md:block text-right">
+                                        <p className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Bonjour, {user.email?.split('@')[0]}</p>
+                                        <p className="text-xs md:text-sm font-black tracking-tight uppercase flex items-center justify-end">Compte <ChevronDown className="w-3 h-3 ml-1" /></p>
+                                    </div>
 
-                                        {/* Dropdown Menu */}
-                                        {isAccountOpen && (
-                                            <div className="absolute top-full right-0 mt-0 w-48 bg-white text-black shadow-2xl rounded-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                                                <div className="p-4 space-y-3">
-                                                    <Link href="/account" className="flex items-center text-xs font-bold hover:text-lolly"><User className="w-3 h-3 mr-2" /> Mon Compte</Link>
+                                    {/* Dropdown Menu */}
+                                    {isAccountOpen && (
+                                        <>
+                                            {/* Bridge element to prevent hover loss */}
+                                            <div className="absolute top-full left-0 w-full h-2 z-[49]" />
+
+                                            <div className="absolute top-full right-0 mt-1 w-56 bg-white text-black shadow-2xl rounded-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                                <div className="p-5 space-y-4">
+                                                    <Link href="/account" className="flex items-center text-[11px] font-black uppercase tracking-tight hover:text-lolly transition-colors">
+                                                        <User className="w-3.5 h-3.5 mr-3 text-gray-400" />
+                                                        Mon Compte
+                                                    </Link>
+
                                                     {isAdmin && (
-                                                        <Link href="/admin" className="flex items-center text-xs font-bold text-red-600 hover:underline"><ShieldCheck className="w-3 h-3 mr-2" /> Admin Lolly</Link>
+                                                        <Link href="/admin" className="flex items-center text-[11px] font-black uppercase tracking-tight text-red-600 hover:text-red-700 transition-colors">
+                                                            <ShieldCheck className="w-3.5 h-3.5 mr-3" />
+                                                            Admin Lolly
+                                                        </Link>
                                                     )}
+
                                                     <div className="h-px bg-gray-100 my-1" />
-                                                    <button onClick={signOut} className="w-full text-left text-xs font-black uppercase text-gray-500 hover:text-black">Déconnexion</button>
+
+                                                    <button
+                                                        onClick={signOut}
+                                                        className="w-full flex items-center text-[11px] font-black uppercase tracking-tight text-gray-500 hover:text-black transition-colors"
+                                                    >
+                                                        <LogOut className="w-3.5 h-3.5 mr-3 text-gray-400" />
+                                                        Déconnexion
+                                                    </button>
                                                 </div>
                                             </div>
-                                        )}
+                                        </>
+                                    )}
+                                </div>
+                            ) : (
+                                <Link href="/login" className="flex flex-col items-center md:items-start p-1 transition-all">
+                                    <User className="w-5 h-5 md:hidden text-gray-300" />
+                                    <div className="hidden md:block">
+                                        <span className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Identifiez-vous</span>
+                                        <span className="text-xs md:text-sm font-black tracking-tight uppercase block">Compte</span>
                                     </div>
-                                ) : (
-                                    <Link href="/login" className="flex flex-col items-center md:items-start p-1 transition-all">
-                                        <User className="w-5 h-5 md:hidden text-gray-300" />
-                                        <div className="hidden md:block">
-                                            <span className="text-[10px] md:text-[11px] font-medium leading-none text-gray-400">Identifiez-vous</span>
-                                            <span className="text-xs md:text-sm font-black tracking-tight uppercase block">Compte</span>
-                                        </div>
-                                    </Link>
-                                )
+                                </Link>
                             )}
 
                             {/* Cart Button */}
