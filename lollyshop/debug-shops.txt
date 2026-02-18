@@ -1,0 +1,4 @@
+Fetching ALL products to group by Shop...
+Total Unique Categories: 25
+Shop 1 (Luxya) Categories (24): Accessoires / Pinceaux, Bague, Boucle D'oreille, Bracelets, CHAUSSURES FEMME, Cartable, Chaine, Chaussure Homme, Contour, Crayon yeux, Eyeliner, Fard à paupières, Fixateur maquillage, Fond de teint, Gloss à Lèvres, Mascara, Parrure, Poudre, Rouge à Lèvres, Saccoche, Sacs, Sautoire, Sautoire Perle, Sautoire Simple
+Shop 2 (Homtek) Categories (1): Général

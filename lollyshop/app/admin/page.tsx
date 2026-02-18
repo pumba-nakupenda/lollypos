@@ -2,18 +2,49 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { AdminGuard } from '@/components/AdminGuard';
-import { 
-    LayoutDashboard, ShoppingCart, Users, Package, Settings, 
-    ArrowLeft, Save, Plus, Trash2, Image as ImageIcon, 
-    Megaphone, Calendar, Upload, Loader2, X, Search, 
-    Globe, Eye, EyeOff, Star, TrendingUp, 
-    Filter, CheckCircle2, Clock, Truck, AlertCircle, 
-    ExternalLink, ChevronDown, UserCheck, Award, Phone, User, Ticket, Printer, MessageSquare, ThumbsUp, ThumbsDown, Pencil, RotateCcw
+import {
+    LayoutDashboard, ShoppingCart, Users, Package, Settings,
+    ArrowLeft, Save, Plus, Trash2, Image as ImageIcon,
+    Megaphone, Calendar, Upload, Loader2, X, Search,
+    Globe, Eye, EyeOff, Star, TrendingUp,
+    Filter, CheckCircle2, Clock, Truck, AlertCircle,
+    ExternalLink, ChevronDown, UserCheck, Award, Phone, User, Ticket, Printer, MessageSquare, ThumbsUp, ThumbsDown, Pencil, RotateCcw, Tags
 } from 'lucide-react';
 import Link from 'next/link';
 import CustomerDetailsModal from '@/components/CustomerDetailsModal';
 import EditProductModal from '@/components/EditProductModal';
 import { useToast } from '@/context/ToastContext';
+
+const DEFAULT_GROUPS = [
+    {
+        title: "Beauté & Maquillage",
+        match: [
+            "Maquillage", "Fond de teint", "Gloss", "Mascara", "Poudre", "Rouge à Lèvres",
+            "Yeux", "Pinceaux", "Accessoires / Pinceaux", "Crayon", "Eye Liner", "Palette",
+            "Sains & Beauté", "Soins", "Visage", "Corps", "Cheveux", "Ongles"
+        ]
+    },
+    {
+        title: "Bijoux & Montres",
+        match: ["Bijoux", "Montres", "Parrure", "Sautoire", "Bracelet", "Boucles", "Bague", "Collier", "Chaine"]
+    },
+    {
+        title: "Maroquinerie & Accessoires",
+        match: ["Sacs", "Saccoche", "Portefeuille", "Ceinture", "Lunettes", "Chapeau", "Casquette", "Bonnet"]
+    },
+    {
+        title: "Parfums",
+        match: ["Parfum", "Eau de toilette"]
+    },
+    {
+        title: "Maison & Déco",
+        match: ["Maison", "Déco", "Cuisine", "Salle de bain", "Chambre", "Salon"]
+    },
+    {
+        title: "High-Tech",
+        match: ["Téléphone", "Smartphone", "Tablette", "Ordinateur", "Accessoires Tel", "Audio", "Son", "Image"]
+    }
+];
 
 export default function AdminDashboard() {
     const { showToast } = useToast();
@@ -35,10 +66,22 @@ export default function AdminDashboard() {
     const [searchQuery, setSearchQuery] = useState('');
     const [shopFilter, setShopFilter] = useState('all');
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+
     const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [categories, setCategories] = useState<string[]>([]);
+    const [collapsedGroups, setCollapsedGroups] = useState<number[]>([]);
+
+    const toggleGroupCollapse = (index: number) => {
+        setCollapsedGroups(prev =>
+            prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index]
+        );
+    };
 
     useEffect(() => {
-        if (activeTab === 'config') fetchSettings();
+        if (activeTab === 'config') {
+            fetchSettings();
+            fetchCategories();
+        }
         if (activeTab === 'products') fetchProducts();
         if (activeTab === 'orders' || activeTab === 'dashboard') fetchOrders();
         if (activeTab === 'customers') fetchCustomers();
@@ -50,7 +93,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (orders.length > 0 || products.length > 0) {
             // Calculate Daily Sales (last 7 days)
-            const days = Array.from({length: 7}, (_, i) => {
+            const days = Array.from({ length: 7 }, (_, i) => {
                 const d = new Date();
                 d.setDate(d.getDate() - i);
                 return d.toISOString().split('T')[0];
@@ -95,6 +138,19 @@ export default function AdminDashboard() {
             setSettings(data);
         } catch (error) { console.error("Failed to fetch settings"); }
         finally { setLoading(false); }
+    };
+
+    const fetchCategories = async () => {
+        try {
+            const res = await fetch('/api/admin/products');
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                // Filter by products shown on website to be shop-aware
+                const visibleProducts = data.filter((p: any) => p.show_on_website);
+                const unique = Array.from(new Set(visibleProducts.map((p: any) => p.category))).filter(Boolean).sort() as string[];
+                setCategories(unique);
+            }
+        } catch (error) { console.error("Failed to fetch categories"); }
     };
 
     const fetchShippingZones = async () => {
@@ -324,14 +380,59 @@ export default function AdminDashboard() {
         });
     };
 
+    // --- Category Groups Helpers ---
+    const addCategoryGroup = () => {
+        const newGroup = {
+            title: "Nouvel Univers",
+            match: ["mot-clé"]
+        };
+        const currentGroups = settings.category_groups || [];
+        setSettings({ ...settings, category_groups: [...currentGroups, newGroup] });
+    };
+
+    const removeCategoryGroup = (index: number) => {
+        const newGroups = [...(settings.category_groups || [])];
+        newGroups.splice(index, 1);
+        setSettings({ ...settings, category_groups: newGroups });
+    };
+
+    const updateCategoryGroup = (index: number, field: string, value: any) => {
+        const newGroups = [...(settings.category_groups || [])];
+        newGroups[index] = { ...newGroups[index], [field]: value };
+        setSettings({ ...settings, category_groups: newGroups });
+    };
+
+    const updateCategoryGroupMatch = (index: number, str: string) => {
+        const newGroups = [...(settings.category_groups || [])];
+        // Split by comma
+        const matchArray = str.split(',').map(s => s.trim()).filter(Boolean);
+        newGroups[index].match = matchArray;
+        setSettings({ ...settings, category_groups: newGroups });
+    };
+
+    const addCategoryToGroup = (index: number, category: string) => {
+        const newGroups = [...(settings.category_groups || [])];
+        const currentMatches = newGroups[index].match || [];
+        if (!currentMatches.includes(category)) {
+            newGroups[index].match = [...currentMatches, category];
+            setSettings({ ...settings, category_groups: newGroups });
+        }
+    };
+
+    const loadDefaultGroups = () => {
+        if (confirm("Attention: Cela va remplacer la configuration actuelle des univers. Continuer ?")) {
+            setSettings({ ...settings, category_groups: DEFAULT_GROUPS });
+        }
+    };
+
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesShop = shopFilter === 'all' || p.shop_id?.toString() === shopFilter;
         return matchesSearch && matchesShop;
     });
 
-    const filteredCustomers = customers.filter(c => 
-        c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const filteredCustomers = customers.filter(c =>
+        c.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.phone?.includes(searchQuery)
     );
@@ -345,7 +446,7 @@ export default function AdminDashboard() {
                         <h1 className="brand-lolly text-3xl italic font-black">LOLLY<span className="text-lolly">.</span></h1>
                         <p className="text-[9px] font-black uppercase tracking-[0.4em] text-gray-500 mt-2">Gestion Boutique</p>
                     </div>
-                    
+
                     <nav className="flex-1 p-6 space-y-3">
                         <AdminLink icon={<LayoutDashboard className="w-4 h-4" />} label="Tableau de Bord" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
                         <AdminLink icon={<Users className="w-4 h-4" />} label="Clients" active={activeTab === 'customers'} onClick={() => setActiveTab('customers')} />
@@ -394,8 +495,8 @@ export default function AdminDashboard() {
                                                     <div className="absolute -top-8 bg-lolly text-white text-[8px] font-black px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                                                         {day.total.toLocaleString()} CFA
                                                     </div>
-                                                    <div 
-                                                        className="w-full bg-lolly/20 group-hover:bg-lolly/40 transition-all rounded-t-xl relative overflow-hidden" 
+                                                    <div
+                                                        className="w-full bg-lolly/20 group-hover:bg-lolly/40 transition-all rounded-t-xl relative overflow-hidden"
                                                         style={{ height: `${height}%`, minHeight: '4px' }}
                                                     >
                                                         <div className="absolute inset-0 bg-gradient-to-t from-lolly/40 to-transparent" />
@@ -418,7 +519,7 @@ export default function AdminDashboard() {
                                                 <div key={i} className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
                                                     <div className="flex items-center space-x-4">
                                                         <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-[10px] font-black text-gray-500">
-                                                            #{i+1}
+                                                            #{i + 1}
                                                         </div>
                                                         <span className="text-xs font-bold text-gray-300">{p.name}</span>
                                                     </div>
@@ -462,8 +563,8 @@ export default function AdminDashboard() {
                                 </div>
                                 <div className="relative">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                    <input 
-                                        type="text" 
+                                    <input
+                                        type="text"
                                         placeholder="Nom, email ou téléphone..."
                                         className="bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-6 text-xs font-bold focus:border-lolly/50 outline-none w-80 transition-all"
                                         value={searchQuery}
@@ -491,8 +592,8 @@ export default function AdminDashboard() {
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
                                             {filteredCustomers.map((c) => (
-                                                <tr 
-                                                    key={c.id} 
+                                                <tr
+                                                    key={c.id}
                                                     className="hover:bg-white/[0.03] transition-colors group cursor-pointer"
                                                     onClick={() => setSelectedCustomer(c)}
                                                 >
@@ -520,7 +621,7 @@ export default function AdminDashboard() {
                                                         <div className="flex flex-col items-center gap-2">
                                                             <div className="flex items-center space-x-2">
                                                                 <Award className="w-4 h-4 text-lolly" />
-                                                                <input 
+                                                                <input
                                                                     type="number"
                                                                     className="bg-black/40 border border-white/10 rounded-xl py-1 px-3 text-xs font-black w-20 text-center focus:border-lolly outline-none text-lolly"
                                                                     defaultValue={c.loyalty_points || 0}
@@ -532,7 +633,7 @@ export default function AdminDashboard() {
                                                     <td className="p-8 text-right">
                                                         <div className="flex flex-col items-end">
                                                             <p className="text-[10px] font-black uppercase text-gray-500">{new Date(c.created_at).toLocaleDateString('fr-FR')}</p>
-                                                            <button 
+                                                            <button
                                                                 className="mt-2 text-[8px] font-black uppercase tracking-widest text-lolly opacity-0 group-hover:opacity-100 transition-all flex items-center"
                                                             >
                                                                 Voir détails <ChevronDown className="w-2 h-2 ml-1 -rotate-90" />
@@ -558,15 +659,15 @@ export default function AdminDashboard() {
                                 <div className="flex items-center space-x-4">
                                     <div className="relative">
                                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             placeholder="Chercher un produit..."
                                             className="bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-6 text-xs font-bold focus:border-lolly/50 outline-none w-64 transition-all"
                                             value={searchQuery}
                                             onChange={e => setSearchQuery(e.target.value)}
                                         />
                                     </div>
-                                    <select 
+                                    <select
                                         className="bg-white/5 border border-white/10 rounded-2xl py-3 px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-lolly/50"
                                         value={shopFilter}
                                         onChange={e => setShopFilter(e.target.value)}
@@ -619,8 +720,8 @@ export default function AdminDashboard() {
                                                         <p className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-1">Stock: {p.stock}</p>
                                                     </td>
                                                     <td className="p-8">
-                                                        <input 
-                                                            type="number" 
+                                                        <input
+                                                            type="number"
                                                             placeholder="0"
                                                             className="bg-black/40 border border-white/10 rounded-xl py-2 px-4 text-xs font-bold w-24 focus:border-lolly outline-none transition-all text-white"
                                                             defaultValue={p.promo_price || ''}
@@ -629,7 +730,7 @@ export default function AdminDashboard() {
                                                     </td>
                                                     <td className="p-8">
                                                         <div className="flex justify-center">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => toggleProductVisibility(p.id, p.show_on_website)}
                                                                 className={`w-12 h-6 rounded-full relative transition-all ${p.show_on_website ? 'bg-lolly' : 'bg-white/10'}`}
                                                             >
@@ -639,13 +740,13 @@ export default function AdminDashboard() {
                                                     </td>
                                                     <td className="p-8 text-center">
                                                         <div className="flex items-center justify-center space-x-2">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => toggleProductFeatured(p.id, p.is_featured)}
                                                                 className={`p-3 rounded-2xl transition-all ${p.is_featured ? 'bg-orange-500/10 text-orange-500' : 'bg-white/5 text-white/10 hover:text-white/30'}`}
                                                             >
                                                                 <Star className={`w-5 h-5 ${p.is_featured ? 'fill-current' : ''}`} />
                                                             </button>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => setSelectedProduct(p)}
                                                                 className="p-3 bg-white/5 text-gray-500 hover:text-white rounded-2xl transition-all"
                                                                 title="Modifier"
@@ -709,7 +810,7 @@ export default function AdminDashboard() {
                                                             </span>
                                                         </td>
                                                         <td className="p-8 text-right">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleDeleteCoupon(coupon.id)}
                                                                 className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
                                                             >
@@ -750,7 +851,7 @@ export default function AdminDashboard() {
                                                 <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Code (ex: LOLLY2024)</label>
                                                 <input name="code" required type="text" className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly outline-none text-white uppercase" />
                                             </div>
-                                            
+
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Type</label>
@@ -822,7 +923,7 @@ export default function AdminDashboard() {
                                                             </p>
                                                         </td>
                                                         <td className="p-8 text-right">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => handleDeleteShippingZone(zone.id)}
                                                                 className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
                                                             >
@@ -854,7 +955,7 @@ export default function AdminDashboard() {
                                                 <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Nom de la Zone</label>
                                                 <input name="name" required type="text" placeholder="ex: Dakar Plateau" className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly outline-none text-white" />
                                             </div>
-                                            
+
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Tarif (CFA)</label>
@@ -918,20 +1019,19 @@ export default function AdminDashboard() {
                                                     <p className="text-[8px] text-gray-500 mt-2 uppercase">{new Date(review.created_at).toLocaleDateString()}</p>
                                                 </td>
                                                 <td className="p-8 text-center">
-                                                    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                                                        review.status === 'approved' ? 'bg-green-500/10 text-green-500' : 
-                                                        review.status === 'rejected' ? 'bg-red-500/10 text-red-500' : 
-                                                        'bg-orange-500/10 text-orange-500'
-                                                    }`}>
-                                                        {review.status === 'approved' ? 'Approuvé' : 
-                                                         review.status === 'rejected' ? 'Refusé' : 
-                                                         'En attente'}
+                                                    <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${review.status === 'approved' ? 'bg-green-500/10 text-green-500' :
+                                                        review.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                                                            'bg-orange-500/10 text-orange-500'
+                                                        }`}>
+                                                        {review.status === 'approved' ? 'Approuvé' :
+                                                            review.status === 'rejected' ? 'Refusé' :
+                                                                'En attente'}
                                                     </span>
                                                 </td>
                                                 <td className="p-8 text-right">
                                                     <div className="flex items-center justify-end space-x-2">
                                                         {review.status !== 'approved' && (
-                                                            <button 
+                                                            <button
                                                                 onClick={() => updateReviewStatus(review.id, 'approved')}
                                                                 className="p-3 bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white rounded-xl transition-all"
                                                                 title="Approuver"
@@ -940,7 +1040,7 @@ export default function AdminDashboard() {
                                                             </button>
                                                         )}
                                                         {review.status !== 'rejected' && (
-                                                            <button 
+                                                            <button
                                                                 onClick={() => updateReviewStatus(review.id, 'rejected')}
                                                                 className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
                                                                 title="Rejeter"
@@ -948,7 +1048,7 @@ export default function AdminDashboard() {
                                                                 <ThumbsDown className="w-4 h-4" />
                                                             </button>
                                                         )}
-                                                        <button 
+                                                        <button
                                                             onClick={() => deleteReview(review.id)}
                                                             className="p-3 bg-white/5 text-gray-500 hover:bg-red-500 hover:text-white rounded-xl transition-all"
                                                             title="Supprimer"
@@ -1009,10 +1109,10 @@ export default function AdminDashboard() {
                                                             <p className="text-sm font-black text-lolly italic">{Number(order.total_amount).toLocaleString()} CFA</p>
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <div className="flex flex-col items-end gap-4">
                                                         <OrderStatusBadge status={order.status} />
-                                                        <select 
+                                                        <select
                                                             className="bg-black/40 border border-white/10 rounded-xl py-2 px-4 text-[9px] font-black uppercase tracking-widest text-gray-400 outline-none focus:border-lolly transition-all"
                                                             value={order.status || 'pending'}
                                                             onChange={(e) => updateOrderStatus(order.id, e.target.value)}
@@ -1048,7 +1148,7 @@ export default function AdminDashboard() {
                                                             ))}
                                                         </div>
                                                     </div>
-                                                    
+
                                                     <div className="bg-white/[0.02] p-8 rounded-[32px] border border-white/5">
                                                         <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 mb-6 flex items-center">
                                                             <Truck className="w-3 h-3 mr-2" /> Logistique
@@ -1063,7 +1163,7 @@ export default function AdminDashboard() {
                                                                 <span className="font-black italic">{order.profiles?.phone || 'Non renseigné'}</span>
                                                             </div>
                                                             <div className="pt-4 mt-4 border-t border-white/5 space-y-3">
-                                                                <Link 
+                                                                <Link
                                                                     href={`/admin/orders/${order.id}/invoice`}
                                                                     target="_blank"
                                                                     className="w-full py-4 bg-lolly/10 hover:bg-lolly/20 text-lolly rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center space-x-2"
@@ -1100,7 +1200,7 @@ export default function AdminDashboard() {
                                     <h2 className="text-4xl font-black uppercase tracking-tighter italic">Configuration</h2>
                                     <p className="text-gray-500 text-sm font-medium uppercase tracking-widest mt-2">Design & Vitrine Digitale</p>
                                 </div>
-                                <button 
+                                <button
                                     onClick={handleSaveSettings}
                                     disabled={isSaving || !settings}
                                     className="flex items-center space-x-3 px-10 py-5 bg-lolly text-white rounded-3xl font-black uppercase text-[10px] tracking-[0.2em] hover:scale-105 transition-all shadow-2xl shadow-lolly/20 disabled:opacity-50"
@@ -1124,11 +1224,11 @@ export default function AdminDashboard() {
                                             </div>
                                             <h3 className="font-black uppercase italic text-sm tracking-widest text-white">Bandeau d'annonce</h3>
                                         </div>
-                                        <input 
-                                            type="text" 
+                                        <input
+                                            type="text"
                                             className="w-full bg-black/40 border border-white/10 rounded-2xl py-5 px-8 text-sm font-bold focus:border-lolly/50 outline-none transition-all text-white placeholder:text-white/10"
                                             value={settings.announcement}
-                                            onChange={e => setSettings({...settings, announcement: e.target.value})}
+                                            onChange={e => setSettings({ ...settings, announcement: e.target.value })}
                                             placeholder="Ex: LIVRAISON OFFERTE CE WEEK-END !"
                                         />
                                     </section>
@@ -1146,7 +1246,7 @@ export default function AdminDashboard() {
                                                 <span>Ajouter un slide</span>
                                             </button>
                                         </div>
-                                        
+
                                         <div className="space-y-10">
                                             {settings.slides.map((slide: any, i: number) => (
                                                 <div key={i} className="p-10 bg-black/40 rounded-[40px] border border-white/5 relative group">
@@ -1199,27 +1299,155 @@ export default function AdminDashboard() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="space-y-4">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Bannière Large (Desktop)</label>
-                                                    <ImageUploadField value={settings.event.image} onChange={(url) => setSettings({...settings, event: {...settings.event, image: url}})} />
+                                                    <ImageUploadField value={settings.event.image} onChange={(url) => setSettings({ ...settings, event: { ...settings.event, image: url } })} />
                                                 </div>
                                                 <div className="space-y-4">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Bannière Menu (600x60)</label>
-                                                    <ImageUploadField value={settings.event.mini_image} onChange={(url) => setSettings({...settings, event: {...settings.event, mini_image: url}})} />
+                                                    <ImageUploadField value={settings.event.mini_image} onChange={(url) => setSettings({ ...settings, event: { ...settings.event, mini_image: url } })} />
                                                 </div>
                                             </div>
                                             <div className="space-y-6">
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Titre de l'évènement</label>
-                                                    <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white" value={settings.event.title} onChange={e => setSettings({...settings, event: {...settings.event, title: e.target.value}})} />
+                                                    <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white" value={settings.event.title} onChange={e => setSettings({ ...settings, event: { ...settings.event, title: e.target.value } })} />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Description Marketing</label>
-                                                    <textarea rows={3} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white resize-none" value={settings.event.description} onChange={e => setSettings({...settings, event: {...settings.event, description: e.target.value}})} />
+                                                    <textarea rows={3} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white resize-none" value={settings.event.description} onChange={e => setSettings({ ...settings, event: { ...settings.event, description: e.target.value } })} />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Lien CTA</label>
-                                                    <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white" value={settings.event.link} onChange={e => setSettings({...settings, event: {...settings.event, link: e.target.value}})} />
+                                                    <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white" value={settings.event.link} onChange={e => setSettings({ ...settings, event: { ...settings.event, link: e.target.value } })} />
                                                 </div>
                                             </div>
+                                        </div>
+                                    </section>
+
+                                    {/* CATEGORY GROUPS SECTION */}
+                                    <section className="bg-white/5 border border-white/5 p-10 rounded-[48px] backdrop-blur-xl">
+                                        <div className="flex items-center justify-between mb-10">
+                                            <div className="flex items-center space-x-3">
+                                                <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-500">
+                                                    <Filter className="w-5 h-5" />
+                                                </div>
+                                                <h3 className="font-black uppercase italic text-sm tracking-widest text-white">Configuration des Univers</h3>
+                                            </div>
+                                            <div className="flex items-center space-x-3">
+                                                <button onClick={loadDefaultGroups} className="flex items-center space-x-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                                    <RotateCcw className="w-3 h-3" />
+                                                    <span>Charger Défauts</span>
+                                                </button>
+                                                <button onClick={addCategoryGroup} className="flex items-center space-x-2 px-5 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all">
+                                                    <Plus className="w-4 h-4" />
+                                                    <span>Ajouter un Univers</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            <p className="text-[10px] text-gray-400 bg-white/5 p-6 rounded-2xl border border-white/5 leading-relaxed">
+                                                Les "Univers" permettent de regrouper vos catégories dans la barre latérale du site. <br />
+                                                Ajoutez des mots-clés séparés par des virgules (ex: <em>rouge à lèvres, mascara</em>). Toute catégorie contenant ces mots sera classée dans cet univers.
+                                            </p>
+
+                                            {(settings.category_groups || []).map((group: any, index: number) => {
+                                                const isCollapsed = collapsedGroups.includes(index);
+                                                return (
+                                                    <div key={index} className="bg-black/40 border border-white/5 rounded-[32px] overflow-hidden hover:border-lolly/30 transition-all group relative">
+                                                        <div
+                                                            className="p-8 flex items-center justify-between cursor-pointer"
+                                                            onClick={() => toggleGroupCollapse(index)}
+                                                        >
+                                                            <div className="flex items-center space-x-4">
+                                                                <div className="w-10 h-10 rounded-2xl bg-lolly/10 flex items-center justify-center">
+                                                                    <Tags className="w-5 h-5 text-lolly" />
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="text-lg font-black uppercase tracking-tighter text-white">
+                                                                        {group.title || "Nouvel Univers"}
+                                                                    </h4>
+                                                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                                                        {group.match?.length || 0} catégories associées
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center space-x-3">
+                                                                <button onClick={(e) => { e.stopPropagation(); removeCategoryGroup(index); }} className="p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl transition-all opacity-0 group-hover:opacity-100">
+                                                                    <Trash2 className="w-5 h-5" />
+                                                                </button>
+                                                                <div className={`p-2 rounded-xl bg-white/5 text-gray-400 group-hover:text-white transition-all transform ${isCollapsed ? '' : 'rotate-180'}`}>
+                                                                    <ChevronDown className="w-5 h-5" />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {!isCollapsed && (
+                                                            <div className="p-8 pt-0 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                <div className="h-px bg-white/5 w-full" />
+                                                                <div className="space-y-4">
+                                                                    <div className="space-y-2">
+                                                                        <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Titre de l'Univers</label>
+                                                                        <input
+                                                                            value={group.title}
+                                                                            onChange={(e) => updateCategoryGroup(index, 'title', e.target.value)}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white placeholder:text-white/10"
+                                                                            placeholder="Ex: Beauté & Maquillage"
+                                                                        />
+                                                                    </div>
+
+                                                                    <div className="flex flex-col md:flex-row gap-6">
+                                                                        <div className="flex-1 space-y-2">
+                                                                            <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Mots-clés / Catégories (Modifiable)</label>
+                                                                            <textarea
+                                                                                value={group.match?.join(', ')}
+                                                                                onChange={(e) => updateCategoryGroupMatch(index, e.target.value)}
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold focus:border-lolly/50 outline-none text-white h-32 resize-none placeholder:text-white/10"
+                                                                                placeholder="Ex: rouge à lèvres, mascara, fond de teint..."
+                                                                            />
+                                                                        </div>
+                                                                        <div className="w-full md:w-64 space-y-2">
+                                                                            <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Ajouter une catégorie existante</label>
+                                                                            <div className="relative">
+                                                                                <select
+                                                                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold focus:border-lolly/50 outline-none text-white appearance-none cursor-pointer"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                    onChange={(e) => {
+                                                                                        if (e.target.value) {
+                                                                                            addCategoryToGroup(index, e.target.value);
+                                                                                            e.target.value = ""; // Reset select
+                                                                                        }
+                                                                                    }}
+                                                                                >
+                                                                                    <option value="">Sélectionner...</option>
+                                                                                    {(() => {
+                                                                                        const allUsed = (settings.category_groups || []).flatMap((g: any) => g.match || []);
+                                                                                        return categories.filter(cat => !allUsed.includes(cat)).map((cat, i) => (
+                                                                                            <option key={i} value={cat} className="text-black">{cat}</option>
+                                                                                        ));
+                                                                                    })()}
+                                                                                </select>
+                                                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                                                                                    <Plus className="w-4 h-4" />
+                                                                                </div>
+                                                                            </div>
+                                                                            <p className="text-[9px] text-gray-500 leading-tight p-2">
+                                                                                Sélectionnez une catégorie pour l'ajouter automatiquement à la liste des mots-clés de cet univers.
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                            {(settings.category_groups || []).length === 0 && (
+                                                <div className="text-center py-10 opacity-30 text-xs font-black uppercase tracking-widest">
+                                                    Aucun univers configuré.
+                                                </div>
+                                            )}
                                         </div>
                                     </section>
                                 </div>
@@ -1230,14 +1458,14 @@ export default function AdminDashboard() {
             </div>
 
             {selectedCustomer && (
-                <CustomerDetailsModal 
-                    customer={selectedCustomer} 
-                    onClose={() => setSelectedCustomer(null)} 
+                <CustomerDetailsModal
+                    customer={selectedCustomer}
+                    onClose={() => setSelectedCustomer(null)}
                 />
             )}
 
             {selectedProduct && (
-                <EditProductModal 
+                <EditProductModal
                     product={selectedProduct}
                     onClose={() => setSelectedProduct(null)}
                     onSave={(updated) => {

@@ -20,31 +20,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Initial session check
+        let mounted = true;
+
         const initAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                setUser(session.user);
-                await fetchProfile(session.user.id);
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (mounted) {
+                    if (session?.user) {
+                        setUser(session.user);
+                        await fetchProfile(session.user.id);
+                    }
+                    setLoading(false);
+                }
+            } catch (err) {
+                console.error("Auth init error:", err);
+                if (mounted) setLoading(false);
             }
-            setLoading(false);
         };
 
         initAuth();
 
-        // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user) {
-                setUser(session.user);
-                await fetchProfile(session.user.id);
-            } else {
-                setUser(null);
-                setProfile(null);
+            if (mounted) {
+                if (session?.user) {
+                    setUser(session.user);
+                    await fetchProfile(session.user.id);
+                } else {
+                    setUser(null);
+                    setProfile(null);
+                }
+                setLoading(false);
             }
-            setLoading(false);
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+        };
     }, [supabase]);
 
     const fetchProfile = async (userId: string) => {

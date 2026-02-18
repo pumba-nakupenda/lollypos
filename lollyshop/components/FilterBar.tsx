@@ -5,12 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, SlidersHorizontal, X, ChevronDown, ArrowUpDown, CheckCircle2, Filter } from 'lucide-react'
 import FilterDrawer from './FilterDrawer'
 
+
 interface FilterBarProps {
     categories: string[]
     resultsCount: number
+    brands: string[]
 }
 
-export default function FilterBar({ categories, resultsCount }: FilterBarProps) {
+export default function FilterBar({ categories, resultsCount, brands }: FilterBarProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isPending, startTransition] = useTransition()
@@ -19,6 +21,7 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
     const [q, setQ] = useState(searchParams.get('q') || '')
     const [shop, setShop] = useState(searchParams.get('shop') || 'all')
     const [cat, setCat] = useState(searchParams.get('cat') || 'all')
+    const [brand, setBrand] = useState(searchParams.get('brand') || 'all')
     const [sort, setSort] = useState(searchParams.get('sort') || 'newest')
     const [inStock, setInStock] = useState(searchParams.get('stock') === 'true')
 
@@ -47,6 +50,7 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
         if (key === 'q') setQ('')
         if (key === 'shop') setShop('all')
         if (key === 'cat') setCat('all')
+        if (key === 'brand') setBrand('all')
         if (key === 'stock') setInStock(false)
         updateFilters({ [key]: 'all' })
     }
@@ -55,13 +59,24 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
     if (searchParams.get('q')) activeFilters.push({ key: 'q', label: `"${searchParams.get('q')}"` })
     if (shop !== 'all') activeFilters.push({ key: 'shop', label: shop === '1' ? 'Luxya' : 'Homtek' })
     if (cat !== 'all') activeFilters.push({ key: 'cat', label: cat })
+    if (brand !== 'all') activeFilters.push({ key: 'brand', label: brand })
     if (inStock) activeFilters.push({ key: 'stock', label: 'En Stock' })
+
+    const priceRange = searchParams.get('price') || ''
+    if (priceRange) {
+        if (priceRange.includes('-')) {
+            activeFilters.push({ key: 'price', label: `${priceRange.replace('-', ' - ')} CFA` })
+        } else {
+            const labels: any = { low: '< 10k', mid: '10k - 50k', high: '> 50k' }
+            activeFilters.push({ key: 'price', label: labels[priceRange] || priceRange })
+        }
+    }
 
     return (
         <div className="w-full space-y-4" suppressHydrationWarning>
             {/* Mobile Filter Button */}
             <div className="lg:hidden flex items-center justify-between mb-4">
-                <button 
+                <button
                     onClick={() => setIsDrawerOpen(true)}
                     className="flex items-center space-x-2 bg-black text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
                 >
@@ -75,14 +90,14 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
 
             <div className="hidden lg:block bg-white rounded-[32px] shadow-2xl shadow-black/5 border border-gray-100 p-3">
                 <div className="flex flex-col lg:flex-row gap-3">
-                    
+
                     {/* Search */}
                     <div className="flex-1 relative">
                         <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${isPending ? 'text-[#0055ff] animate-pulse' : 'text-gray-300'}`} />
-                        <input 
+                        <input
                             value={q}
                             onChange={(e) => setQ(e.target.value)}
-                            placeholder="Rechercher..." 
+                            placeholder="Rechercher..."
                             className="w-full bg-gray-50 border-none rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold outline-none focus:ring-2 focus:ring-[#0055ff]/10 transition-all"
                         />
                     </div>
@@ -107,6 +122,15 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         </div>
 
+                        {/* Brand */}
+                        <div className="relative min-w-[150px]">
+                            <select value={brand} onChange={(e) => { setBrand(e.target.value); updateFilters({ brand: e.target.value }); }} className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 pr-8 text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer">
+                                <option value="all">Marque</option>
+                                {brands.map(b => <option key={b} value={b}>{b}</option>)}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+                        </div>
+
                         {/* Sort */}
                         <div className="relative min-w-[140px]">
                             <select value={sort} onChange={(e) => { setSort(e.target.value); updateFilters({ sort: e.target.value }); }} className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 pr-8 text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer">
@@ -118,7 +142,7 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
                         </div>
 
                         {/* Stock Toggle */}
-                        <button 
+                        <button
                             onClick={() => { const newState = !inStock; setInStock(newState); updateFilters({ stock: newState }); }}
                             className={`flex items-center px-4 rounded-xl transition-all border ${inStock ? 'bg-[#0055ff]/10 border-[#0055ff] text-[#0055ff]' : 'bg-gray-50 border-transparent text-gray-400 hover:text-black'}`}
                         >
@@ -134,7 +158,7 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
                 <div className="flex flex-wrap items-center gap-2 px-2">
                     <span className="text-[10px] font-black uppercase tracking-widest text-gray-300 mr-2">{resultsCount} résultats pour :</span>
                     {activeFilters.map(f => (
-                        <button 
+                        <button
                             key={f.key}
                             onClick={() => removeFilter(f.key)}
                             className="flex items-center bg-black text-white px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest hover:bg-[#0055ff] transition-all group"
@@ -143,20 +167,21 @@ export default function FilterBar({ categories, resultsCount }: FilterBarProps) 
                             <X className="w-3 h-3 ml-2 text-gray-500 group-hover:text-white" />
                         </button>
                     ))}
-                    <button onClick={() => { setQ(''); setShop('all'); setCat('all'); setInStock(false); router.push('/') }} className="text-[9px] font-black uppercase tracking-widest text-red-500 hover:underline ml-2">
+                    <button onClick={() => { setQ(''); setShop('all'); setCat('all'); setBrand('all'); setInStock(false); router.push('/') }} className="text-[9px] font-black uppercase tracking-widest text-red-500 hover:underline ml-2">
                         Tout effacer
                     </button>
                 </div>
             )}
 
-            <FilterDrawer 
-                isOpen={isDrawerOpen} 
-                onClose={() => setIsDrawerOpen(false)} 
+            <FilterDrawer
+                isOpen={isDrawerOpen}
+                onClose={() => setIsDrawerOpen(false)}
                 categories={categories}
-                brands={[]} // Not used in drawer for now or fetch if needed
+                brands={brands}
                 activeFilters={{
                     shop: searchParams.get('shop'),
                     cat: searchParams.get('cat'),
+                    brand: searchParams.get('brand'),
                     price: searchParams.get('price')
                 }}
             />

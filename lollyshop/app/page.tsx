@@ -9,6 +9,9 @@ import { createClient } from "../utils/supabase/server";
 import { API_URL } from "@/utils/api";
 import FilterBar from "@/components/FilterBar";
 import Initializer from "@/components/Initializer";
+import { groupCategories } from "@/lib/category-groups";
+import CollapsibleCategoryGroup from "@/components/CollapsibleCategoryGroup";
+import PriceSlider from "@/components/PriceSlider";
 
 async function getProducts(filters: {
     page?: number,
@@ -42,9 +45,19 @@ async function getProducts(filters: {
         if (filters.stock === 'true') query = query.gt('stock', 0);
         if (filters.q) query = query.ilike('name', `%${filters.q}%`);
 
-        if (filters.price === 'low') query = query.lt('price', 10000);
-        else if (filters.price === 'mid') query = query.gte('price', 10000).lte('price', 50000);
-        else if (filters.price === 'high') query = query.gt('price', 50000);
+        if (filters.price) {
+            if (filters.price.includes('-')) {
+                const [min, max] = filters.price.split('-').map(Number);
+                if (!isNaN(min)) query = query.gte('price', min);
+                if (!isNaN(max)) query = query.lte('price', max);
+            } else if (filters.price === 'low') {
+                query = query.lt('price', 10000);
+            } else if (filters.price === 'mid') {
+                query = query.gte('price', 10000).lte('price', 50000);
+            } else if (filters.price === 'high') {
+                query = query.gt('price', 50000);
+            }
+        }
 
         // Special Filter for Promos
         if (filters.sort === 'promo') {
@@ -70,27 +83,43 @@ async function getProducts(filters: {
     }
 }
 
-async function getFilterData(shopId?: string) {
+
+async function getFilterData(filters: { shopId?: string, cat?: string }) {
     try {
         const supabase = await createClient();
 
-        // Fetch ALL products to get complete category and brand lists
-        // This is independent of pagination to ensure all categories are always visible
-        let query = supabase
+        // 1. Fetch categories (always based on shop only, to keep navigation open)
+        let catQuery = supabase
             .from('products')
-            .select('category, brand')
+            .select('category')
             .neq('show_on_website', false);
 
-        if (shopId && shopId !== 'all') {
-            query = query.eq('shop_id', shopId);
+        if (filters.shopId && filters.shopId !== 'all') {
+            catQuery = catQuery.eq('shop_id', filters.shopId);
         }
 
-        // No pagination here - we need all unique categories/brands
-        const { data, error } = await query;
-        if (error) throw error;
+        const { data: catData, error: catError } = await catQuery;
+        if (catError) throw catError;
+        const categories = Array.from(new Set(catData?.map((p: any) => p.category).filter(Boolean) || [])).sort() as string[];
 
-        const categories = Array.from(new Set(data?.map((p: any) => p.category).filter(Boolean) || [])).sort() as string[];
-        const brands = Array.from(new Set(data?.map((p: any) => p.brand).filter(Boolean) || [])).sort() as string[];
+
+        // 2. Fetch brands (based on shop AND category if selected)
+        let brandQuery = supabase
+            .from('products')
+            .select('brand')
+            .neq('show_on_website', false);
+
+        if (filters.shopId && filters.shopId !== 'all') {
+            brandQuery = brandQuery.eq('shop_id', filters.shopId);
+        }
+        if (filters.cat && filters.cat !== 'all') {
+            brandQuery = brandQuery.eq('category', filters.cat);
+        }
+
+        const { data: brandData, error: brandError } = await brandQuery;
+        if (brandError) throw brandError;
+
+        const brands = Array.from(new Set(brandData?.map((p: any) => p.brand).filter(Boolean) || [])).sort() as string[];
 
         return { categories, brands };
     } catch (e) {
@@ -151,8 +180,9 @@ export default async function Home(props: {
             stock: onlyInStock
         }),
         getSiteSettings(),
-        getFilterData(shopFilter)
+        getFilterData({ shopId: shopFilter, cat: catFilter })
     ]);
+
 
     // For Amazon Home View, we fetch small sets for each shop to ensure they always show up
     const [{ products: luxyaPreview }, { products: homtekPreview }] = await Promise.all([
@@ -253,43 +283,50 @@ export default async function Home(props: {
                                     </div>
                                 </div>
 
+
+
+
+
                                 {categories.length > 0 && (
                                     <div>
                                         <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Rayons</h3>
-                                        <div className="flex lg:flex-col gap-4 lg:gap-2 max-h-48 overflow-y-auto no-scrollbar">{categories.map(cat => (<Link key={cat} href={`/?cat=${cat}&shop=${shopFilter}&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`block text-[11px] font-bold whitespace-nowrap transition-colors ${catFilter === cat ? 'text-[#0055ff] lg:translate-x-1' : 'text-gray-500 hover:text-black'}`}>{cat}</Link>))}</div>
+                                        <div className="flex lg:flex-col gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                                            {groupCategories(categories, siteSettings?.category_groups || []).map((group) => (
+                                                <CollapsibleCategoryGroup
+                                                    key={group.title}
+                                                    title={group.title}
+                                                    categories={group.categories}
+                                                    shopFilter={shopFilter}
+                                                    catFilter={catFilter}
+                                                    brandFilter={brandFilter}
+                                                    priceFilter={priceFilter}
+                                                    onlyInStock={onlyInStock}
+                                                    sort={sort}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 
+
+                                {brands.length > 0 && (
+                                    <div>
+                                        <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Marques</h3>
+                                        <div className="flex lg:flex-col gap-4 lg:gap-2 max-h-48 overflow-y-auto custom-scrollbar">{brands.map(brand => (<Link key={brand} href={`/?brand=${brand}&shop=${shopFilter}&cat=${catFilter}&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`block text-[11px] font-bold whitespace-nowrap transition-colors ${brandFilter === brand ? 'text-[#0055ff] lg:translate-x-1' : 'text-gray-500 hover:text-black'}`}>{brand}</Link>))}</div>
+                                    </div>
+                                )}
+
+
                                 <div>
                                     <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Budget</h3>
-                                    <div className="flex lg:flex-col gap-4 lg:gap-2">
-                                        {[
-                                            { label: 'Moins de 10.000', val: 'low' },
-                                            { label: '10.000 - 50.000', val: 'mid' },
-                                            { label: 'Plus de 50.000', val: 'high' }
-                                        ].map(p => (
-                                            <Link
-                                                key={p.val}
-                                                href={`/?price=${p.val}&shop=${shopFilter}&cat=${catFilter}&stock=${onlyInStock}&sort=${sort}`}
-                                                className={`block text-[11px] font-bold whitespace-nowrap transition-colors ${priceFilter === p.val ? 'text-[#0055ff] lg:translate-x-1' : 'text-gray-500 hover:text-black'}`}
-                                            >
-                                                {p.label} <span className="text-[8px] opacity-50 font-black">CFA</span>
-                                            </Link>
-                                        ))}
-                                    </div>
+                                    <PriceSlider />
                                 </div>
                             </div>
                         </aside>
 
                         <div className="flex-1 space-y-10">
-                            {/* Results Counter & Sort */}
-                            <div className="flex items-center justify-between bg-white px-6 py-4 rounded-xl shadow-sm border border-gray-200">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">{totalCount} articles trouvés</span>
-                                <div className="flex items-center space-x-4">
-                                    <Link href={`/?sort=newest&shop=${shopFilter}&cat=${catFilter}&price=${priceFilter}&stock=${onlyInStock}`} className={`text-[10px] font-black uppercase tracking-widest ${sort === 'newest' ? 'text-lolly' : 'text-gray-400'}`}>Nouveautés</Link>
-                                    <Link href={`/?sort=price_asc&shop=${shopFilter}&cat=${catFilter}&price=${priceFilter}&stock=${onlyInStock}`} className={`text-[10px] font-black uppercase tracking-widest ${sort === 'price_asc' ? 'text-lolly' : 'text-gray-400'}`}>Prix croissant</Link>
-                                </div>
-                            </div>
+                            {/* Filter Bar */}
+                            <FilterBar categories={categories} resultsCount={totalCount} brands={brands} />
 
                             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
                                 {filteredProducts.map((p: any) => (
