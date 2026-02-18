@@ -1,9 +1,0 @@
-Checking for 'categories' table...
-Reference to 'categories' table failed (expected if it doesn't exist): Could not find the table 'public.categories' in the schema cache
-
-Checking HIDDEN products (show_on_website = false)...
-Total HIDDEN products: 0
-Fetching ALL categories (including hidden)...
-Fetched 97 rows (ALL products).
-Found 25 unique categories across ALL products.
-Accessoires / Pinceaux, Bague, Boucle D'oreille, Bracelets, CHAUSSURES FEMME, Cartable, Chaine, Chaussure Homme, Contour, Crayon yeux, Eyeliner, Fard à paupières, Fixateur maquillage, Fond de teint, Gloss à Lèvres, Général, Mascara, Parrure, Poudre, Rouge à Lèvres, Saccoche, Sacs, Sautoire, Sautoire Perle, Sautoire Simple
