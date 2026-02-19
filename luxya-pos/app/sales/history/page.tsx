@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useShop } from '@/context/ShopContext'
+import { API_URL } from '@/utils/api'
 
 export default function SalesHistoryPage() {
     const { activeShop } = useShop()
@@ -32,7 +33,7 @@ export default function SalesHistoryPage() {
     const fetchSales = async () => {
         try {
             setLoading(true)
-            const url = activeShop ? `http://127.0.0.1:3005/sales?shopId=${activeShop.id}` : 'http://127.0.0.1:3005/sales'
+            const url = activeShop ? `${API_URL}/sales?shopId=${activeShop.id}` : `${API_URL}/sales`
             const res = await fetch(url)
             if (res.ok) {
                 const data = await res.json()

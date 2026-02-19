@@ -4,7 +4,10 @@ import React from 'react';
 import { X, ShoppingCart, ShieldCheck, Truck, RotateCcw, Zap, ShoppingBag, MessageCircle, Share2, PlayCircle, Star, Search, ZoomIn, CheckCircle2, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import { useCart } from '@/context/CartContext';
+import { useRecentlyViewed } from '@/context/RecentlyViewedContext';
 import SiteImageLightbox from './SiteImageLightbox';
+import FloatingQuickBuy from './FloatingQuickBuy';
+import RecentlyViewed from './RecentlyViewed';
 
 interface ProductDisplayProps {
     product: any;
@@ -15,6 +18,7 @@ interface ProductDisplayProps {
 
 export default function ProductDisplay({ product, related, isPage = false, onClose }: ProductDisplayProps) {
     const { addToCart } = useCart();
+    const { addToRecentlyViewed } = useRecentlyViewed();
     const [activeImage, setActiveImage] = React.useState<string>(product.image);
     const [activeTab, setActiveTab] = React.useState<'details' | 'reviews'>('details');
     const [reviews, setReviews] = React.useState<any[]>([]);
@@ -31,6 +35,10 @@ export default function ProductDisplay({ product, related, isPage = false, onClo
     React.useEffect(() => {
         setActiveImage(product.image);
         setActiveTab('details');
+
+        if (isPage) {
+            addToRecentlyViewed(product);
+        }
 
         // Set initial variant selection
         const initialColor = colors[0] || '';
@@ -270,9 +278,7 @@ export default function ProductDisplay({ product, related, isPage = false, onClo
                                     )}
 
                                     <div className="ml-auto text-right">
-                                        {Number(product.stock) <= 5 && Number(product.stock) > 0 ? (
-                                            <span className="text-[10px] font-black uppercase text-orange-500 animate-pulse">Dernières unités !</span>
-                                        ) : Number(product.stock) > 5 ? (
+                                        {Number(product.stock) > 0 ? (
                                             <div className="flex items-center text-green-500 gap-2">
                                                 <CheckCircle2 className="w-4 h-4" />
                                                 <span className="text-[10px] font-black uppercase">En Stock</span>
@@ -405,6 +411,14 @@ export default function ProductDisplay({ product, related, isPage = false, onClo
                 </div>
             )}
 
+            <RecentlyViewed />
+
+            <FloatingQuickBuy
+                product={product}
+                onAdd={handleAddToCartWithVariant}
+                price={hasPromo ? product.promo_price : product.price}
+            />
+
             <SiteImageLightbox
                 isOpen={isLightboxOpen}
                 src={activeImage}
@@ -413,4 +427,3 @@ export default function ProductDisplay({ product, related, isPage = false, onClo
         </div>
     );
 }
-

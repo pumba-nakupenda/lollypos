@@ -249,11 +249,16 @@ export async function updateProduct(productId: number, formData: FormData) {
             body: JSON.stringify(updateData),
         })
 
-        if (!response.ok) return { error: 'Erreur lors de la mise à jour' }
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[UPDATE_PRODUCT] Backend Error (${response.status}):`, errorText);
+            return { error: `Erreur lors de la mise à jour (${response.status})` }
+        }
 
         revalidatePath('/inventory')
         return { success: true }
     } catch (error) {
+        console.error('[UPDATE_PRODUCT] Connection Error:', error);
         return { error: 'Erreur de connexion' }
     }
 }

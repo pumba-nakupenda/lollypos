@@ -30,11 +30,34 @@ export default function ProductCard({ product }: { product: any }) {
         } catch (e) { }
     };
 
+    const triggerConfetti = () => {
+        const duration = 2 * 1000;
+        const animationEnd = Date.now() + duration;
+        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 300 };
+
+        const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
+
+        const interval: any = setInterval(function () {
+            const timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+                return clearInterval(interval);
+            }
+
+            const particleCount = 50 * (timeLeft / duration);
+            import('canvas-confetti').then((confetti) => {
+                confetti.default({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
+                confetti.default({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
+            });
+        }, 250);
+    };
+
     const handleAddToCart = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (!isOutOfStock) {
             addToCart(product);
             setAdded(true);
+            triggerConfetti();
             setTimeout(() => setAdded(false), 2000);
             trackView();
         }
@@ -46,10 +69,9 @@ export default function ProductCard({ product }: { product: any }) {
     const isFavorite = isInWishlist(product.id);
 
     const isNew = mounted && new Date(product.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const isBestSeller = product.sales_count > 10; // Seuil à ajuster
+    const isBestSeller = product.sales_count > 10;
 
     const stock = Number(product.stock);
-    const isLowStock = stock > 0 && stock <= 5;
     const isOutOfStock = stock <= 0 && product.type !== 'service';
 
     return (
@@ -88,7 +110,7 @@ export default function ProductCard({ product }: { product: any }) {
                     <Heart className={`w-4 h-4 ${isFavorite ? 'fill-white' : ''}`} />
                 </button>
 
-                {/* Badges Area - More compact on mobile */}
+                {/* Badges Area */}
                 <div className="absolute top-1 sm:top-2 left-0 z-20 flex flex-col gap-0.5 sm:gap-1">
                     {hasPromo && (
                         <div className="bg-red-600 text-white px-1.5 py-0.5 text-[7px] sm:text-[9px] font-black uppercase rounded-r shadow-md">
@@ -148,7 +170,6 @@ export default function ProductCard({ product }: { product: any }) {
                         {product.name}
                     </h3>
 
-                    {/* Price Logic - Adaptive size */}
                     <div className="pt-0.5 sm:pt-1">
                         {hasPromo ? (
                             <div className="space-y-0">
@@ -165,7 +186,6 @@ export default function ProductCard({ product }: { product: any }) {
                         )}
                     </div>
 
-                    {/* Social Proof - Hidden on very small screens */}
                     <div className="hidden sm:block space-y-1 pt-1">
                         <p className="text-[10px] font-medium text-green-700 flex items-center">
                             <CheckCircle2 className="w-3 h-3 mr-1" /> Livraison Express
@@ -173,7 +193,6 @@ export default function ProductCard({ product }: { product: any }) {
                     </div>
                 </div>
 
-                {/* Primary Button - More touch-friendly on mobile */}
                 <div className="mt-2 sm:mt-4 pt-2 sm:pt-3 border-t border-gray-50">
                     <button
                         onClick={handleAddToCart}

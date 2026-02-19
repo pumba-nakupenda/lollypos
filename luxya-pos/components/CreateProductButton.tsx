@@ -323,7 +323,7 @@ export default function CreateProductButton() {
                                             </div>
                                         )}
                                         <input type="file" name="image" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
-                                        <input type="hidden" name="ai_image_url" value={previewUrl || ''} />
+                                        <input type="hidden" name="ai_image_url" value={previewUrl && previewUrl.startsWith('http') ? previewUrl : ''} />
                                     </div>
 
                                     {/* Gallery Upload */}

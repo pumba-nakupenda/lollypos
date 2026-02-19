@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { X, Package, Tag, Coins, Hash, Image as ImageIcon, Save, Trash2, ChevronDown, Tags, Sparkles, PlusCircle, Calendar, Plus, Upload, PlayCircle, Globe, Search } from 'lucide-react'
+import { X, Package, Tag, Coins, Hash, Image as ImageIcon, Save, Trash2, ChevronDown, Tags, Sparkles, PlusCircle, Calendar, Plus, Upload, PlayCircle, Globe, Search, AlertTriangle } from 'lucide-react'
 import { updateProduct } from '@/app/inventory/actions'
 import { useToast } from '@/context/ToastContext'
 import { useUser } from '@/context/UserContext'
@@ -259,13 +259,14 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                     )}
                                     <input
                                         type="file"
+                                        name="image"
                                         ref={fileInputRef}
                                         className="hidden"
                                         accept="image/*"
                                         onChange={handleImageChange}
                                     />
                                 </div>
-                                <input type="hidden" name="ai_image_url" value={preview || ''} />
+                                <input type="hidden" name="ai_image_url" value={preview && preview.startsWith('http') ? preview : ''} />
                                 <input type="hidden" name="currentImageUrl" value={product.image || ''} />
                                 <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Image Principale</p>
                             </div>
@@ -399,6 +400,19 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                                 readOnly={variants.length > 0}
                                                 required
                                                 className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm outline-none transition-all text-white ${variants.length > 0 ? 'opacity-50 cursor-not-allowed bg-shop/5 border-shop/20' : 'focus:border-shop/50'}`}
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-orange-400 ml-2">Alerte Stock Faible</label>
+                                        <div className="relative">
+                                            <AlertTriangle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-400" />
+                                            <input
+                                                name="minStock"
+                                                type="number"
+                                                defaultValue={product.min_stock || 2}
+                                                required
+                                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all text-white"
                                             />
                                         </div>
                                     </div>

@@ -202,7 +202,8 @@ export class ProductsService {
                 .single();
 
             if (error) {
-                this.logger.error(`[PRODUCTS] Update FAILED: ${error.message}`);
+                this.logger.error(`[PRODUCTS] Update FAILED for ID ${id}: ${error.message} (${error.code})`);
+                this.logger.error(`[PRODUCTS] Attempted updates: ${JSON.stringify(updates)}`);
                 throw new Error(error.message);
             }
 

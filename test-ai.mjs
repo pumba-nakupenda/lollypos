@@ -1,7 +1,7 @@
 
 const test = async () => {
     try {
-        const res = await fetch('http://127.0.0.1:3005/ai/analyze', {
+        const res = await fetch('https://lollypos-backend.onrender.com/ai/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: 'Analyse mes performances' })

@@ -5,8 +5,9 @@ import "./globals.css";
 import ShoppingAssistant from "@/components/ai/ShoppingAssistant";
 import MobileNav from "@/components/MobileNav";
 import { Providers } from "@/components/Providers";
+import LiveSalesToast from "@/components/LiveSalesToast";
 
-const museo = MuseoModerno({ 
+const museo = MuseoModerno({
   subsets: ["latin"],
   variable: "--font-museo",
   weight: "variable"
@@ -84,11 +85,12 @@ export default function RootLayout({
         />
       </head>
       <body className={`${roboto.variable} ${museo.variable} font-sans antialiased`}>
-              <Providers>
-                {children}
-                <ShoppingAssistant />
-              </Providers>
-            </body>
+        <Providers>
+          {children}
+          <ShoppingAssistant />
+          <LiveSalesToast />
+        </Providers>
+      </body>
     </html>
   );
 }

@@ -1,4 +1,3 @@
-
 export interface CategoryGroup {
     title: string;
     categories: string[];
@@ -41,12 +40,6 @@ const DEFAULT_GROUPS = [
 ];
 
 export function groupCategories(categories: string[], config: CategoryGroupConfig[] = []): CategoryGroup[] {
-    // Use config if provided and not empty, otherwise fallback to defaults
-    // Note: If config is passed but empty array, it means user wants NO groups? 
-    // For now: if config is present (even empty array), use it? No, if empty array, maybe fallback.
-    // Let's say: if config matches exactly what we expect. 
-    // Actually, user might want to delete all groups. 
-    // But initially, let's use default if config is null/undefined.
     const definitions = (config && config.length > 0) ? config : DEFAULT_GROUPS;
 
     const groups: CategoryGroup[] = definitions.map(g => ({
