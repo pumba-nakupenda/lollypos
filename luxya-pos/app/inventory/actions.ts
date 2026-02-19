@@ -168,10 +168,16 @@ export async function updateProduct(productId: number, formData: FormData) {
     const existingGallery = formData.get('existingGallery') ? JSON.parse(formData.get('existingGallery') as string) : []
     const isImageDeleted = formData.get('isImageDeleted') === 'true'
 
+    // Logic: 
+    // 1. If a new file is uploaded, it will eventually overwrite imageUrl.
+    // 2. If isImageDeleted is true and no NEW image is provided, we want to clear it.
+    // 3. Otherwise, we keep current or AI suggestion.
     let imageUrl = aiImageUrl || currentImageUrl || ''
-    if (isImageDeleted && !aiImageUrl && !imageFile) {
+    
+    if (isImageDeleted && (!imageFile || imageFile.size === 0)) {
         imageUrl = ''
     }
+
     let galleryUrls: string[] = [...existingGallery]
 
     // Handle Main Image Upload

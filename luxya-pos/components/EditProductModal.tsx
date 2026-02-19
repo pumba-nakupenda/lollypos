@@ -268,13 +268,26 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                                         setLightbox({ isOpen: true, src: preview });
                                                     }}
                                                     className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all"
+                                                    title="Agrandir"
                                                 >
                                                     <Search className="w-6 h-6 text-white" />
                                                 </button>
                                                 <button
                                                     type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        fileInputRef.current?.click();
+                                                    }}
+                                                    className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all"
+                                                    title="Modifier"
+                                                >
+                                                    <Upload className="w-6 h-6 text-white" />
+                                                </button>
+                                                <button
+                                                    type="button"
                                                     onClick={removeMainImage}
                                                     className="p-3 bg-red-500/20 text-red-400 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
+                                                    title="Supprimer"
                                                 >
                                                     <Trash2 className="w-6 h-6" />
                                                 </button>
@@ -519,7 +532,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                                 {v.image ? (
                                                     <>
                                                         <div
-                                                            className="w-8 h-8 rounded-full overflow-hidden border-2 border-white/10 shrink-0 cursor-zoom-in group-hover/var-img:scale-110 transition-transform"
+                                                            className="w-8 h-8 rounded-full overflow-hidden border-2 border-white/10 shrink-0 cursor-zoom-in group-hover:scale-110 transition-transform"
                                                             onClick={() => setLightbox({ isOpen: true, src: v.image })}
                                                         >
                                                             <img src={v.image} className="w-full h-full object-cover" />
