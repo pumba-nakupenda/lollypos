@@ -166,8 +166,12 @@ export async function updateProduct(productId: number, formData: FormData) {
     const galleryFiles = formData.getAll('gallery') as File[]
     const currentImageUrl = formData.get('currentImageUrl') as string
     const existingGallery = formData.get('existingGallery') ? JSON.parse(formData.get('existingGallery') as string) : []
+    const isImageDeleted = formData.get('isImageDeleted') === 'true'
 
     let imageUrl = aiImageUrl || currentImageUrl || ''
+    if (isImageDeleted && !aiImageUrl && !imageFile) {
+        imageUrl = ''
+    }
     let galleryUrls: string[] = [...existingGallery]
 
     // Handle Main Image Upload

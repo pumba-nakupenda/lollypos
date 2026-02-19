@@ -22,6 +22,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
     const { profile } = useUser()
     const [loading, setLoading] = useState(false)
     const [preview, setPreview] = useState<string | null>(product.image)
+    const [isImageDeleted, setIsImageDeleted] = useState(false)
     const [gallery, setGallery] = useState<string[]>(product.images || [])
     const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([])
 
@@ -59,6 +60,13 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         setVariants(variants.filter(v => v.id !== id))
         const newFiles = { ...variantFiles }
         delete newFiles[id]
+        setVariantFiles(newFiles)
+    }
+
+    const removeVariantImage = (variantId: number) => {
+        setVariants(variants.map(v => v.id === variantId ? { ...v, image: '' } : v))
+        const newFiles = { ...variantFiles }
+        delete newFiles[variantId]
         setVariantFiles(newFiles)
     }
 
@@ -147,10 +155,18 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file) {
+            setIsImageDeleted(false)
             const reader = new FileReader()
             reader.onloadend = () => setPreview(reader.result as string)
             reader.readAsDataURL(file)
         }
+    }
+
+    const removeMainImage = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        setPreview(null)
+        setIsImageDeleted(true)
+        if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -161,6 +177,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         formData.set('show_on_pos', showOnPos.toString())
         formData.set('show_on_website', showOnWebsite.toString())
         formData.set('is_featured', isFeatured.toString())
+        formData.set('isImageDeleted', isImageDeleted.toString())
 
         if (newBrandMode && customBrand) {
             formData.set('brand', customBrand)
@@ -242,13 +259,25 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                         <>
                                             <img src={preview} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                                             <div
-                                                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setLightbox({ isOpen: true, src: preview });
-                                                }}
+                                                className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20 space-x-4"
                                             >
-                                                <Search className="w-8 h-8 text-white scale-75 group-hover:scale-100 transition-transform" />
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setLightbox({ isOpen: true, src: preview });
+                                                    }}
+                                                    className="p-3 bg-white/10 rounded-2xl hover:bg-white/20 transition-all"
+                                                >
+                                                    <Search className="w-6 h-6 text-white" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={removeMainImage}
+                                                    className="p-3 bg-red-500/20 text-red-400 rounded-2xl hover:bg-red-500 hover:text-white transition-all"
+                                                >
+                                                    <Trash2 className="w-6 h-6" />
+                                                </button>
                                             </div>
                                         </>
                                     ) : (
@@ -486,14 +515,23 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                             key={v.id}
                                             className={`flex items-center space-x-3 bg-white/5 border border-white/10 pl-1.5 pr-4 py-1.5 rounded-full group transition-all hover:border-shop/30 ${parseInt(v.stock || 0) <= 0 ? 'opacity-40 grayscale border-white/5' : ''}`}
                                         >
-                                            <div className="relative group/var-img">
+                                            <div className="relative group/var-img-container">
                                                 {v.image ? (
-                                                    <div
-                                                        className="w-8 h-8 rounded-full overflow-hidden border-2 border-white/10 shrink-0 cursor-zoom-in group-hover/var-img:scale-110 transition-transform"
-                                                        onClick={() => setLightbox({ isOpen: true, src: v.image })}
-                                                    >
-                                                        <img src={v.image} className="w-full h-full object-cover" />
-                                                    </div>
+                                                    <>
+                                                        <div
+                                                            className="w-8 h-8 rounded-full overflow-hidden border-2 border-white/10 shrink-0 cursor-zoom-in group-hover/var-img:scale-110 transition-transform"
+                                                            onClick={() => setLightbox({ isOpen: true, src: v.image })}
+                                                        >
+                                                            <img src={v.image} className="w-full h-full object-cover" />
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeVariantImage(v.id)}
+                                                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover/var-img-container:opacity-100 transition-opacity z-10"
+                                                        >
+                                                            <X className="w-2 h-2" />
+                                                        </button>
+                                                    </>
                                                 ) : (
                                                     <div
                                                         onClick={() => {
