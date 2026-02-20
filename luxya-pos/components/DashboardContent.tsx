@@ -23,7 +23,11 @@ import {
     Tag,
     Receipt,
     PieChart,
-    AlertCircle
+    AlertCircle,
+    Target,
+    RefreshCw,
+    Scale,
+    PiggyBank
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { useShop } from '@/context/ShopContext'
@@ -271,25 +275,25 @@ export default function DashboardContent({ user }: { user: any }) {
                             return (
                                 <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                                     <div className="flex w-full justify-center items-end space-x-0.5 sm:space-x-1 h-full pb-1 sm:pb-2">
-                                        <div 
-                                            className="w-full bg-shop/30 border-t border-shop/50 rounded-t-sm transition-all group-hover:bg-shop animate-in slide-in-from-bottom-full duration-1000 relative" 
-                                            style={{ 
+                                        <div
+                                            className="w-full bg-shop/30 border-t border-shop/50 rounded-t-sm transition-all group-hover:bg-shop animate-in slide-in-from-bottom-full duration-1000 relative"
+                                            style={{
                                                 height: `${(day.income / maxVal) * 100}%`,
                                                 animationDelay: `${i * 50}ms`,
                                                 animationFillMode: 'both'
-                                            }} 
+                                            }}
                                         >
                                             <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md text-white px-2 py-1 rounded text-[9px] font-black whitespace-nowrap shadow-xl z-50 pointer-events-none border border-white/10 transition-all">
                                                 {day.income.toLocaleString()} CFA
                                             </div>
                                         </div>
-                                        <div 
-                                            className="w-full bg-red-500/20 border-t border-red-500/30 rounded-t-sm transition-all group-hover:bg-red-500/50 animate-in slide-in-from-bottom-full duration-1000 relative" 
-                                            style={{ 
+                                        <div
+                                            className="w-full bg-red-500/20 border-t border-red-500/30 rounded-t-sm transition-all group-hover:bg-red-500/50 animate-in slide-in-from-bottom-full duration-1000 relative"
+                                            style={{
                                                 height: `${(day.outcome / maxVal) * 100}%`,
                                                 animationDelay: `${(i * 50) + 200}ms`,
                                                 animationFillMode: 'both'
-                                            }} 
+                                            }}
                                         >
                                             <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-red-900/90 backdrop-blur-md text-white px-2 py-1 rounded text-[9px] font-black whitespace-nowrap shadow-xl z-50 pointer-events-none border border-white/10 transition-all">
                                                 -{day.outcome.toLocaleString()} CFA
@@ -306,21 +310,21 @@ export default function DashboardContent({ user }: { user: any }) {
                             return (
                                 <div key={`f-${i}`} className="flex-1 flex flex-col items-center group relative h-full justify-end opacity-60">
                                     <div className="flex w-full justify-center items-end h-full pb-1 sm:pb-2">
-                                        <div 
-                                            className="w-full border-2 border-shop border-dashed rounded-t-lg bg-shop/5 animate-in slide-in-from-bottom-full duration-1000 relative" 
-                                            style={{ 
+                                        <div
+                                            className="w-full border-2 border-shop border-dashed rounded-t-lg bg-shop/5 animate-in slide-in-from-bottom-full duration-1000 relative"
+                                            style={{
                                                 height: `${(value / maxVal) * 100}%`,
                                                 animationDelay: `${(trend.length + i) * 50}ms`,
                                                 animationFillMode: 'both'
                                             }}
                                         >
                                             <div className="opacity-0 group-hover:opacity-100 absolute -top-12 left-1/2 -translate-x-1/2 bg-shop/90 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap shadow-2xl z-50 pointer-events-none border border-white/20 transition-all">
-                                                IA PRÉDIT<br/>
+                                                IA PRÉDIT<br />
                                                 <span className="text-sm">+{Math.round(value).toLocaleString()} CFA</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <span className="text-[7px] font-black text-shop/40 uppercase mt-1 sm:mt-2">J+{i+1}</span>
+                                    <span className="text-[7px] font-black text-shop/40 uppercase mt-1 sm:mt-2">J+{i + 1}</span>
                                 </div>
                             )
                         })}
@@ -329,68 +333,118 @@ export default function DashboardContent({ user }: { user: any }) {
 
                 {/* 2.5 FINANCIAL ANALYSIS SECTION - SUPER ADMIN ONLY */}
                 {profile?.is_super_admin && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-                        <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01]">
-                            <div className="flex items-center space-x-3 mb-8">
-                                <BarChart3 className="w-5 h-5 text-shop" />
-                                <h3 className="text-lg font-black uppercase tracking-tight">Analyse de Performance</h3>
+                    <div className="space-y-6 sm:space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                            <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01]">
+                                <div className="flex items-center space-x-3 mb-8">
+                                    <BarChart3 className="w-5 h-5 text-shop" />
+                                    <h3 className="text-lg font-black uppercase tracking-tight">Analyse de Performance</h3>
+                                </div>
+
+                                <div className="space-y-8">
+                                    <FinancialProgressBar
+                                        label="Recettes"
+                                        value={metrics.totalSales}
+                                        total={metrics.totalSales + metrics.totalDebts}
+                                        color="bg-shop"
+                                        subLabel={`${((metrics.totalSales / (metrics.totalSales + metrics.totalDebts || 1)) * 100).toFixed(0)}% encaissé`}
+                                    />
+                                    <FinancialProgressBar
+                                        label="Dépenses"
+                                        value={metrics.totalExpenses}
+                                        total={metrics.totalSales}
+                                        color="bg-red-500"
+                                        subLabel={`${((metrics.totalExpenses / (metrics.totalSales || 1)) * 100).toFixed(0)}% du CA`}
+                                    />
+                                    <FinancialProgressBar
+                                        label="Dettes Clients"
+                                        value={metrics.totalDebts}
+                                        total={metrics.totalSales + metrics.totalDebts}
+                                        color="bg-orange-500"
+                                        subLabel="À recouvrer"
+                                    />
+                                </div>
                             </div>
-                            
-                            <div className="space-y-8">
-                                <FinancialProgressBar 
-                                    label="Recettes" 
-                                    value={metrics.totalSales} 
-                                    total={metrics.totalSales + metrics.totalDebts} 
-                                    color="bg-shop"
-                                    subLabel={`${((metrics.totalSales / (metrics.totalSales + metrics.totalDebts || 1)) * 100).toFixed(0)}% encaissé`}
-                                />
-                                <FinancialProgressBar 
-                                    label="Dépenses" 
-                                    value={metrics.totalExpenses} 
-                                    total={metrics.totalSales} 
-                                    color="bg-red-500"
-                                    subLabel={`${((metrics.totalExpenses / (metrics.totalSales || 1)) * 100).toFixed(0)}% du CA`}
-                                />
-                                <FinancialProgressBar 
-                                    label="Dettes Clients" 
-                                    value={metrics.totalDebts} 
-                                    total={metrics.totalSales + metrics.totalDebts} 
-                                    color="bg-orange-500"
-                                    subLabel="À recouvrer"
-                                />
+
+                            <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01] flex flex-col justify-center">
+                                <div className="flex items-center space-x-3 mb-6">
+                                    <ShieldAlert className="w-5 h-5 text-shop-secondary" />
+                                    <h3 className="text-lg font-black uppercase tracking-tight">Santé Financière</h3>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Profit Net</p>
+                                        <h4 className={`text-xl font-black ${(metrics.margeNet || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            {(metrics.margeNet || 0).toLocaleString()} <span className="text-[10px]">CFA</span>
+                                        </h4>
+                                    </div>
+                                    <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Cash Immobilisé</p>
+                                        <h4 className="text-xl font-black text-orange-400">
+                                            {(metrics.totalDebts || 0).toLocaleString()} <span className="text-[10px]">CFA</span>
+                                        </h4>
+                                    </div>
+                                </div>
+
+                                <div className="mt-6 p-4 bg-shop/5 border border-shop/10 rounded-2xl">
+                                    <div className="flex items-start space-x-3">
+                                        <AlertCircle className="w-4 h-4 text-shop mt-0.5" />
+                                        <p className="text-[10px] font-bold text-white leading-relaxed uppercase">
+                                            {metrics.totalDebts > metrics.margeNet
+                                                ? "Attention : Vos dettes clients dépassent votre profit net. Risque de trésorerie élevé."
+                                                : "Bonne gestion : Vos dettes sont maîtrisées par rapport à votre rentabilité."}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01] flex flex-col justify-center">
+                        {/* NEW: ADVANCED INDICATORS */}
+                        <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01]">
                             <div className="flex items-center space-x-3 mb-6">
-                                <ShieldAlert className="w-5 h-5 text-shop-secondary" />
-                                <h3 className="text-lg font-black uppercase tracking-tight">Santé Financière</h3>
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                    <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Profit Net</p>
-                                    <h4 className={`text-xl font-black ${(metrics.margeNet || 0) > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                        {(metrics.margeNet || 0).toLocaleString()} <span className="text-[10px]">CFA</span>
-                                    </h4>
-                                </div>
-                                <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                                    <p className="text-[10px] font-black text-muted-foreground uppercase mb-1">Cash Immobilisé</p>
-                                    <h4 className="text-xl font-black text-orange-400">
-                                        {(metrics.totalDebts || 0).toLocaleString()} <span className="text-[10px]">CFA</span>
-                                    </h4>
-                                </div>
+                                <TrendingUp className="w-5 h-5 text-purple-400" />
+                                <h3 className="text-lg font-black uppercase tracking-tight">Indicateurs Stratégiques</h3>
                             </div>
 
-                            <div className="mt-6 p-4 bg-shop/5 border border-shop/10 rounded-2xl">
-                                <div className="flex items-start space-x-3">
-                                    <AlertCircle className="w-4 h-4 text-shop mt-0.5" />
-                                    <p className="text-[10px] font-bold text-white leading-relaxed uppercase">
-                                        {metrics.totalDebts > metrics.margeNet 
-                                            ? "Attention : Vos dettes clients dépassent votre profit net. Risque de trésorerie élevé."
-                                            : "Bonne gestion : Vos dettes sont maîtrisées par rapport à votre rentabilité."}
-                                    </p>
-                                </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {/* 1. Seuil de Rentabilité */}
+                                <FinancialCard
+                                    title="Seuil de Rentabilité"
+                                    value={metrics.seuilRentabilite}
+                                    subValue={`Date: ${new Date(metrics.pointMortDate).toLocaleDateString()}`}
+                                    desc="CA Minimum à atteindre"
+                                    color="purple-400"
+                                    icon={<Target className="w-4 h-4" />}
+                                />
+                                {/* 2. Rotation Stocks */}
+                                <FinancialCard
+                                    title="Rotation Stock"
+                                    value={metrics.stockRotation?.toFixed(2)}
+                                    suffix=" fois/an"
+                                    subValue={`Durée moy: ${metrics.stockDurationDays?.toFixed(0)} jours`}
+                                    desc="Vitesse d'écoulement"
+                                    color="blue-400"
+                                    icon={<RefreshCw className="w-4 h-4" />}
+                                />
+                                {/* 3. BFR */}
+                                <FinancialCard
+                                    title="B.F.R"
+                                    value={metrics.bfr}
+                                    subValue="Besoin en Fonds de Roulement"
+                                    desc="Cash nécessaire à l'exploitation"
+                                    color="orange-400"
+                                    icon={<Scale className="w-4 h-4" />}
+                                />
+                                {/* 4. CAF */}
+                                <FinancialCard
+                                    title="C.A.F"
+                                    value={metrics.caf}
+                                    subValue="Capacité d'Autofinancement"
+                                    desc="Ressource interne générée"
+                                    color="green-400"
+                                    icon={<PiggyBank className="w-4 h-4" />}
+                                />
                             </div>
                         </div>
                     </div>
@@ -510,8 +564,8 @@ function FinancialProgressBar({ label, value, total, color, subLabel }: any) {
                 <p className="text-sm font-black text-white">{value.toLocaleString()} <span className="text-[8px] opacity-50">CFA</span></p>
             </div>
             <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
-                <div 
-                    className={`h-full ${color} transition-all duration-1000 ease-out`} 
+                <div
+                    className={`h-full ${color} transition-all duration-1000 ease-out`}
                     style={{ width: `${percentage}%` }}
                 />
             </div>
@@ -551,5 +605,34 @@ function QuickLink({ href, title, icon, color }: any) {
             </div>
             <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-shop group-hover:translate-x-1 transition-all" />
         </Link>
+    )
+}
+
+function FinancialCard({ title, value, subValue, desc, color, icon, suffix = " CFA" }: any) {
+    // Determine if value is a number to format it, or display as is
+    const displayValue = typeof value === 'number' ? value.toLocaleString() : value
+
+    return (
+        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/[0.07] transition-colors group relative overflow-hidden">
+            <div className="relative z-10">
+                <div className="flex justify-between items-start mb-2">
+                    <div className={`p-2 rounded-lg bg-${color}/10 text-${color}`}>
+                        {icon}
+                    </div>
+                    <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">{title}</p>
+                </div>
+
+                <h4 className="text-lg font-black text-white mb-0.5">
+                    {displayValue}<span className="text-[9px] opacity-60 ml-0.5">{suffix}</span>
+                </h4>
+
+                <p className="text-[9px] font-bold text-white/60 mb-2 truncate">{subValue}</p>
+
+                <div className="h-px w-full bg-white/10 mb-2" />
+
+                <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">{desc}</p>
+            </div>
+            <div className={`absolute -right-4 -bottom-4 w-20 h-20 bg-${color}/5 rounded-full blur-xl group-hover:bg-${color}/10 transition-all`} />
+        </div>
     )
 }
