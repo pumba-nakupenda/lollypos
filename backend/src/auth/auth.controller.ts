@@ -1,10 +1,12 @@
 import { Controller, Post, Get, Body, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { Public } from './public.decorator';
 
 @Controller('auth')
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
+    @Public()
     @Post('log-connection')
     async log(@Body() body: { userId: string, email: string, device: string, ip: string }) {
         return this.authService.logConnection(body.userId, body.email, body.device, body.ip);

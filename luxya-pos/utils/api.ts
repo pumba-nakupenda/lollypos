@@ -1,5 +1,24 @@
+import { createClient } from './supabase/client';
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://lollypos-backend.onrender.com";
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+
+/**
+ * Fetch authentifié : injecte automatiquement le token Supabase dans le header Authorization.
+ */
+export async function authFetch(url: string, options: RequestInit = {}) {
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
+    return safeFetch(url, {
+        ...options,
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...options.headers,
+        },
+    });
+}
 
 /**
  * Enhanced fetch with retries and JSON protection.
