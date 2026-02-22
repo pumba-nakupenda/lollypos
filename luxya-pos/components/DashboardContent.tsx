@@ -37,7 +37,7 @@ import CustomDropdown from './CustomDropdown'
 import ReceiptModal from './ReceiptModal'
 import ExpiryAlertBanner from './ExpiryAlertBanner'
 import AiInsights from './AiInsights'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 import { ProfitabilityIndicator, ProfitabilityHistory } from './ProfitabilityComponents'
 
 export default function DashboardContent({ user }: { user: any }) {
@@ -77,8 +77,8 @@ export default function DashboardContent({ user }: { user: any }) {
             const ts = Date.now()
             const [analyticsRes, salesRes, forecastRes, historyRes] = await Promise.all([
                 fetch(`/api/analytics?shopId=${shopId}&category=${selectedCategory}&month=${selectedMonth}&year=${selectedYear}&_=${ts}`),
-                fetch(`${API_URL}/sales?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
-                fetch(`${API_URL}/ai/forecast?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
+                authFetch(`${API_URL}/sales?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
+                authFetch(`${API_URL}/ai/forecast?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
                 fetch(`/api/analytics/history?shopId=${shopId}&year=${selectedYear}&_=${ts}`)
             ])
 
@@ -114,7 +114,7 @@ export default function DashboardContent({ user }: { user: any }) {
     const handleViewReceipt = async (sale: any) => {
         try {
             // Fetch items for this specific sale using the new efficient endpoint
-            const res = await fetch(`${API_URL}/sales/${sale.id}/items`)
+            const res = await authFetch(`${API_URL}/sales/${sale.id}/items`)
             if (res.ok) {
                 const saleItems = await res.json()
 

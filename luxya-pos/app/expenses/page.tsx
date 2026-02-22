@@ -29,7 +29,7 @@ import { useToast } from '@/context/ToastContext'
 import ShopSelector from '@/components/ShopSelector'
 import CustomDropdown from '@/components/CustomDropdown'
 import { redirect } from 'next/navigation'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 import { createClient } from '@/utils/supabase/client'
 
 export default function ExpensesPage() {
@@ -127,7 +127,7 @@ export default function ExpensesPage() {
     const handleDelete = async (id: number) => {
         if (!confirm("Supprimer cette dépense ?")) return
         try {
-            const res = await fetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' })
+            const res = await authFetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' })
             if (res.ok) {
                 showToast("Dépense supprimée", "success")
                 fetchExpenses()

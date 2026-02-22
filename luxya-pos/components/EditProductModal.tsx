@@ -9,7 +9,7 @@ import Portal from './Portal'
 import CustomDropdown from './CustomDropdown'
 import ManageCategoriesModal from './ManageCategoriesModal'
 import ImageLightbox from './ImageLightbox'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 
 interface EditProductModalProps {
     product: any
@@ -721,7 +721,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                             const name = nameRef.current?.value;
                                             if (!name) return showToast("Saisissez un nom d'abord", "warning");
                                             showToast("L'IA rédige...", "info");
-                                            const res = await fetch(`${API_URL}/ai/analyze`, {
+                                            const res = await authFetch(`${API_URL}/ai/analyze`, {
                                                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ question: `Rédige une description de vente courte et élégante pour "${name}" (Catégorie: ${selectedCategory}). Pas d'introduction.` })
                                             });

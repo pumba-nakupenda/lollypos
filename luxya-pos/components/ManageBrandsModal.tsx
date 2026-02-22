@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react'
 import { X, Tag, Edit2, Trash2, Check, RefreshCw, Plus, Sparkles } from 'lucide-react'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 import { useToast } from '@/context/ToastContext'
 
 interface ManageBrandsModalProps {
@@ -27,7 +27,7 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
         
         setLoading(true)
         try {
-            const res = await fetch(`${API_URL}/products/brands/rename`, {
+            const res = await authFetch(`${API_URL}/products/brands/rename`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldName, newName, shopId })
@@ -52,7 +52,7 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
 
         setLoading(true)
         try {
-            const res = await fetch(`${API_URL}/products/brands/delete`, {
+            const res = await authFetch(`${API_URL}/products/brands/delete`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, shopId })

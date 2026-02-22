@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { API_URL } from '@/utils/api'
+import { authFetchServer } from '@/utils/api-server'
 import { createClient } from '@/utils/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -28,9 +29,9 @@ export async function GET(request: Request) {
 
         // Fetch from NestJS Backend and Supabase
         const [salesRes, expensesRes, saleItemsRes, debtsRes, productsRes, categoriesRes] = await Promise.all([
-            fetch(`${API_URL}/sales${query}`, { cache: 'no-store' }),
-            fetch(expensesUrl, { cache: 'no-store' }),
-            fetch(`${API_URL}/sales/items${query}`, { cache: 'no-store' }),
+            authFetchServer(`${API_URL}/sales${query}`, { cache: 'no-store' }),
+            authFetchServer(expensesUrl, { cache: 'no-store' }),
+            authFetchServer(`${API_URL}/sales/items${query}`, { cache: 'no-store' }),
             shopId && shopId !== 'all'
                 ? supabase.from('debts').select('remaining_amount, status').eq('shop_id', shopId)
                 : supabase.from('debts').select('remaining_amount, status'),

@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Logger, Query } from
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { Public } from '../auth/public.decorator';
 
 @Controller('products')
 export class ProductsController {
@@ -23,11 +24,13 @@ export class ProductsController {
         return this.productsService.bulkUpdateStock(updates);
     }
 
+    @Public()
     @Get()
     findAll(@Query('shopId') shopId?: string) {
         return this.productsService.findAll(shopId ? +shopId : undefined);
     }
 
+    @Public()
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.productsService.findOne(+id);
@@ -100,6 +103,7 @@ export class ProductsController {
         return this.productsService.deleteColor(name, shopId ? +shopId : undefined);
     }
 
+    @Public()
     @Post(':id/view')
     recordView(@Param('id') id: string, @Body('shopId') shopId?: number) {
         return this.productsService.recordView(+id, shopId);

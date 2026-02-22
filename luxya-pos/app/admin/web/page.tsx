@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Globe, Save, Image as ImageIcon, MessageCircle, Type, Layout, RefreshCw, Plus, Trash2, Upload, X, Sparkles, ChevronDown, Tags } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 
 const DEFAULT_GROUPS = [
     {
@@ -75,7 +75,7 @@ export default function WebManagementPage() {
     const handleGenerateBanner = async () => {
         try {
             setGeneratingBanner(true)
-            const res = await fetch(`${API_URL}/ai/generate-banner`, {
+            const res = await authFetch(`${API_URL}/ai/generate-banner`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             })

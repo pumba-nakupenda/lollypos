@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react'
 import { X, Palette, Edit2, Trash2, Check, RefreshCw, Sparkles } from 'lucide-react'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 import { useToast } from '@/context/ToastContext'
 
 interface ManageColorsModalProps {
@@ -27,7 +27,7 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
         
         setLoading(true)
         try {
-            const res = await fetch(`${API_URL}/products/colors/rename`, {
+            const res = await authFetch(`${API_URL}/products/colors/rename`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldName, newName, shopId })
@@ -50,7 +50,7 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
 
         setLoading(true)
         try {
-            const res = await fetch(`${API_URL}/products/colors/delete`, {
+            const res = await authFetch(`${API_URL}/products/colors/delete`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, shopId })

@@ -24,7 +24,7 @@ import { useToast } from '@/context/ToastContext'
 
 import ShopSelector from '@/components/ShopSelector'
 import { redirect } from 'next/navigation'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 
 export default function PersonalExpensesPage() {
     const { activeShop } = useShop()
@@ -73,7 +73,7 @@ export default function PersonalExpensesPage() {
     const fetchCategories = async () => {
         try {
             const ts = Date.now()
-            const res = await fetch(`${API_URL}/expenses/categories/list?shopId=3&isPersonal=true&_=${ts}`)
+            const res = await authFetch(`${API_URL}/expenses/categories/list?shopId=3&isPersonal=true&_=${ts}`)
             if (res.ok) {
                 const data = await res.json()
                 if (Array.isArray(data)) {
@@ -94,7 +94,7 @@ export default function PersonalExpensesPage() {
         try {
             setLoading(true)
             const ts = Date.now()
-            const res = await fetch(`${API_URL}/expenses?shopId=3&includePersonal=true&_=${ts}`)
+            const res = await authFetch(`${API_URL}/expenses?shopId=3&includePersonal=true&_=${ts}`)
             if (res.ok) {
                 const data = await res.json()
                 if (Array.isArray(data)) {
@@ -117,7 +117,7 @@ export default function PersonalExpensesPage() {
         e.preventDefault()
         if (!newCatName.trim()) return
         try {
-            const res = await fetch(`${API_URL}/expenses/categories`, {
+            const res = await authFetch(`${API_URL}/expenses/categories`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newCatName, shopId: 3, isPersonal: true })
@@ -138,7 +138,7 @@ export default function PersonalExpensesPage() {
     const handleDeleteCategory = async (id: number) => {
         if (!confirm("Supprimer cette catégorie ?")) return
         try {
-            const res = await fetch(`${API_URL}/expenses/categories/${id}`, { method: 'DELETE' })
+            const res = await authFetch(`${API_URL}/expenses/categories/${id}`, { method: 'DELETE' })
             if (res.ok) {
                 await fetchCategories()
                 showToast("Catégorie supprimée", "success")
@@ -190,7 +190,7 @@ export default function PersonalExpensesPage() {
     const handleDelete = async (id: number) => {
         if (!confirm("Supprimer cette dépense perso ?")) return
         try {
-            const res = await fetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' })
+            const res = await authFetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' })
             if (res.ok) {
                 showToast("Dépense supprimée", "success")
                 fetchPersonalExpenses()
@@ -464,7 +464,7 @@ export default function PersonalExpensesPage() {
                                                     const val = parseFloat(e.target.value) || 0
                                                     if (val !== Number(cat?.budget)) {
                                                         try {
-                                                            const res = await fetch(`${API_URL}/expenses/categories/${cat.id}`, {
+                                                            const res = await authFetch(`${API_URL}/expenses/categories/${cat.id}`, {
                                                                 method: 'PATCH',
                                                                 headers: { 'Content-Type': 'application/json' },
                                                                 body: JSON.stringify({ budget: val })

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { API_URL } from '@/utils/api'
+import { authFetchServer } from '@/utils/api-server'
 import { createClient } from '@/utils/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -23,9 +24,9 @@ export async function GET(request: Request) {
 
         // Fetch all data for the year in one go to be efficient
         const [salesRes, expensesRes, saleItemsRes, categoriesRes] = await Promise.all([
-            fetch(`${API_URL}/sales${query}`, { cache: 'no-store' }),
-            fetch(expensesUrl, { cache: 'no-store' }),
-            fetch(`${API_URL}/sales/items${query}`, { cache: 'no-store' }),
+            authFetchServer(`${API_URL}/sales${query}`, { cache: 'no-store' }),
+            authFetchServer(expensesUrl, { cache: 'no-store' }),
+            authFetchServer(`${API_URL}/sales/items${query}`, { cache: 'no-store' }),
             supabase.from('expense_categories').select('name').eq('shop_id', 3).eq('is_personal', true)
         ])
 

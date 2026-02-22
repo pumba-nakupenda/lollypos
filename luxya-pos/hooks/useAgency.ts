@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useToast } from '@/context/ToastContext';
-import { API_URL, safeFetch } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 export function useAgency(products: any[]) {
     const { showToast } = useToast();
@@ -30,7 +30,7 @@ export function useAgency(products: any[]) {
 
     const handleTransformDocument = async (sale: any, targetType: 'invoice' | 'delivery_note') => {
         try {
-            const items = await safeFetch(`${API_URL}/sales/${sale.id}/items`);
+            const items = await authFetch(`${API_URL}/sales/${sale.id}/items`);
             if (items) {
                 setDocType(targetType);
                 setLinkedDocNumber(sale.invoice_number);

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { supabase } from '@/utils/supabase'
 import { createClient, createAdminClient } from '@/utils/supabase/server'
 import { API_URL } from '@/utils/api'
+import { authFetchServer } from '@/utils/api-server'
 
 export async function createProduct(formData: FormData) {
     const supabaseServer = await createClient()
@@ -122,11 +123,8 @@ export async function createProduct(formData: FormData) {
     rawData.variants = parsedVariants
 
     try {
-        const response = await fetch(`${API_URL}/products`, {
+        const response = await authFetchServer(`${API_URL}/products`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify(rawData),
         })
 
@@ -267,9 +265,8 @@ export async function updateProduct(productId: number, formData: FormData) {
     updateData.variants = parsedVariants
 
     try {
-        const response = await fetch(`${API_URL}/products/${productId}`, {
+        const response = await authFetchServer(`${API_URL}/products/${productId}`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updateData),
         })
 
@@ -306,9 +303,8 @@ export async function bulkCreateProducts(products: any[]) {
 
     try {
         console.log(`[BULK] Attempting bulk creation of ${products.length} products on ${API_URL}`);
-        const response = await fetch(`${API_URL}/products/bulk`, {
+        const response = await authFetchServer(`${API_URL}/products/bulk`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(productsWithMeta),
         })
 
@@ -325,9 +321,8 @@ export async function bulkCreateProducts(products: any[]) {
 
         for (const product of productsWithMeta) {
             try {
-                const singleRes = await fetch(`${API_URL}/products`, {
+                const singleRes = await authFetchServer(`${API_URL}/products`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(product),
                 });
                 if (singleRes.ok) successCount++;
@@ -357,9 +352,8 @@ export async function bulkCreateProducts(products: any[]) {
 
 export async function bulkUpdateStock(updates: any[]) {
     try {
-        const response = await fetch(`${API_URL}/products/bulk-stock`, {
+        const response = await authFetchServer(`${API_URL}/products/bulk-stock`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates),
         })
 

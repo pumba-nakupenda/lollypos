@@ -7,7 +7,7 @@ import { useShop } from '@/context/ShopContext';
 import { useToast } from '@/context/ToastContext';
 import ReactMarkdown from 'react-markdown';
 import Portal from './Portal';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 interface Message {
     id: string;
@@ -90,7 +90,7 @@ export default function AiFloatingButton() {
 
         try {
             const shopParam = activeShop && activeShop.id !== 0 ? `?shopId=${activeShop.id}` : '';
-            const res = await fetch(`${API_URL}/ai/analyze${shopParam}`, {
+            const res = await authFetch(`${API_URL}/ai/analyze${shopParam}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ question: contextPrefix + text })

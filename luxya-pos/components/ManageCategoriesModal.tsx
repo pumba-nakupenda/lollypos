@@ -5,7 +5,7 @@ import React, { useState } from 'react'
 import { X, Edit2, Trash2, Check, Tags, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/context/ToastContext'
 import Portal from './Portal'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 
 interface ManageCategoriesModalProps {
     isOpen: boolean
@@ -32,7 +32,7 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
         setLoading(true)
         try {
             const shopParam = shopId ? `?shopId=${shopId}` : ''
-            const res = await fetch(`${API_URL}/products/categories/rename${shopParam}`, {
+            const res = await authFetch(`${API_URL}/products/categories/rename${shopParam}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldName, newName: newName.trim() })
@@ -56,7 +56,7 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
         setLoading(true)
         try {
             const shopParam = shopId ? `?shopId=${shopId}` : ''
-            const res = await fetch(`${API_URL}/products/categories/${encodeURIComponent(name)}${shopParam}`, {
+            const res = await authFetch(`${API_URL}/products/categories/${encodeURIComponent(name)}${shopParam}`, {
                 method: 'DELETE'
             })
 

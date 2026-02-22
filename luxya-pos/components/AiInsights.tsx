@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, TrendingUp, Brain, ArrowUpRight, Target, Lightbulb, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useShop } from '@/context/ShopContext';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 heures en millisecondes
 
@@ -41,7 +41,7 @@ export default function AiInsights() {
         try {
             const shopId = activeShop?.id || 0;
             const shopParam = shopId !== 0 ? `?shopId=${shopId}` : '';
-            const res = await fetch(`${API_URL}/ai/analyze${shopParam}`, {
+            const res = await authFetch(`${API_URL}/ai/analyze${shopParam}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 

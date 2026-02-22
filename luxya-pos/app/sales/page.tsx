@@ -11,7 +11,7 @@ import { useToast } from '@/context/ToastContext';
 import ShopSelector from '@/components/ShopSelector';
 import ReceiptModal from '@/components/ReceiptModal';
 import Portal from '@/components/Portal';
-import { API_URL, safeFetch } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
 
 // Hooks
@@ -128,7 +128,7 @@ export default function SalesTerminal() {
                     }))
                 };
 
-                const sale = await safeFetch(`${API_URL}/sales`, {
+                const sale = await authFetch(`${API_URL}/sales`, {
                     method: 'POST',
                     body: JSON.stringify(saleData)
                 });
@@ -186,7 +186,7 @@ export default function SalesTerminal() {
                     }))
                 };
 
-                const savedDoc = await safeFetch(`${API_URL}/sales`, {
+                const savedDoc = await authFetch(`${API_URL}/sales`, {
                     method: 'POST',
                     body: JSON.stringify(docData)
                 });
@@ -221,7 +221,7 @@ export default function SalesTerminal() {
 
     const handleViewReceipt = async (sale: any) => {
         try {
-            const items = await safeFetch(`${API_URL}/sales/${sale.id}/items`);
+            const items = await authFetch(`${API_URL}/sales/${sale.id}/items`);
             if (items) {
                 setLastSale({
                     ...sale,
@@ -253,7 +253,7 @@ export default function SalesTerminal() {
     const handleCancelSale = async (sale: any) => {
         if (!confirm(`Annuler la vente ${sale.invoice_number || ''} et remettre les articles en stock ?`)) return;
         try {
-            await safeFetch(`${API_URL}/sales/${sale.id}/cancel?shopId=${activeShop?.id}`, { method: 'POST' });
+            await authFetch(`${API_URL}/sales/${sale.id}/cancel?shopId=${activeShop?.id}`, { method: 'POST' });
             showToast("Vente annulée et stock rétabli", "success");
             fetchHistory();
             fetchProducts();

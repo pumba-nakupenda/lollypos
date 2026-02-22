@@ -8,7 +8,7 @@ import { useToast } from '@/context/ToastContext'
 import CustomDropdown from './CustomDropdown'
 import Portal from './Portal'
 import ImageLightbox from './ImageLightbox'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 
 export default function CreateProductButton() {
     const { activeShop, shops } = useShop()
@@ -658,7 +658,7 @@ export default function CreateProductButton() {
                                                     }
 
                                                     try {
-                                                        const res = await fetch(`${API_URL}/ai/analyze`, {
+                                                        const res = await authFetch(`${API_URL}/ai/analyze`, {
                                                             method: 'POST',
                                                             headers: { 'Content-Type': 'application/json' },
                                                             body: JSON.stringify({

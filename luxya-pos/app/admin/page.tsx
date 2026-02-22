@@ -30,7 +30,7 @@ import {
 import Link from 'next/link'
 import { shops, Shop } from '@/types/shop'
 import CustomDropdown from '@/components/CustomDropdown'
-import { API_URL } from '@/utils/api'
+import { API_URL, authFetch } from '@/utils/api'
 
 export default function AdminDashboard() {
     const { profile, loading: userLoading } = useUser()
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
 
     const fetchLogs = async () => {
         try {
-            const res = await fetch(`${API_URL}/auth/logs`)
+            const res = await authFetch(`${API_URL}/auth/logs`)
             if (res.ok) {
                 const data = await res.json()
                 setConnectionLogs(data)

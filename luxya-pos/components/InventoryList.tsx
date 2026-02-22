@@ -13,7 +13,7 @@ import ExpiryBadge from './ExpiryBadge'
 import ManageCategoriesModal from './ManageCategoriesModal'
 import ManageBrandsModal from './ManageBrandsModal'
 import ImageLightbox from './ImageLightbox'
-import { SITE_URL, API_URL } from '@/utils/api'
+import { SITE_URL, API_URL, authFetch } from '@/utils/api'
 import { createClient } from '@/utils/supabase/client'
 import { useShop } from '@/context/ShopContext'
 import { useUser } from '@/context/UserContext'
@@ -180,7 +180,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
 
         setIsCreating(true);
         try {
-            const res = await fetch(`${API_URL}/products`, {
+            const res = await authFetch(`${API_URL}/products`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -298,7 +298,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
         setUpdatingStockId(id)
 
         try {
-            const res = await fetch(`${API_URL}/products/${id}`, {
+            const res = await authFetch(`${API_URL}/products/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ stock: newStock })
@@ -331,7 +331,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
         setUpdatingStockId(productId)
 
         try {
-            const res = await fetch(`${API_URL}/products/${productId}`, {
+            const res = await authFetch(`${API_URL}/products/${productId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -363,7 +363,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
         setLocalProducts(prev => prev.filter(p => p.id !== id))
 
         try {
-            const res = await fetch(`${API_URL}/products/${id}`, {
+            const res = await authFetch(`${API_URL}/products/${id}`, {
                 method: 'DELETE'
             })
             if (!res.ok) throw new Error('Delete failed')
