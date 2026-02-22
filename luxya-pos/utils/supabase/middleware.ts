@@ -46,10 +46,8 @@ export const updateSession = async (request: NextRequest) => {
 
         // protected routes
         const isApiRoute = request.nextUrl.pathname.startsWith("/api");
-        console.log(`[Middleware] Path: ${request.nextUrl.pathname}, API: ${isApiRoute}, User: ${!!user}`)
 
         if (request.nextUrl.pathname.startsWith("/") && !isApiRoute && !user && request.nextUrl.pathname !== "/login") {
-            console.log(`[Middleware] Redirecting to /login`)
             return NextResponse.redirect(new URL("/login", request.url));
         }
 
