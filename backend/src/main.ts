@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -15,6 +16,12 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,        // Supprime les champs non déclarés dans le DTO
+    forbidNonWhitelisted: false, // Ne bloque pas (compatibilité avec champs extras existants)
+    transform: true,        // Convertit automatiquement les types (string -> number, etc.)
+  }));
+
   await app.listen(process.env.PORT ?? 3005);
 }
 bootstrap();
