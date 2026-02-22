@@ -144,7 +144,7 @@ export class ProductsService {
         return data.map((p: any) => {
             const approvedReviews = p.product_reviews?.filter((r: any) => r.status === 'approved') || [];
 
-            let avgRating: number;
+            let avgRating: number | null;
             let reviewCount: number;
 
             if (approvedReviews.length > 0) {
