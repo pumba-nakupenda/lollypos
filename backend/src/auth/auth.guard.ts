@@ -10,7 +10,7 @@ export class AuthGuard implements CanActivate {
     constructor(
         private reflector: Reflector,
         private supabaseService: SupabaseService,
-    ) {}
+    ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -21,6 +21,11 @@ export class AuthGuard implements CanActivate {
         if (isPublic) return true;
 
         const request = context.switchToHttp().getRequest();
+
+        // Skip check for OPTIONS preflight requests
+        if (request.method === 'OPTIONS') {
+            return true;
+        }
         const authHeader = request.headers['authorization'];
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
