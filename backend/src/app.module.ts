@@ -10,6 +10,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { SupabaseModule } from './supabase.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { AiModule } from './ai/ai.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthGuard } from './auth/auth.guard';
 
@@ -24,6 +25,7 @@ import { AuthGuard } from './auth/auth.guard';
     InventoryModule,
     ExpensesModule,
     AiModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [
