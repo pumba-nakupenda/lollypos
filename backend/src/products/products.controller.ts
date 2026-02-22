@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Logger, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Logger, Query, BadRequestException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -48,8 +48,11 @@ export class ProductsController {
 
     @Post('reset-stock')
     resetStock(@Query('shopId') shopId: string) {
-        if (!shopId) throw new Error('shopId est requis');
-        return this.productsService.resetStock(+shopId);
+        const id = parseInt(shopId, 10);
+        if (!shopId || isNaN(id) || id <= 0) {
+            throw new BadRequestException('shopId valide est requis.');
+        }
+        return this.productsService.resetStock(id);
     }
 
     @Patch('categories/rename')

@@ -52,7 +52,7 @@ export async function createProduct(formData: FormData) {
     // Handle Main Image Upload (overrides AI suggestion if user picked a file)
     if (imageFile && imageFile.size > 0 && typeof imageFile !== 'string') {
         const fileExt = imageFile.name.split('.').pop()
-        const fileName = `${Math.random().toString(36).slice(2, 11)}_${Date.now()}.${fileExt}`
+        const fileName = `${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}_${Date.now()}.${fileExt}`
         const { data, error: uploadError } = await supabaseAdmin.storage
             .from('products')
             .upload(fileName, imageFile)
@@ -67,7 +67,7 @@ export async function createProduct(formData: FormData) {
     for (const file of galleryFiles) {
         if (file && file.size > 0 && typeof file !== 'string') {
             const fileExt = file.name.split('.').pop()
-            const fileName = `gallery_${Math.random().toString(36).slice(2, 11)}_${Date.now()}.${fileExt}`
+            const fileName = `gallery_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}_${Date.now()}.${fileExt}`
             const { data, error: uploadError } = await supabaseAdmin.storage
                 .from('products')
                 .upload(fileName, file)
@@ -185,9 +185,7 @@ export async function updateProduct(productId: number, formData: FormData) {
     // Handle Main Image Upload
     if (imageFile && imageFile.size > 0 && typeof imageFile !== 'string') {
         const fileExt = imageFile.name?.split('.').pop() || 'png'
-        const fileName = `${Math.random().toString(36).slice(2, 11)}_${Date.now()}.${fileExt}`
-
-        console.log(`[UPDATE_PRODUCT] Uploading main image: ${fileName}, size: ${imageFile.size}`);
+        const fileName = `${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}_${Date.now()}.${fileExt}`
 
         const { data, error: uploadError } = await supabaseAdmin.storage
             .from('products')
@@ -196,9 +194,6 @@ export async function updateProduct(productId: number, formData: FormData) {
         if (!uploadError) {
             const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
             imageUrl = publicUrl
-            console.log(`[UPDATE_PRODUCT] Main image upload success: ${imageUrl}`);
-        } else {
-            console.error('[UPDATE_PRODUCT] Main image upload error:', uploadError);
         }
     }
 
@@ -206,7 +201,7 @@ export async function updateProduct(productId: number, formData: FormData) {
     for (const file of galleryFiles) {
         if (file && file.size > 0 && typeof file !== 'string') {
             const fileExt = file.name?.split('.').pop() || 'png'
-            const fileName = `gallery_${Math.random().toString(36).slice(2, 11)}_${Date.now()}.${fileExt}`
+            const fileName = `gallery_${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}_${Date.now()}.${fileExt}`
             const { data, error: uploadError } = await supabaseAdmin.storage
                 .from('products')
                 .upload(fileName, file)
@@ -214,8 +209,6 @@ export async function updateProduct(productId: number, formData: FormData) {
             if (!uploadError) {
                 const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
                 galleryUrls.push(publicUrl)
-            } else {
-                console.error('[UPDATE_PRODUCT] Gallery upload error:', uploadError);
             }
         }
     }

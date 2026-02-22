@@ -54,8 +54,8 @@ export class ProductsService {
                 .single();
 
             if (error) {
-                this.logger.error(`[PRODUCTS] Insert FAILED: ${error.message} (${error.code})`);
-                throw new Error(error.message);
+                this.logger.error(`[PRODUCTS] Insert FAILED: ${error.message} (code: ${error.code})`);
+                throw new Error('Erreur lors de la création du produit.');
             }
 
             this.logger.log(`[PRODUCTS] Success! ID: ${data.id}`);
@@ -151,19 +151,13 @@ export class ProductsService {
                 avgRating = approvedReviews.reduce((acc: number, r: any) => acc + r.rating, 0) / approvedReviews.length;
                 reviewCount = approvedReviews.length;
             } else {
-                // LOGIQUE SMART : Note simulée entre 3.8 et 5.0 basée sur l'ID
-                // Formule : 3.8 + (un reste déterministe entre 0 et 1.2)
-                const seed = (p.id * 7) % 13; // Génère un nombre entre 0 et 12
-                avgRating = 3.8 + (seed / 10);
-                if (avgRating > 5) avgRating = 5;
-
-                // Nombre d'avis simulé (entre 5 et 25)
-                reviewCount = 5 + (p.id % 21);
+                avgRating = null;
+                reviewCount = 0;
             }
 
             return {
                 ...p,
-                avg_rating: parseFloat(avgRating.toFixed(1)),
+                avg_rating: avgRating !== null ? parseFloat(avgRating.toFixed(1)) : null,
                 review_count: reviewCount
             };
         });
@@ -200,9 +194,8 @@ export class ProductsService {
                 .single();
 
             if (error) {
-                this.logger.error(`[PRODUCTS] Update FAILED for ID ${id}: ${error.message} (${error.code})`);
-                this.logger.error(`[PRODUCTS] Attempted updates: ${JSON.stringify(updates)}`);
-                throw new Error(error.message);
+                this.logger.error(`[PRODUCTS] Update FAILED for ID ${id}: ${error.message} (code: ${error.code})`);
+                throw new Error('Erreur lors de la mise à jour du produit.');
             }
 
             this.logger.log(`[PRODUCTS] Update Success: ${data.id}`);
@@ -257,7 +250,13 @@ export class ProductsService {
 
     // GLOBAL COLOR MANAGEMENT
     async updateColor(oldColor: string, newColor: string, shopId?: number) {
-        this.logger.log(`[PRODUCTS] Global rename color "${oldColor}" to "${newColor}"`);
+        this.logger.log(`[PRODUCTS] Global rename color for shop ${shopId || 'ALL'}`);
+
+        // Validate inputs to prevent JSON injection in the filter string
+        const colorPattern = /^[a-zA-Z0-9À-ÿ\s\-_#()]{1,100}$/;
+        if (!colorPattern.test(oldColor) || !colorPattern.test(newColor)) {
+            throw new Error('Nom de couleur invalide.');
+        }
 
         // Fetch all products that have this color in variants
         let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', `[{"color": "${oldColor}"}]`);
@@ -278,7 +277,13 @@ export class ProductsService {
     }
 
     async deleteColor(color: string, shopId?: number) {
-        this.logger.log(`[PRODUCTS] Global delete color "${color}"`);
+        this.logger.log(`[PRODUCTS] Global delete color for shop ${shopId || 'ALL'}`);
+
+        const colorPattern = /^[a-zA-Z0-9À-ÿ\s\-_#()]{1,100}$/;
+        if (!colorPattern.test(color)) {
+            throw new Error('Nom de couleur invalide.');
+        }
+
         let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', `[{"color": "${color}"}]`);
         if (shopId) query = query.eq('shop_id', shopId);
 

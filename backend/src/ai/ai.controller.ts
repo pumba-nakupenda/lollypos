@@ -1,8 +1,9 @@
-import { Controller, Post, Body, Query, UseGuards, Get, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Query, UseGuards, Get, BadRequestException, Logger } from '@nestjs/common';
 import { AiService } from './ai.service';
 
 @Controller('ai')
 export class AiController {
+    private readonly logger = new Logger(AiController.name);
     constructor(private readonly aiService: AiService) {}
 
     @Get('status')
@@ -26,6 +27,7 @@ export class AiController {
             const answer = await this.aiService.analyzeBusiness(question, id);
             return { answer };
         } catch (err) {
+            this.logger.error(`[AI] analyzeBusiness failed: ${err.message}`);
             return { answer: "Erreur fatale interne au serveur." };
         }
     }

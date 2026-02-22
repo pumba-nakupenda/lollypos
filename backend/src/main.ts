@@ -18,7 +18,7 @@ async function bootstrap() {
   });
   app.useGlobalPipes(new ValidationPipe({
     whitelist: true,        // Supprime les champs non déclarés dans le DTO
-    forbidNonWhitelisted: false, // Ne bloque pas (compatibilité avec champs extras existants)
+    forbidNonWhitelisted: true,
     transform: true,        // Convertit automatiquement les types (string -> number, etc.)
   }));
 

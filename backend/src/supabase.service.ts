@@ -48,8 +48,8 @@ export class SupabaseService implements OnModuleInit {
   getAdminClient(): SupabaseClient {
     if (!this.adminClient) this.initClient();
     if (!this.adminClient) {
-      this.logger.warn('Admin client requested but service key is missing. Falling back to regular client.');
-      return this.getClient();
+      this.logger.error('CRITICAL: Admin client requested but SUPABASE_SERVICE_ROLE_KEY is missing!');
+      throw new Error('Service indisponible : clé service Supabase manquante.');
     }
     return this.adminClient;
   }
