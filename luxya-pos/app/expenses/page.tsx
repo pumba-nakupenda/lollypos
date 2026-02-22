@@ -87,7 +87,7 @@ export default function ExpensesPage() {
 
     const fetchProjects = async () => {
         const { data } = await supabase.from('agency_projects').select('id, name').order('name');
-        if(data) setProjects(data);
+        if (data) setProjects(data);
     }
 
     const fetchExpenses = async () => {
@@ -96,7 +96,7 @@ export default function ExpensesPage() {
             const ts = Date.now()
             const includePersonal = activeShop?.id === 3 ? '&includePersonal=true' : ''
             const url = activeShop ? `${API_URL}/expenses?shopId=${activeShop.id}${includePersonal}&_=${ts}` : `${API_URL}/expenses?_=${ts}`
-            const res = await fetch(url)
+            const res = await authFetch(url)
             if (res.ok) {
                 const data = await res.json()
                 setExpenses(data)
@@ -147,7 +147,7 @@ export default function ExpensesPage() {
             const url = editingId ? `${API_URL}/expenses/${editingId}` : `${API_URL}/expenses`
             const method = editingId ? 'PATCH' : 'POST'
 
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -538,7 +538,7 @@ export default function ExpensesPage() {
                                     />
                                 </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                                 <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Lier à un Projet (Optionnel)</label>
                                 <select

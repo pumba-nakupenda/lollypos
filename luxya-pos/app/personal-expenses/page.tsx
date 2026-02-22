@@ -155,7 +155,7 @@ export default function PersonalExpensesPage() {
             const url = editingId ? `${API_URL}/expenses/${editingId}` : `${API_URL}/expenses`
             const method = editingId ? 'PATCH' : 'POST'
 
-            const res = await fetch(url, {
+            const res = await authFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

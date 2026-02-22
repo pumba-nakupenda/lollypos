@@ -76,10 +76,10 @@ export default function DashboardContent({ user }: { user: any }) {
             // Fetch everything in parallel with month/year
             const ts = Date.now()
             const [analyticsRes, salesRes, forecastRes, historyRes] = await Promise.all([
-                fetch(`/api/analytics?shopId=${shopId}&category=${selectedCategory}&month=${selectedMonth}&year=${selectedYear}&_=${ts}`),
+                authFetch(`${API_URL}/analytics?shopId=${shopId}&category=${selectedCategory}&month=${selectedMonth}&year=${selectedYear}&_=${ts}`),
                 authFetch(`${API_URL}/sales?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
                 authFetch(`${API_URL}/ai/forecast?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
-                fetch(`/api/analytics/history?shopId=${shopId}&year=${selectedYear}&_=${ts}`)
+                authFetch(`${API_URL}/analytics/history?shopId=${shopId}&year=${selectedYear}&_=${ts}`)
             ])
 
             if (analyticsRes.ok && salesRes.ok) {

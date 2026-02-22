@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { AlertTriangle, X, ArrowRight, Package } from 'lucide-react';
 import Link from 'next/link';
 import { getExpiryStatus } from '@/utils/expiryHelpers';
-import { API_URL } from '@/utils/api';
+import { API_URL, authFetch } from '@/utils/api';
 
 interface Product {
     id: number;
@@ -30,7 +30,7 @@ export default function ExpiryAlertBanner({ shopId }: ExpiryAlertBannerProps) {
         try {
             setLoading(true);
             const shopParam = shopId && shopId !== 0 ? `?shopId=${shopId}` : '';
-            const res = await fetch(`${API_URL}/products${shopParam}`);
+            const res = await authFetch(`${API_URL}/products${shopParam}`);
 
             if (res.ok) {
                 const products: Product[] = await res.json();

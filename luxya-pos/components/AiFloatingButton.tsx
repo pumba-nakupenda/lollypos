@@ -21,7 +21,7 @@ export default function AiFloatingButton() {
     const { showToast } = useToast();
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
-    
+
     // Product Filter State
     const [products, setProducts] = useState<any[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -60,21 +60,21 @@ export default function AiFloatingButton() {
     const fetchProducts = async () => {
         try {
             const shopId = activeShop?.id === 0 ? '' : activeShop?.id;
-            const res = await fetch(`${API_URL}/products?shopId=${shopId || 1}`);
+            const res = await authFetch(`${API_URL}/products?shopId=${shopId || 1}`);
             if (res.ok) setProducts(await res.json());
-        } catch (e) {}
+        } catch (e) { }
     };
 
-    const filteredProducts = searchQuery.trim() === '' 
-        ? products.slice(0, 20) 
+    const filteredProducts = searchQuery.trim() === ''
+        ? products.slice(0, 20)
         : products.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 20);
 
     const handleSendMessage = async (text: string) => {
         if (!text.trim() || isLoading) return;
 
         // If a product is selected, we inject its context
-        const contextPrefix = selectedProduct 
-            ? `[ACTION SUR PRODUIT ID: ${selectedProduct.id} (${selectedProduct.name})] ` 
+        const contextPrefix = selectedProduct
+            ? `[ACTION SUR PRODUIT ID: ${selectedProduct.id} (${selectedProduct.name})] `
             : "";
 
         const userMessage: Message = {
@@ -160,7 +160,7 @@ export default function AiFloatingButton() {
                                 {/* Product Filter Bar */}
                                 <div className="p-3 bg-white/[0.02] border-b border-white/5 relative">
                                     <div className="relative">
-                                        <input 
+                                        <input
                                             type="text"
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -170,7 +170,7 @@ export default function AiFloatingButton() {
                                             className="w-full bg-black/40 border border-white/5 rounded-xl py-2 px-4 text-[10px] focus:border-shop/50 outline-none transition-all"
                                         />
                                         {searchQuery && (
-                                            <button 
+                                            <button
                                                 onClick={() => setSearchQuery('')}
                                                 className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
                                             >
@@ -221,28 +221,26 @@ export default function AiFloatingButton() {
                                     {messages.map((m) => (
                                         <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                             <div className={`flex items-start max-w-[90%] space-x-2 ${m.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border text-[10px] ${
-                                                    m.role === 'assistant' ? 'bg-shop/10 border-shop/20 text-shop' : 'bg-white/10 border-white/10 text-white'
-                                                }`}>
+                                                <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border text-[10px] ${m.role === 'assistant' ? 'bg-shop/10 border-shop/20 text-shop' : 'bg-white/10 border-white/10 text-white'
+                                                    }`}>
                                                     {m.role === 'assistant' ? <Bot className="w-3 h-3" /> : <User className="w-3 h-3" />}
                                                 </div>
-                                                <div className={`p-4 rounded-2xl leading-relaxed shadow-xl ${
-                                                    m.role === 'assistant' 
-                                                    ? 'bg-white/[0.03] border border-white/10 text-white/90' 
-                                                    : 'bg-shop text-white'
-                                                }`}>
+                                                <div className={`p-4 rounded-2xl leading-relaxed shadow-xl ${m.role === 'assistant'
+                                                        ? 'bg-white/[0.03] border border-white/10 text-white/90'
+                                                        : 'bg-shop text-white'
+                                                    }`}>
                                                     <div className="prose prose-invert max-w-none prose-sm">
                                                         <ReactMarkdown
                                                             components={{
-                                                                p: ({children}) => <p className="mb-2 last:mb-0 text-xs sm:text-sm">{children}</p>,
-                                                                strong: ({children}) => <strong className="font-black text-shop-secondary">{children}</strong>,
-                                                                h1: ({children}) => <h1 className="text-lg font-black uppercase tracking-tight mb-2 text-white border-b border-white/10 pb-1">{children}</h1>,
-                                                                h2: ({children}) => <h2 className="text-md font-black uppercase tracking-tight mb-2 text-white/90">{children}</h2>,
-                                                                h3: ({children}) => <h3 className="text-sm font-black uppercase tracking-tight mb-1 text-white/80">{children}</h3>,
-                                                                ul: ({children}) => <ul className="space-y-1 mb-3 list-disc pl-4">{children}</ul>,
-                                                                ol: ({children}) => <ol className="space-y-1 mb-3 list-decimal pl-4">{children}</ol>,
-                                                                li: ({children}) => <li className="text-xs sm:text-sm">{children}</li>,
-                                                                code: ({children}) => <code className="bg-black/40 px-1.5 py-0.5 rounded text-[10px] font-mono text-shop-secondary">{children}</code>,
+                                                                p: ({ children }) => <p className="mb-2 last:mb-0 text-xs sm:text-sm">{children}</p>,
+                                                                strong: ({ children }) => <strong className="font-black text-shop-secondary">{children}</strong>,
+                                                                h1: ({ children }) => <h1 className="text-lg font-black uppercase tracking-tight mb-2 text-white border-b border-white/10 pb-1">{children}</h1>,
+                                                                h2: ({ children }) => <h2 className="text-md font-black uppercase tracking-tight mb-2 text-white/90">{children}</h2>,
+                                                                h3: ({ children }) => <h3 className="text-sm font-black uppercase tracking-tight mb-1 text-white/80">{children}</h3>,
+                                                                ul: ({ children }) => <ul className="space-y-1 mb-3 list-disc pl-4">{children}</ul>,
+                                                                ol: ({ children }) => <ol className="space-y-1 mb-3 list-decimal pl-4">{children}</ol>,
+                                                                li: ({ children }) => <li className="text-xs sm:text-sm">{children}</li>,
+                                                                code: ({ children }) => <code className="bg-black/40 px-1.5 py-0.5 rounded text-[10px] font-mono text-shop-secondary">{children}</code>,
                                                             }}
                                                         >
                                                             {m.content}
@@ -268,17 +266,17 @@ export default function AiFloatingButton() {
                                 </div>
 
                                 {/* Input */}
-                                <form 
+                                <form
                                     onSubmit={(e) => { e.preventDefault(); handleSendMessage(input); }}
                                     className="p-4 bg-white/[0.02] border-t border-white/5 flex items-center space-x-2"
                                 >
-                                    <input 
+                                    <input
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
                                         placeholder="Une question ou une action ?"
                                         className="flex-1 bg-black/40 border border-white/10 rounded-xl py-2 px-4 text-xs focus:border-shop/50 outline-none transition-all"
                                     />
-                                    <button 
+                                    <button
                                         disabled={!input.trim() || isLoading}
                                         className="p-2 bg-shop text-white rounded-xl hover:scale-105 active:scale-95 disabled:opacity-50"
                                     >

@@ -133,7 +133,7 @@ export default function CreateProductButton() {
                 setSelectedShopId(activeShop.id)
             }
 
-            fetch(`${API_URL}/products`)
+            authFetch(`${API_URL}/products`)
                 .then(res => res.json())
                 .then(data => {
                     const cats = new Set(data.map((p: any) => p.category).filter(Boolean))
