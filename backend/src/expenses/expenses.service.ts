@@ -10,14 +10,14 @@ export class ExpensesService implements OnModuleInit {
 
   async onModuleInit() {
     this.logger.log('[EXPENSES ROBOT] Initializing automation engine...');
-    // Run initial check after 10 seconds, then every 6 hours
-    setTimeout(() => this.processRecurringExpenses(), 10000);
+    // Delay first run by 30s to allow network/Supabase client to be fully ready
+    setTimeout(() => this.processRecurringExpenses(), 30000);
     setInterval(() => this.processRecurringExpenses(), 1000 * 60 * 60 * 6);
   }
 
-      private get supabase() {
-          return (this.supabaseService as any).getAdminClient();
-      }
+  private get supabase() {
+    return (this.supabaseService as any).getAdminClient();
+  }
   async processRecurringExpenses() {
     this.logger.log('[EXPENSES ROBOT] Checking for due recurring expenses...');
     try {
@@ -49,7 +49,7 @@ export class ExpensesService implements OnModuleInit {
 
         if (isDue) {
           this.logger.log(`[EXPENSES ROBOT] Generating new entry for: ${template.description}`);
-          
+
           // Create the new expense entry
           const { error: insertError } = await this.supabase
             .from('expenses')
@@ -78,7 +78,7 @@ export class ExpensesService implements OnModuleInit {
 
   async create(createExpenseDto: CreateExpenseDto) {
     this.logger.log(`[EXPENSES] Creating expense for shop ${createExpenseDto.shopId}: ${createExpenseDto.description}`);
-    
+
     try {
       const { data, error } = await this.supabase
         .from('expenses')
@@ -168,31 +168,48 @@ export class ExpensesService implements OnModuleInit {
       .from('expense_categories')
       .select('*')
       .eq('shop_id', shopId)
-      .eq('is_personal', isPersonal);
+      .eq('is_personal', isPersonal)
+      .order('id', { ascending: true });
     if (error) throw error;
     return data;
   }
 
-  async createCategory(name: string, shopId: number, isPersonal: boolean) {
-    this.logger.log(`[CATEGORIES] Creating category: ${name} for shop ${shopId} (Personal: ${isPersonal})`);
+  async createCategory(name: string, shopId: number, isPersonal: boolean, budget: number = 0) {
+    this.logger.log(`[CATEGORIES] Creating category: ${name} for shop ${shopId} (Personal: ${isPersonal}, Budget: ${budget})`);
     try {
       const { data, error } = await this.supabase
         .from('expense_categories')
-        .insert({ name, shop_id: shopId, is_personal: isPersonal })
+        .insert({ name, shop_id: shopId, is_personal: isPersonal, budget })
         .select()
         .single();
-      
+
       if (error) {
         this.logger.error(`[CATEGORIES] Insert error: ${error.message}`);
         throw error;
       }
-      
+
       this.logger.log(`[CATEGORIES] Success! Created ID: ${data.id}`);
       return data;
     } catch (err) {
       this.logger.error(`[CATEGORIES] Critical failure: ${err.message}`);
       throw err;
     }
+  }
+
+  async updateCategory(id: number, updateData: { name?: string, budget?: number }) {
+    this.logger.log(`[CATEGORIES] Updating category ID: ${id} with: ${JSON.stringify(updateData)}`);
+    const { data, error } = await this.supabase
+      .from('expense_categories')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      this.logger.error(`[CATEGORIES] Update failed: ${error.message}`);
+      throw error;
+    }
+    return data;
   }
 
   async deleteCategory(id: number) {

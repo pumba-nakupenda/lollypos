@@ -86,11 +86,16 @@ export default function QuickInventoryPage() {
     const fetchProducts = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
+            let query = supabase
                 .from('products')
                 .select('*')
-                .eq('shop_id', activeShop?.id)
                 .order('name', { ascending: true });
+
+            if (activeShop && activeShop.id !== 0) {
+                query = query.eq('shop_id', activeShop.id);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
             if (data) setProducts(data);

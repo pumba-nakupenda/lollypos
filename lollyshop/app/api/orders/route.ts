@@ -19,6 +19,7 @@ export async function POST(req: Request) {
                 shipping_cost,
                 shipping_method,
                 coupon_id,
+                shop_id: 1, // Link to Luxya Shop
                 status: 'pending',
                 payment_method: 'cash', // Default for web orders
                 // Optional: store guest info in a metadata or separate field if needed
@@ -44,18 +45,7 @@ export async function POST(req: Request) {
 
         if (itemsError) throw itemsError;
 
-        // 4. DECREMENT STOCK for each physical product
-        for (const item of items) {
-            // Only decrement if it's not a service
-            if (item.type !== 'service') {
-                await supabase.rpc('decrement_stock', {
-                    product_id: item.id,
-                    quantity: item.quantity
-                });
-            }
-        }
-
-        // 5. Update coupon usage if applicable
+        // 4. Update coupon usage if applicable
         if (coupon_id) {
             await supabase.rpc('increment_coupon_usage', { coupon_uuid: coupon_id });
         }

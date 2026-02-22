@@ -69,10 +69,8 @@ export class ProductsService {
     async bulkCreate(createProductDtos: CreateProductDto[]) {
         this.logger.log(`[PRODUCTS] Bulk creating ${createProductDtos.length} products`);
         try {
-            const productsToInsert: any[] = [];
-
-            for (const dto of createProductDtos) {
-                // Generate Embedding for each (essential for search)
+            // Generate all embeddings in parallel to speed up bulk imports
+            const productsToInsert = await Promise.all(createProductDtos.map(async (dto) => {
                 const embeddingText = `${dto.name} ${dto.description || ''} ${dto.category || ''}`;
                 let embedding: number[] | null = null;
                 try {
@@ -81,7 +79,7 @@ export class ProductsService {
                     this.logger.warn(`Failed to generate embedding for ${dto.name}`);
                 }
 
-                productsToInsert.push({
+                return {
                     name: dto.name,
                     description: dto.description,
                     price: dto.price || 0,
@@ -102,8 +100,8 @@ export class ProductsService {
                     is_featured: dto.is_featured || false,
                     variants: dto.variants || [],
                     embedding: embedding
-                });
-            }
+                };
+            }));
 
             const { data, error } = await this.supabase
                 .from('products')
@@ -316,5 +314,72 @@ export class ProductsService {
         const { data, error } = await query.select();
         if (error) throw new Error(error.message);
         return { count: data?.length || 0 };
+    }
+
+    async resetStock(shopId: number) {
+        this.logger.log(`[PRODUCTS] Resetting all stock to 0 for shop ${shopId}`);
+        const { data, error } = await this.supabase
+            .from('products')
+            .update({ stock: 0 })
+            .eq('shop_id', shopId)
+            .select();
+
+        if (error) {
+            this.logger.error(`[PRODUCTS] Reset stock FAILED: ${error.message}`);
+            throw new Error(error.message);
+        }
+        this.logger.log(`[PRODUCTS] Reset stock success: ${data?.length || 0} products updated`);
+        return { count: data?.length || 0, message: `Stock réinitialisé pour ${data?.length || 0} produits` };
+    }
+
+    async bulkUpdateStock(updates: {
+        id: number,
+        stock: number,
+        variants?: any[],
+        price?: number,
+        promo_price?: number,
+        cost_price?: number,
+        min_stock?: number,
+        image?: string
+    }[]) {
+        this.logger.log(`[PRODUCTS] Bulk updating products (${updates.length})`);
+
+        let successCount = 0;
+        let errors: string[] = [];
+
+        for (const update of updates) {
+            try {
+                const updatePayload: any = {
+                    stock: update.stock,
+                    variants: update.variants || []
+                };
+
+                if (update.price !== undefined) updatePayload.price = update.price;
+                if (update.promo_price !== undefined) updatePayload.promo_price = update.promo_price;
+                if (update.cost_price !== undefined) updatePayload.cost_price = update.cost_price;
+                if (update.min_stock !== undefined) updatePayload.min_stock = update.min_stock;
+                if (update.image !== undefined) updatePayload.image = update.image;
+
+                const { error } = await this.supabase
+                    .from('products')
+                    .update(updatePayload)
+                    .eq('id', update.id);
+
+                if (error) {
+                    this.logger.error(`[PRODUCTS] Update failed for ID ${update.id}: ${error.message}`);
+                    errors.push(`ID ${update.id}: ${error.message}`);
+                } else {
+                    successCount++;
+                }
+            } catch (err) {
+                errors.push(`ID ${update.id}: ${err.message}`);
+            }
+        }
+
+        return {
+            success: successCount > 0,
+            count: successCount,
+            errors: errors.length > 0 ? errors : undefined
+        };
     }
 }

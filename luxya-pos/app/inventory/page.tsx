@@ -61,8 +61,11 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
     // Build query for current page
     let query = supabase
       .from('products')
-      .select('*', { count: 'exact' })
-      .eq('shop_id', +effectiveShopId);
+      .select('*', { count: 'exact' });
+
+    if (+effectiveShopId !== 0) {
+      query = query.eq('shop_id', +effectiveShopId);
+    }
 
     if (searchQuery) {
       query = query.ilike('name', `%${searchQuery}%`);
@@ -91,10 +94,15 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
     totalCount = count || 0;
 
     // Fetch light data for ALL products to calculate global stats
-    const { data: statsData } = await supabase
+    let statsQuery = supabase
       .from('products')
-      .select('price, cost_price, stock, category, brand')
-      .eq('shop_id', +effectiveShopId);
+      .select('price, cost_price, stock, category, brand');
+
+    if (+effectiveShopId !== 0) {
+      statsQuery = statsQuery.eq('shop_id', +effectiveShopId);
+    }
+
+    const { data: statsData } = await statsQuery;
 
     allProductsForStats = statsData || [];
   } catch (e) {

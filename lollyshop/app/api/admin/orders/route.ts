@@ -9,8 +9,8 @@ export async function GET(req: Request) {
         
         // Verifier admin
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
-        if (profile?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+        const { data: profile } = await supabase.from('profiles').select('role, is_super_admin').eq('id', user?.id).single();
+        if (profile?.role !== 'admin' && !profile?.is_super_admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
         // Fetch sales with customer details and items
         let query = supabase
@@ -48,8 +48,8 @@ export async function PATCH(req: Request) {
         const supabase = await createClient();
         
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
-        if (profile?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+        const { data: profile } = await supabase.from('profiles').select('role, is_super_admin').eq('id', user?.id).single();
+        if (profile?.role !== 'admin' && !profile?.is_super_admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
         const { id, status } = await req.json();
 

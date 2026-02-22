@@ -20,7 +20,7 @@ export class AiService {
         const apiKey = this.configService.get<string>('GOOGLE_GEMINI_API_KEY');
         if (apiKey) {
             this.genAI = new GoogleGenerativeAI(apiKey);
-            this.model = this.genAI.getGenerativeModel({ 
+            this.model = this.genAI.getGenerativeModel({
                 model: 'gemini-2.0-flash',
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -39,7 +39,7 @@ export class AiService {
 
     async analyzeBusiness(userQuestion: string, shopId?: number) {
         if (!this.model) return "Système financier non initialisé.";
-        
+
         try {
             // RÉCUPÉRATION ANALYTIQUE PROFONDE
             const [salesRes, productsRes, expensesRes, debtsRes, itemsRes] = await Promise.all([
@@ -59,8 +59,8 @@ export class AiService {
             // --- CALCULS MATHÉMATIQUES AVANCÉS ---
             const caTotal = allSales.reduce((sum: number, s: any) => sum + Number(s.total_amount), 0);
             const totalDepenses = allExpenses.reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-            const totalDirection = allExpenses.filter((e:any) => e.category === 'Perso').reduce((sum: number, e: any) => sum + Number(e.amount), 0);
-            
+            const totalDirection = allExpenses.filter((e: any) => e.category === 'Perso').reduce((sum: number, e: any) => sum + Number(e.amount), 0);
+
             // Marge Brute Réelle (basée sur les ventes effectives)
             const margeBruteVentes = allItems.reduce((sum: number, item: any) => {
                 const profitUnitaire = Number(item.price) - Number(item.products?.cost_price || 0);
@@ -69,8 +69,8 @@ export class AiService {
 
             // BFR (Stock + Créances - Dettes Fournisseurs)
             const valStock = allProducts.reduce((sum: number, p: any) => sum + (Number(p.stock) * Number(p.price)), 0);
-            const creancesClients = allDebts.filter((d:any) => d.type === 'receivable').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
-            const dettesFournisseurs = allDebts.filter((d:any) => d.type === 'debt').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
+            const creancesClients = allDebts.filter((d: any) => d.type === 'receivable').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
+            const dettesFournisseurs = allDebts.filter((d: any) => d.type === 'debt').reduce((sum: number, d: any) => sum + Number(d.remaining_amount), 0);
             const bfr = (valStock + creancesClients) - dettesFournisseurs;
 
             const analytics = {
@@ -88,7 +88,7 @@ export class AiService {
                     dettes_a_payer: dettesFournisseurs,
                     besoin_fond_roulement: bfr
                 },
-                top_produits_rentables: allItems.slice(0, 10).map((i:any) => ({
+                top_produits_rentables: allItems.slice(0, 10).map((i: any) => ({
                     nom: i.products?.name,
                     marge: Number(i.price) - Number(i.products?.cost_price || 0)
                 }))
@@ -126,12 +126,24 @@ export class AiService {
     }
 
     async generateEmbedding(text: string): Promise<number[]> {
+        const TARGET_DIM = 1536;
         try {
-            if (!this.genAI) return new Array(768).fill(0);
+            if (!this.genAI) return new Array(TARGET_DIM).fill(0);
             const model = this.genAI.getGenerativeModel({ model: "text-embedding-004" });
             const result = await model.embedContent(text);
-            return result.embedding.values;
-        } catch (e) { return new Array(768).fill(0); }
+            const values = result.embedding.values;
+
+            if (values.length === TARGET_DIM) return values;
+
+            // Pad or slice to match target dimension
+            if (values.length < TARGET_DIM) {
+                return [...values, ...new Array(TARGET_DIM - values.length).fill(0)];
+            }
+            return values.slice(0, TARGET_DIM);
+        } catch (e) {
+            this.logger.error(`Embedding generation failed: ${e.message}`);
+            return new Array(TARGET_DIM).fill(0);
+        }
     }
 
     async getForecast(shopId?: number) {
@@ -147,14 +159,14 @@ export class AiService {
     }
 
     async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES ✨" }; }
-    
+
     async generateDescription(productName: string) {
         if (!this.model) return { description: "" };
         try {
             const prompt = `Génère une description marketing luxueuse, courte et captivante pour un produit nommé "${productName}". 
             Le ton doit être professionnel, élégant et adapté à une boutique haut de gamme nommée LOLLY. 
             Utilise environ 3-4 phrases. Réponds directement avec le texte de la description.`;
-            
+
             const result = await this.model.generateContent(prompt);
             return { description: result.response.text().trim() };
         } catch (error) {

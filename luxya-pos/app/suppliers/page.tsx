@@ -36,11 +36,16 @@ export default function SuppliersPage() {
     const fetchSuppliers = async () => {
         try {
             setLoading(true)
-            const { data, error } = await supabase
+            let query = supabase
                 .from('suppliers')
                 .select('*')
-                .eq('shop_id', activeShop?.id || 1)
                 .order('name')
+            
+            if (activeShop && activeShop.id !== 0) {
+                query = query.eq('shop_id', activeShop.id)
+            }
+
+            const { data, error } = await query
             if (error) throw error
             setSuppliers(data || [])
         } catch (err) {

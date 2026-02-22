@@ -38,6 +38,7 @@ import ReceiptModal from './ReceiptModal'
 import ExpiryAlertBanner from './ExpiryAlertBanner'
 import AiInsights from './AiInsights'
 import { API_URL } from '@/utils/api'
+import { ProfitabilityIndicator, ProfitabilityHistory } from './ProfitabilityComponents'
 
 export default function DashboardContent({ user }: { user: any }) {
     const { profile, loading: userLoading, error: profileError } = useUser()
@@ -47,6 +48,7 @@ export default function DashboardContent({ user }: { user: any }) {
     // States for merged data
     const [analytics, setAnalytics] = useState<any>(null)
     const [sales, setSales] = useState<any[]>([])
+    const [historyData, setHistoryData] = useState<any[]>([])
     const [aiForecast, setAiForecast] = useState<number[]>([0, 0, 0])
     const [loading, setLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState('Toutes')
@@ -72,10 +74,12 @@ export default function DashboardContent({ user }: { user: any }) {
             const shopId = (!activeShop || activeShop.id === 0) ? 'all' : activeShop.id
 
             // Fetch everything in parallel with month/year
-            const [analyticsRes, salesRes, forecastRes] = await Promise.all([
-                fetch(`/api/analytics?shopId=${shopId}&category=${selectedCategory}&month=${selectedMonth}&year=${selectedYear}`),
-                fetch(`${API_URL}/sales?shopId=${shopId === 'all' ? '' : shopId}`),
-                fetch(`${API_URL}/ai/forecast?shopId=${shopId === 'all' ? '' : shopId}`)
+            const ts = Date.now()
+            const [analyticsRes, salesRes, forecastRes, historyRes] = await Promise.all([
+                fetch(`/api/analytics?shopId=${shopId}&category=${selectedCategory}&month=${selectedMonth}&year=${selectedYear}&_=${ts}`),
+                fetch(`${API_URL}/sales?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
+                fetch(`${API_URL}/ai/forecast?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
+                fetch(`/api/analytics/history?shopId=${shopId}&year=${selectedYear}&_=${ts}`)
             ])
 
             if (analyticsRes.ok && salesRes.ok) {
@@ -86,6 +90,11 @@ export default function DashboardContent({ user }: { user: any }) {
                 if (forecastRes.ok) {
                     const fData = await forecastRes.json()
                     setAiForecast(fData.predictions || [0, 0, 0])
+                }
+
+                if (historyRes.ok) {
+                    const hData = await historyRes.json()
+                    setHistoryData(hData)
                 }
 
                 // Filter recent sales list to match the selected month too for consistency
@@ -143,7 +152,12 @@ export default function DashboardContent({ user }: { user: any }) {
         tva: 0,
         margeBrute: 0,
         margeNet: 0,
-        totalDebts: 0
+        totalDebts: 0,
+        totalSalesHT: 0,
+        seuilRentabilite: 0,
+        pointMortDate: new Date().toISOString(),
+        isPointMortOutOfRange: false,
+        tauxMarge: 0
     }
     const trend = analytics?.trend || []
     const topProducts = analytics?.topProducts || []
@@ -176,9 +190,14 @@ export default function DashboardContent({ user }: { user: any }) {
                             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-shop rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-shop/20">
                                 <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                             </div>
-                            <h1 className="text-sm sm:text-xl font-black shop-gradient-text uppercase tracking-tighter">
-                                <span className="brand-lolly">Lolly</span>
-                            </h1>
+                            <div className="flex items-center">
+                                <h1 className="text-sm sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">
+                                    <span className="brand-lolly">Lolly</span>
+                                </h1>
+                                <span className="ml-2 px-2 py-0.5 bg-shop/20 text-[8px] sm:text-[10px] font-black rounded-full border border-shop/40 text-shop animate-pulse shadow-[0_0_15px_rgba(var(--shop-primary),0.1)] whitespace-nowrap">
+                                    v1.5 - GLOBAL REFINED
+                                </span>
+                            </div>
                         </div>
                         <div className="h-6 sm:h-8 w-px bg-white/10" />
                         <div className="scale-90 sm:scale-100 origin-left">
@@ -228,15 +247,16 @@ export default function DashboardContent({ user }: { user: any }) {
                 {(!activeShop || activeShop.id === 0) && <AiInsights />}
 
                 {/* 1. KEY METRICS */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-                    <MetricMiniCard title="Revenus" value={metrics.totalSales} icon={<DollarSign className="w-4 h-4" />} color="shop" trend="+12%" />
-                    {profile?.is_super_admin && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
+                    <MetricMiniCard title="Revenus TTC" value={metrics.totalSales} icon={<DollarSign className="w-4 h-4" />} color="shop" trend="Global" />
+                    <MetricMiniCard title="Encaissé Réel" value={metrics.actualCash || 0} icon={<Banknote className="w-4 h-4" />} color="emerald-400" trend="Cash" />
+                    {(profile?.is_super_admin || profile?.role === 'admin' || profile?.role === 'manager') && (
                         <>
-                            <MetricMiniCard title="Marge Brute" value={metrics.margeBrute} icon={<TrendingUp className="w-4 h-4" />} color="blue-400" trend="+15%" />
-                            <MetricMiniCard title="Marge Net" value={metrics.margeNet} icon={<PieChart className="w-4 h-4" />} color="green-400" trend="+18%" />
-                            <MetricMiniCard title="Depenses" value={metrics.totalExpenses} icon={<TrendingDown className="w-4 h-4" />} color="red-400" trend="+2%" />
-                            <MetricMiniCard title="TVA (18%)" value={metrics.tva} icon={<Receipt className="w-4 h-4" />} color="orange-400" trend="Fixe" />
-                            <MetricMiniCard title="Profit" value={metrics.profit} icon={<TrendingUp className="w-4 h-4" />} color="green-400" trend="+10%" />
+                            <MetricMiniCard title="CA HT" value={metrics.totalSalesHT} icon={<TrendingUp className="w-4 h-4" />} color="blue-400" trend="Net" />
+                            <MetricMiniCard title="Marge Net" value={metrics.margeNet} icon={<PieChart className="w-4 h-4" />} color="green-400" trend="Profit" />
+                            <MetricMiniCard title="Dépenses" value={metrics.totalExpenses} icon={<TrendingDown className="w-4 h-4" />} color="red-400" trend="Total" />
+                            <MetricMiniCard title="TVA (Estimée)" value={metrics.tva} icon={<Receipt className="w-4 h-4" />} color="orange-400" trend="Taxe" />
+                            <MetricMiniCard title="Résultat" value={metrics.profit} icon={<TrendingUp className="w-4 h-4" />} color="green-400" trend="Final" />
                         </>
                     )}
                 </div>
@@ -331,8 +351,21 @@ export default function DashboardContent({ user }: { user: any }) {
                     </div>
                 </div>
 
+                {(profile?.is_super_admin || profile?.role === 'admin' || profile?.role === 'manager') && (
+                    <div className="space-y-6 sm:space-y-8">
+                        <ProfitabilityIndicator
+                            currentTurnover={metrics.totalSalesHT || 0}
+                            breakEvenPoint={metrics.seuilRentabilite || 0}
+                            pointMortDate={metrics.pointMortDate}
+                            isOutOfRange={metrics.isPointMortOutOfRange}
+                            actualCash={metrics.actualCash}
+                        />
+                        <ProfitabilityHistory history={historyData} />
+                    </div>
+                )}
+
                 {/* 2.5 FINANCIAL ANALYSIS SECTION - SUPER ADMIN ONLY */}
-                {profile?.is_super_admin && (
+                {(profile?.is_super_admin || profile?.role === 'admin' || profile?.role === 'manager') && (
                     <div className="space-y-6 sm:space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                             <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-6 sm:p-8 border-white/5 bg-white/[0.01]">
@@ -409,40 +442,44 @@ export default function DashboardContent({ user }: { user: any }) {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 {/* 1. Seuil de Rentabilité */}
+                                {/* Good if Total Sales >= Seuil Rentabilité */}
                                 <FinancialCard
                                     title="Seuil de Rentabilité"
                                     value={metrics.seuilRentabilite}
                                     subValue={`Date: ${new Date(metrics.pointMortDate).toLocaleDateString()}`}
-                                    desc="CA Minimum à atteindre"
-                                    color="purple-400"
+                                    desc={metrics.totalSales >= metrics.seuilRentabilite ? "Objectif Atteint" : "Objectif Non Atteint"}
+                                    color={metrics.totalSales >= metrics.seuilRentabilite ? "green-400" : "red-400"}
                                     icon={<Target className="w-4 h-4" />}
                                 />
                                 {/* 2. Rotation Stocks */}
+                                {/* Standard: Higher is better. Let's say > 3 is Good, < 1 is Bad */}
                                 <FinancialCard
                                     title="Rotation Stock"
                                     value={metrics.stockRotation?.toFixed(2)}
                                     suffix=" fois/an"
                                     subValue={`Durée moy: ${metrics.stockDurationDays?.toFixed(0)} jours`}
                                     desc="Vitesse d'écoulement"
-                                    color="blue-400"
+                                    color={(metrics.stockRotation || 0) > 3 ? "green-400" : (metrics.stockRotation || 0) > 1 ? "orange-400" : "red-400"}
                                     icon={<RefreshCw className="w-4 h-4" />}
                                 />
                                 {/* 3. BFR */}
+                                {/* If CAF > BFR, it's good (Auto-financed). If BFR is huge, it's bad. */}
                                 <FinancialCard
                                     title="B.F.R"
                                     value={metrics.bfr}
                                     subValue="Besoin en Fonds de Roulement"
-                                    desc="Cash nécessaire à l'exploitation"
-                                    color="orange-400"
+                                    desc={(metrics.caf || 0) >= (metrics.bfr || 0) ? "Couvert par la CAF" : "Besoin de financement"}
+                                    color={(metrics.caf || 0) >= (metrics.bfr || 0) ? "green-400" : "orange-400"}
                                     icon={<Scale className="w-4 h-4" />}
                                 />
                                 {/* 4. CAF */}
+                                {/* Positive is Good */}
                                 <FinancialCard
                                     title="C.A.F"
                                     value={metrics.caf}
                                     subValue="Capacité d'Autofinancement"
                                     desc="Ressource interne générée"
-                                    color="green-400"
+                                    color={(metrics.caf || 0) > 0 ? "green-400" : "red-400"}
                                     icon={<PiggyBank className="w-4 h-4" />}
                                 />
                             </div>
@@ -612,11 +649,22 @@ function FinancialCard({ title, value, subValue, desc, color, icon, suffix = " C
     // Determine if value is a number to format it, or display as is
     const displayValue = typeof value === 'number' ? value.toLocaleString() : value
 
+    // Map colors to full Tailwind classes to ensure they aren't purged
+    const colorStyles: any = {
+        "purple-400": { bg: "bg-purple-400/10", text: "text-purple-400", glow: "bg-purple-400/5", glowHover: "group-hover:bg-purple-400/10" },
+        "blue-400": { bg: "bg-blue-400/10", text: "text-blue-400", glow: "bg-blue-400/5", glowHover: "group-hover:bg-blue-400/10" },
+        "orange-400": { bg: "bg-orange-400/10", text: "text-orange-400", glow: "bg-orange-400/5", glowHover: "group-hover:bg-orange-400/10" },
+        "green-400": { bg: "bg-green-400/10", text: "text-green-400", glow: "bg-green-400/5", glowHover: "group-hover:bg-green-400/10" },
+        "red-400": { bg: "bg-red-400/10", text: "text-red-400", glow: "bg-red-400/5", glowHover: "group-hover:bg-red-400/10" },
+    }
+
+    const styles = colorStyles[color] || colorStyles["blue-400"]
+
     return (
-        <div className="p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/[0.07] transition-colors group relative overflow-hidden">
+        <div className="glass-card p-4 bg-white/5 rounded-2xl border border-white/5 hover:bg-white/[0.07] transition-colors group relative overflow-hidden">
             <div className="relative z-10">
                 <div className="flex justify-between items-start mb-2">
-                    <div className={`p-2 rounded-lg bg-${color}/10 text-${color}`}>
+                    <div className={`p-2 rounded-lg ${styles.bg} ${styles.text}`}>
                         {icon}
                     </div>
                     <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">{title}</p>
@@ -632,7 +680,7 @@ function FinancialCard({ title, value, subValue, desc, color, icon, suffix = " C
 
                 <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-wider">{desc}</p>
             </div>
-            <div className={`absolute -right-4 -bottom-4 w-20 h-20 bg-${color}/5 rounded-full blur-xl group-hover:bg-${color}/10 transition-all`} />
+            <div className={`absolute -right-4 -bottom-4 w-20 h-20 ${styles.glow} rounded-full blur-xl ${styles.glowHover} transition-all`} />
         </div>
     )
 }

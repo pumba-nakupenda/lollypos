@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { 
-    CreditCard, Search, User, Calendar, DollarSign, 
+import {
+    CreditCard, Search, User, Calendar, DollarSign,
     CheckCircle2, AlertCircle, Clock, Trash2, ArrowRight,
-    Loader2, Filter, Plus, X, ArrowUpRight, ArrowDownLeft, Building2
+    Loader2, Filter, Plus, X, ArrowUpRight, ArrowDownLeft, Building2, History
 } from 'lucide-react'
 import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
@@ -24,12 +24,20 @@ export default function DebtsPage() {
     const [viewType, setViewType] = useState<'receivable' | 'debt'>('receivable')
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
+    const [currentSession, setCurrentSession] = useState<any>(null)
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+    const [selectedDebt, setSelectedDebt] = useState<any>(null)
+    const [paymentAmount, setPaymentAmount] = useState('')
+    const [paymentProcessing, setPaymentProcessing] = useState(false)
+    const [payMethod, setPayMethod] = useState<'cash' | 'wave' | 'om'>('cash')
+    const [expandedDebtId, setExpandedDebtId] = useState<string | null>(null)
+    const [debtPayments, setDebtPayments] = useState<Record<string, any[]>>({})
 
     const [newEntry, setNewEntry] = useState({
-        customer_id: '', 
+        customer_id: '',
         creditor_name: '',
-        total_amount: '', 
-        paid_amount: '0', 
+        total_amount: '',
+        paid_amount: '0',
         due_date: '',
         type: 'receivable' as 'receivable' | 'debt'
     })
@@ -37,10 +45,26 @@ export default function DebtsPage() {
     useEffect(() => {
         fetchDebts()
         fetchCustomers()
+        fetchCurrentSession()
     }, [activeShop, viewType])
 
+    const fetchCurrentSession = async () => {
+        if (!activeShop) return;
+        const { data } = await supabase
+            .from('cash_sessions')
+            .select('*')
+            .eq('shop_id', activeShop.id)
+            .eq('status', 'open')
+            .maybeSingle();
+        setCurrentSession(data);
+    };
+
     const fetchCustomers = async () => {
-        const { data } = await supabase.from('customers').select('id, name').order('name')
+        let query = supabase.from('customers').select('id, name').order('name');
+        if (activeShop && activeShop.id !== 0) {
+            query = query.eq('shop_id', activeShop.id);
+        }
+        const { data } = await query;
         if (data) setCustomers(data)
     }
 
@@ -63,10 +87,29 @@ export default function DebtsPage() {
             const { data, error } = await query.order('created_at', { ascending: false })
             if (error) throw error
             setDebts(data || [])
+            if (data) fetchAllPayments(data.map(d => d.id))
         } catch (err) {
             showToast("Erreur de chargement", "error")
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchAllPayments = async (debtIds: string[]) => {
+        if (debtIds.length === 0) return
+        const { data } = await supabase
+            .from('debt_payments')
+            .select('*')
+            .in('debt_id', debtIds)
+            .order('created_at', { ascending: false })
+
+        if (data) {
+            const grouped = data.reduce((acc: any, p: any) => {
+                if (!acc[p.debt_id]) acc[p.debt_id] = []
+                acc[p.debt_id].push(p)
+                return acc
+            }, {})
+            setDebtPayments(grouped)
         }
     }
 
@@ -75,7 +118,7 @@ export default function DebtsPage() {
         if (activeShop?.id === 0) return showToast("Sélectionnez une boutique spécifique avant d'ajouter une dette", "warning")
         if (newEntry.type === 'receivable' && !newEntry.customer_id) return showToast("Sélectionnez un client", "warning")
         if (newEntry.type === 'debt' && !newEntry.creditor_name) return showToast("Saisissez le nom du créancier", "warning")
-        
+
         setCreating(true)
         try {
             const total = parseFloat(newEntry.total_amount)
@@ -110,18 +153,73 @@ export default function DebtsPage() {
         }
     }
 
-    const handleMarkAsPaid = async (id: string) => {
-        if (!confirm("Confirmer le règlement total ?")) return
+    const handleRecordPayment = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!selectedDebt || !paymentAmount) return
+
+        setPaymentProcessing(true)
+        try {
+            const amount = parseFloat(paymentAmount)
+            const newPaid = Number(selectedDebt.paid_amount) + amount
+            const newRemaining = Number(selectedDebt.total_amount) - newPaid
+
+            // 1. Create Payment record
+            const { error: pError } = await supabase.from('debt_payments').insert([{
+                debt_id: selectedDebt.id,
+                session_id: currentSession?.id,
+                amount: amount,
+                payment_method: payMethod
+            }])
+            if (pError) throw pError
+
+            // 2. Update Debt record
+            const { error: dError } = await supabase
+                .from('debts')
+                .update({
+                    paid_amount: newPaid,
+                    remaining_amount: newRemaining,
+                    status: newRemaining <= 0 ? 'paid' : (newPaid > 0 ? 'partial' : 'unpaid')
+                })
+                .eq('id', selectedDebt.id)
+            if (dError) throw dError
+
+            // 3. Log Cash Movement if session active
+            if (currentSession) {
+                await supabase.from('cash_movements').insert([{
+                    session_id: currentSession.id,
+                    shop_id: activeShop?.id,
+                    type: 'income',
+                    amount: amount,
+                    description: `Paiement Dette - ${selectedDebt.type === 'receivable' ? selectedDebt.customers?.name : selectedDebt.creditor_name}`,
+                    source: 'debt_payment',
+                    source_id: selectedDebt.id.toString(),
+                    payment_method: payMethod
+                }])
+            }
+
+            showToast("Paiement enregistré !", "success")
+            setIsPaymentModalOpen(false)
+            setPaymentAmount('')
+            fetchDebts()
+        } catch (err) {
+            showToast("Erreur lors du paiement", "error")
+        } finally {
+            setPaymentProcessing(false)
+        }
+    }
+
+    const handleDeleteDebt = async (id: string) => {
+        if (!confirm("Supprimer définitivement ce dossier ? Cette action est irréversible.")) return
         try {
             const { error } = await supabase
                 .from('debts')
-                .update({ status: 'paid', remaining_amount: 0 })
+                .delete()
                 .eq('id', id)
             if (error) throw error
-            showToast("Règlement validé !", "success")
+            showToast("Dossier supprimé !", "success")
             fetchDebts()
         } catch (err) {
-            showToast("Erreur de mise à jour", "error")
+            showToast("Erreur lors de la suppression", "error")
         }
     }
 
@@ -134,7 +232,7 @@ export default function DebtsPage() {
 
     const totalRemaining = filtered.reduce((sum, d) => sum + Number(d.remaining_amount), 0)
     const isReceivable = viewType === 'receivable'
-    
+
     // Explicit style mapping for Tailwind Purge/JIT to work
     const styles = isReceivable ? {
         bg: 'bg-blue-600',
@@ -197,7 +295,7 @@ export default function DebtsPage() {
                     <p className={`text-[10px] font-black ${styles.text} uppercase tracking-[0.2em] mb-3`}>Total {isReceivable ? 'à recouvrer' : 'à régler'}</p>
                     <h2 className="text-5xl font-black text-white tracking-tighter">{totalRemaining.toLocaleString()} <span className="text-sm opacity-30 font-bold">CFA</span></h2>
                 </div>
-                
+
                 <div className="glass-panel p-8 rounded-[40px] border-white/5 bg-white/[0.01]">
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-3">Dossiers Actifs</p>
                     <h2 className="text-5xl font-black text-white tracking-tighter">{filtered.filter(d => d.status !== 'paid').length}</h2>
@@ -206,14 +304,13 @@ export default function DebtsPage() {
                 <div className="flex flex-col space-y-3 justify-center">
                     <div className="flex items-center space-x-2 bg-white/5 p-1 rounded-2xl border border-white/10">
                         {['all', 'unpaid', 'partial', 'paid'].map((s) => (
-                            <button 
-                                key={s} 
-                                onClick={() => setStatusFilter(s)} 
-                                className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all ${
-                                    statusFilter === s 
-                                    ? (isReceivable ? 'bg-blue-500 text-white shadow-lg' : 'bg-red-500 text-white shadow-lg') 
+                            <button
+                                key={s}
+                                onClick={() => setStatusFilter(s)}
+                                className={`flex-1 py-3 rounded-xl text-[9px] font-black uppercase transition-all ${statusFilter === s
+                                    ? (isReceivable ? 'bg-blue-500 text-white shadow-lg' : 'bg-red-500 text-white shadow-lg')
                                     : 'text-muted-foreground hover:text-white'
-                                }`}
+                                    }`}
                             >
                                 {s === 'all' ? 'Tous' : s === 'unpaid' ? 'Impayés' : s === 'partial' ? 'Partiels' : 'Réglés'}
                             </button>
@@ -242,11 +339,10 @@ export default function DebtsPage() {
                                         <p className="text-[9px] font-bold text-muted-foreground uppercase">{isReceivable ? debt.customers?.phone : 'Fournisseur'}</p>
                                     </div>
                                 </div>
-                                <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase border ${
-                                    debt.status === 'paid' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
+                                <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase border ${debt.status === 'paid' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
                                     debt.status === 'partial' ? 'bg-orange-500/10 border-orange-500/20 text-orange-400' :
-                                    `${styles.bgLight} ${styles.border} ${styles.text}`
-                                }`}>
+                                        `${styles.bgLight} ${styles.border} ${styles.text}`
+                                    }`}>
                                     {debt.status}
                                 </span>
                             </div>
@@ -257,8 +353,8 @@ export default function DebtsPage() {
                                     <span className={`text-2xl font-black ${styles.text} tracking-tighter`}>{Number(debt.remaining_amount).toLocaleString()} <span className="text-[10px] opacity-50">CFA</span></span>
                                 </div>
                                 <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden">
-                                    <div 
-                                        className={`h-full ${styles.indicator} transition-all`} 
+                                    <div
+                                        className={`h-full ${styles.indicator} transition-all`}
                                         style={{ width: `${(1 - debt.remaining_amount / debt.total_amount) * 100}%` }}
                                     />
                                 </div>
@@ -268,83 +364,113 @@ export default function DebtsPage() {
                                 </div>
                             </div>
 
-                            {debt.status !== 'paid' && (
-                                <button 
-                                    onClick={() => handleMarkAsPaid(debt.id)}
-                                    className={`w-full py-4 bg-white/5 hover:bg-green-500 hover:text-white border border-white/10 hover:border-green-500 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center space-x-2`}
-                                >
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span>Marquer comme réglé</span>
-                                </button>
+                            {/* Payment History Mini-Section */}
+                            {debtPayments[debt.id] && debtPayments[debt.id].length > 0 && (
+                                <div className="mb-4 space-y-2">
+                                    <button
+                                        onClick={() => setExpandedDebtId(expandedDebtId === debt.id ? null : debt.id)}
+                                        className="text-[8px] font-black uppercase text-shop flex items-center hover:opacity-70 transition-all"
+                                    >
+                                        <History className="w-3 h-3 mr-1" />
+                                        {expandedDebtId === debt.id ? 'Masquer l\'historique' : `Voir les ${debtPayments[debt.id].length} versements`}
+                                    </button>
+
+                                    {expandedDebtId === debt.id && (
+                                        <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+                                            {debtPayments[debt.id].map((p: any) => (
+                                                <div key={p.id} className="flex justify-between items-center py-2 px-3 bg-white/5 rounded-xl border border-white/5">
+                                                    <span className="text-[7px] font-bold text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</span>
+                                                    <span className="text-[8px] font-black text-white">+{Number(p.amount).toLocaleString()} CFA</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             )}
+
+                            <div className="flex gap-2">
+                                {debt.status !== 'paid' && (
+                                    <button
+                                        onClick={() => { setSelectedDebt(debt); setIsPaymentModalOpen(true); }}
+                                        className={`flex-1 py-4 bg-white/5 hover:bg-green-500 hover:text-white border border-white/10 hover:border-green-500 rounded-2xl text-[9px] font-black uppercase transition-all flex items-center justify-center space-x-2`}
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                        <span>Encaisser</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => handleDeleteDebt(debt.id)}
+                                    className={`p-4 bg-white/5 hover:bg-red-500 hover:text-white border border-white/10 hover:border-red-500 rounded-2xl transition-all flex items-center justify-center`}
+                                    title="Supprimer"
+                                >
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {isModalOpen && (
+            {isPaymentModalOpen && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-xl bg-background/40 animate-in fade-in duration-300">
-                    <div className="relative glass-card w-full max-w-lg p-10 rounded-[48px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
-                        <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all"><X className="w-6 h-6 text-white"/></button>
-                        
+                    <div className="relative glass-card w-full max-w-md p-10 rounded-[48px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsPaymentModalOpen(false)} className="absolute top-8 right-8 p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all"><X className="w-6 h-6 text-white" /></button>
+
                         <div className="flex items-center space-x-5 mb-10">
-                            <div className={`w-16 h-16 ${newEntry.type === 'receivable' ? 'bg-blue-500/20 text-blue-400 border-blue-500/20' : 'bg-red-500/20 text-red-400 border-red-500/20'} rounded-3xl flex items-center justify-center border shadow-2xl`}>
-                                {newEntry.type === 'receivable' ? <ArrowDownLeft className="w-8 h-8" /> : <ArrowUpRight className="w-8 h-8" />}
+                            <div className={`w-16 h-16 bg-green-500/20 text-green-400 border-green-500/20 rounded-3xl flex items-center justify-center border shadow-2xl`}>
+                                <DollarSign className="w-8 h-8" />
                             </div>
                             <div>
-                                <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Nouveau Dossier</h2>
-                                <div className="flex items-center mt-1">
-                                    <div className={`w-2 h-2 rounded-full mr-2 ${newEntry.type === 'receivable' ? 'bg-blue-500' : 'bg-red-500'}`} />
-                                    <p className="text-[10px] text-muted-foreground font-bold tracking-[0.2em] uppercase">{newEntry.type === 'receivable' ? 'Créance Client' : 'Dette Fournisseur'}</p>
-                                </div>
+                                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Règlement</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold tracking-[0.2em] uppercase mt-1">{selectedDebt?.customers?.name || selectedDebt?.creditor_name}</p>
                             </div>
                         </div>
 
-                        <form onSubmit={handleCreateEntry} className="space-y-8">
-                            {newEntry.type === 'receivable' ? (
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Client débiteur</label>
-                                    <CustomDropdown 
-                                        options={customers.map(c => ({ label: c.name, value: c.id, icon: <User className="w-4 h-4"/> }))}
-                                        value={newEntry.customer_id}
-                                        onChange={(val) => setNewEntry({...newEntry, customer_id: val})}
-                                        placeholder="Choisir un client..."
+                        <form onSubmit={handleRecordPayment} className="space-y-8">
+                            <div className="space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Montant du versement</label>
+                                <div className="relative group">
+                                    <Plus className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-green-400 transition-colors" />
+                                    <input
+                                        required
+                                        type="number"
+                                        className="w-full bg-white/5 border border-white/10 rounded-[24px] py-5 pl-14 pr-6 text-2xl font-black outline-none focus:border-green-500/50 transition-all text-white"
+                                        value={paymentAmount}
+                                        onChange={e => setPaymentAmount(e.target.value)}
+                                        max={selectedDebt?.remaining_amount}
                                     />
                                 </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Nom du Créancier (Fournisseur)</label>
-                                    <div className="relative group">
-                                        <Building2 className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-red-400 transition-colors" />
-                                        <input required placeholder="Ex: Boutique Grossiste ABC..." className="w-full bg-white/5 border border-white/10 rounded-[24px] py-5 pl-14 pr-6 text-sm font-bold outline-none focus:border-red-500/50 transition-all text-white" value={newEntry.creditor_name} onChange={e => setNewEntry({...newEntry, creditor_name: e.target.value})} />
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="grid grid-cols-2 gap-6">
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Montant Total</label>
-                                    <div className="relative group">
-                                        <DollarSign className={`absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground`} />
-                                        <input required type="number" className="w-full bg-white/5 border border-white/10 rounded-[24px] py-5 pl-14 pr-6 text-lg font-black outline-none focus:border-white/20 transition-all text-white" value={newEntry.total_amount} onChange={e => setNewEntry({...newEntry, total_amount: e.target.value})} />
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Acompte</label>
-                                    <input required type="number" className="w-full bg-white/5 border border-white/10 rounded-[24px] py-5 px-6 text-lg font-black outline-none focus:border-white/20 transition-all text-white" value={newEntry.paid_amount} onChange={e => setNewEntry({...newEntry, paid_amount: e.target.value})} />
-                                </div>
+                                <p className="text-[9px] text-muted-foreground ml-3 font-medium uppercase tracking-wider italic">Reste à payer : {Number(selectedDebt?.remaining_amount).toLocaleString()} CFA</p>
                             </div>
 
                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Échéance prévue</label>
-                                <div className="relative group">
-                                    <Calendar className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-white" />
-                                    <input type="date" className="w-full bg-white/5 border border-white/10 rounded-[24px] py-5 pl-14 pr-6 text-sm font-black outline-none focus:border-white/20 transition-all text-white uppercase" value={newEntry.due_date} onChange={e => setNewEntry({...newEntry, due_date: e.target.value})} />
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Mode de règlement</label>
+                                <div className="grid grid-cols-3 gap-3">
+                                    {['cash', 'wave', 'om'].map(m => (
+                                        <button
+                                            key={m}
+                                            type="button"
+                                            onClick={() => setPayMethod(m as any)}
+                                            className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${payMethod === m
+                                                    ? 'bg-shop text-white border-shop'
+                                                    : 'bg-white/5 text-muted-foreground border-white/10 hover:border-white/20'
+                                                }`}
+                                        >
+                                            {m}
+                                        </button>
+                                    ))}
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={creating} className={`w-full py-6 ${newEntry.type === 'receivable' ? 'bg-blue-600 shadow-blue-600/40' : 'bg-red-600 shadow-red-600/40'} text-white font-black uppercase tracking-[0.2em] rounded-[28px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl text-xs`}>
-                                {creating ? 'Enregistrement...' : 'Valider l\'opération'}
+                            {!currentSession && (
+                                <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-start space-x-3">
+                                    <AlertCircle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                                    <p className="text-[9px] text-orange-300 font-bold uppercase leading-relaxed">Attention : Aucune session de caisse ouverte. Ce paiement sera noté mais pas ajouté au fond de caisse physique actuel.</p>
+                                </div>
+                            )}
+
+                            <button type="submit" disabled={paymentProcessing} className={`w-full py-6 bg-green-600 shadow-green-600/40 text-white font-black uppercase tracking-[0.2em] rounded-[28px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl text-xs disabled:opacity-50`}>
+                                {paymentProcessing ? 'Enregistrement...' : 'Confirmer le versement'}
                             </button>
                         </form>
                     </div>

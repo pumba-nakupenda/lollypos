@@ -25,6 +25,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
     const [isImageDeleted, setIsImageDeleted] = useState(false)
     const [gallery, setGallery] = useState<string[]>(product.images || [])
     const [newGalleryPreviews, setNewGalleryPreviews] = useState<string[]>([])
+    const [pastedMainFile, setPastedMainFile] = useState<File | null>(null)
 
     // Refs for direct DOM access (used for AI generation and cleaning)
     const nameRef = useRef<HTMLInputElement>(null)
@@ -119,6 +120,49 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         }
     }
 
+    useEffect(() => {
+        const onGlobalPaste = (e: ClipboardEvent) => {
+            if (!isOpen) return;
+            const target = e.target as HTMLElement;
+            const items = e.clipboardData?.items;
+            if (!items) return;
+
+            let hasImage = false;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const file = items[i].getAsFile();
+                    if (file) {
+                        setIsImageDeleted(false)
+                        const reader = new FileReader()
+                        reader.onloadend = () => setPreview(reader.result as string)
+                        reader.readAsDataURL(file)
+                        setPastedMainFile(file)
+                        showToast("Image collée !", "success")
+                        hasImage = true
+                        break;
+                    }
+                }
+            }
+            if (hasImage && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
+
+            // If no image binary, check for image URL in text
+            if (!hasImage && target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+                const text = e.clipboardData?.getData('text');
+                if (text && (text.match(/\.(jpeg|jpg|gif|png|webp|svg)/i) || text.startsWith('data:image'))) {
+                    setIsImageDeleted(false)
+                    setPreview(text)
+                    setPastedMainFile(null) // It's a URL, no file to upload
+                    showToast("Lien image détecté", "success")
+                    e.preventDefault()
+                }
+            }
+        };
+        window.addEventListener('paste', onGlobalPaste);
+        return () => window.removeEventListener('paste', onGlobalPaste);
+    }, [isOpen]);
+
     const focusSearch = () => {
         const name = nameRef.current?.value;
         if (!name) return showToast("Entrez d'abord un nom de produit", "warning");
@@ -156,6 +200,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         const file = e.target.files?.[0]
         if (file) {
             setIsImageDeleted(false)
+            setPastedMainFile(null)
             const reader = new FileReader()
             reader.onloadend = () => setPreview(reader.result as string)
             reader.readAsDataURL(file)
@@ -171,13 +216,31 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
 
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
-        setLoading(true)
         const formData = new FormData(e.currentTarget)
+
+        // NEW: Mandatory cost_price validation for Physical Products in Shops 1 & 2
+        // We only enforce this for physical shops (Luxya/Homtek) if profile allows
+        const isPhysicalShop = product.shop_id === 1 || product.shop_id === 2;
+        const costPrice = parseFloat(formData.get('cost_price') as string || '0');
+
+        if (itemType === 'product' && isPhysicalShop && costPrice <= 0) {
+            showToast("Le prix de revient est obligatoire pour les produits physiques (Luxya/Homtek).", "error");
+            return;
+        }
+
+        setLoading(true)
         formData.set('type', itemType)
         formData.set('show_on_pos', showOnPos.toString())
         formData.set('show_on_website', showOnWebsite.toString())
         formData.set('is_featured', isFeatured.toString())
         formData.set('isImageDeleted', isImageDeleted.toString())
+
+        if (pastedMainFile) {
+            formData.set('image', pastedMainFile)
+        } else if (preview && preview.startsWith('http')) {
+            // If it's a URL (from paste or search), send it explicitly
+            formData.set('ai_image_url', preview)
+        }
 
         if (newBrandMode && customBrand) {
             formData.set('brand', customBrand)
@@ -204,6 +267,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         if (result.success) {
             showToast("Produit mis à jour avec succès !", "success")
             onClose()
+            window.location.reload()
         } else {
             showToast(result.error || "Erreur lors de la mise à jour", "error")
         }
@@ -253,6 +317,29 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                             <div className="flex flex-col items-center justify-center space-y-4 p-6 glass-panel rounded-3xl border-dashed border-white/10">
                                 <div
                                     onClick={() => fileInputRef.current?.click()}
+                                    tabIndex={0}
+                                    onPaste={async (e) => {
+                                        const items = e.clipboardData?.items;
+                                        if (!items) return;
+                                        for (let i = 0; i < items.length; i++) {
+                                            if (items[i].type.indexOf('image') !== -1) {
+                                                const file = items[i].getAsFile();
+                                                if (file) {
+                                                    setIsImageDeleted(false)
+                                                    const reader = new FileReader()
+                                                    reader.onloadend = () => setPreview(reader.result as string)
+                                                    reader.readAsDataURL(file)
+
+                                                    // Also add to a hidden file input if possible or handle via form submit logic
+                                                    // In our case, EditProductModal uses FormData from the form, so we need to ensure this file is included.
+                                                    // I'll add a state for pasterFile
+                                                    setPastedMainFile(file)
+                                                    showToast("Image collée !", "success")
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }}
                                     className="h-48 sm:h-64 glass-panel rounded-[32px] sm:rounded-[40px] border-2 border-dashed border-white/10 flex flex-col items-center justify-center overflow-hidden active:bg-white/10 cursor-pointer transition-all relative group"
                                 >
                                     {preview ? (

@@ -2,264 +2,218 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-    Search, ShoppingCart, Plus, Minus, Trash2, Check, RefreshCw,
-    LayoutDashboard, User, Calendar, Banknote, Wallet, FileText,
-    MessageSquare, Trash, Pencil, ArrowRight, Truck, PlusCircle, Sparkles, X, Clock, Receipt, LogOut, Tags, Image as ImageIcon
+    ShoppingCart, Plus, X, Clock, Receipt, LogOut, Image as ImageIcon, RefreshCw
 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { useShop } from '@/context/ShopContext';
 import { useUser } from '@/context/UserContext';
 import { useToast } from '@/context/ToastContext';
 import ShopSelector from '@/components/ShopSelector';
-import CustomDropdown from '@/components/CustomDropdown';
 import ReceiptModal from '@/components/ReceiptModal';
 import Portal from '@/components/Portal';
-import ExpiryBadge from '@/components/ExpiryBadge';
-import { API_URL } from '@/utils/api';
+import { API_URL, safeFetch } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
+
+// Hooks
+import { useSalesData } from '@/hooks/useSalesData';
+import { usePos } from '@/hooks/usePos';
+import { useAgency } from '@/hooks/useAgency';
+
+// Components
+import ProductGrid from './components/ProductGrid';
+import CartSidebar from './components/CartSidebar';
+import AgencyForm from './components/AgencyForm';
+import SalesHistoryTable from './components/SalesHistoryTable';
 
 export default function SalesTerminal() {
     const supabase = React.useMemo(() => createClient(), []);
     const { activeShop } = useShop();
     const { profile } = useUser();
     const { showToast } = useToast();
-    const [products, setProducts] = useState<any[]>([]);
-    const [cart, setCart] = useState<any[]>([]);
+    
+    // Logic extracted to Hooks
+    const {
+        products, categories, brands, allCustomers, agencyHistory, projects,
+        loading, isAgency, fetchProducts, fetchHistory, fetchCustomers,
+    } = useSalesData();
+
+    const {
+        cart, setCart, addToCart, updateCartItemPrice,
+        selectedProductForVariant, setSelectedProductForVariant, resetCart,
+    } = usePos(isAgency, products);
+
+    const {
+        agencyLines, setAgencyLines, docType, setDocType, productSearch, setProductSearch,
+        editingDocId, setEditingDocId, linkedDocNumber, setLinkedDocNumber, linkedDocId, setLinkedDocId,
+        addAgencyLine, updateAgencyLine, addProductToAgency, handleTransformDocument, resetAgency,
+    } = useAgency(products);
+
+    // Local UI State
     const [searchQuery, setSearchQuery] = useState('');
     const [customerName, setCustomerName] = useState('');
-    const [allCustomers, setAllCustomers] = useState<any[]>([]);
+    const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
     const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Wave' | 'OM'>('Cash');
     const [receivedAmount, setReceivedAmount] = useState('');
     const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
-    const [categories, setCategories] = useState<string[]>(['Toutes']);
     const [selectedCategory, setSelectedCategory] = useState('Toutes');
-    const [brands, setBrands] = useState<string[]>(['Toutes']);
     const [selectedBrand, setSelectedBrand] = useState('Toutes');
-    const [isAgency, setIsAgency] = useState(false);
-
-    // Agency state
-    const [agencyLines, setAgencyLines] = useState<any[]>([]);
-    const [docType, setDocType] = useState<'quote' | 'invoice' | 'delivery_note'>('quote');
+    const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
     const [withTva, setWithTva] = useState(false);
     const [paidAmount, setPaidAmount] = useState('0');
-    const [productSearch, setProductSearch] = useState('');
-    const [agencyHistory, setAgencyHistory] = useState<any[]>([]);
-    const [editingDocId, setEditingDocId] = useState<number | null>(null);
-    const [linkedDocNumber, setLinkedDocNumber] = useState<string | null>(null);
-
     const [lastSale, setLastSale] = useState<any>(null);
     const [isReceiptOpen, setIsReceiptOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'shop' | 'history'>('shop');
-
-    // NEW: Image Error Handling
+    const [currentSession, setCurrentSession] = useState<any>(null);
     const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
-
-    // NEW: Variant Selection
-    const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
 
     useEffect(() => {
         if (activeShop) {
-            // Reset filters when shop changes to avoid empty states
             setSelectedCategory('Toutes');
             setSelectedBrand('Toutes');
             setSearchQuery('');
-
-            fetchProducts();
-            fetchHistory();
-            fetchCustomers();
-            setIsAgency(activeShop.id === 3);
+            fetchCurrentSession(activeShop.id);
         }
     }, [activeShop]);
 
-    const fetchProducts = async () => {
-        setLoading(true);
+    const fetchCurrentSession = async (shopId: number) => {
         try {
-            const { data, error } = await supabase
-                .from('products')
+            const { data } = await supabase
+                .from('cash_sessions')
                 .select('*')
-                .eq('shop_id', activeShop?.id)
-                .order('name', { ascending: true });
-
-            if (error) throw error;
-            if (data) {
-                setProducts(data);
-
-                // Only extract categories/brands from products visible on POS
-                const visibleProducts = data.filter((p: any) => p.show_on_pos !== false);
-
-                const cats = new Set(visibleProducts.map((p: any) => p.category).filter(Boolean));
-                setCategories(['Toutes', ...Array.from(cats) as string[]]);
-
-                const bnds = new Set(visibleProducts.map((p: any) => p.brand).filter(Boolean));
-                setBrands(['Toutes', ...Array.from(bnds).sort() as string[]]);
-            }
-        } catch (e) {
-            showToast("Erreur de chargement des produits", "error");
-        } finally {
-            setLoading(false);
+                .eq('shop_id', shopId)
+                .eq('status', 'open')
+                .maybeSingle();
+            setCurrentSession(data);
+        } catch (err) {
+            console.error('Session fetch error', err);
         }
     };
 
-    const fetchHistory = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('sales')
-                .select(`
-                    *,
-                    profiles:created_by (email)
-                `)
-                .eq('shop_id', activeShop?.id)
-                .order('created_at', { ascending: false })
-                .limit(50);
-
-            if (error) throw error;
-            if (data) setAgencyHistory(data);
-        } catch (e) { }
-    };
-
-    const fetchCustomers = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('user_type', 'client');
-
-            if (error) throw error;
-            if (data) setAllCustomers(data);
-        } catch (e) { }
-    };
-
-    const addToCart = (product: any, variant?: any) => {
-        if (product.stock <= 0 && product.type !== 'service') {
-            showToast("Produit épuisé !", "warning");
-            return;
-        }
-
-        if (variant && variant.stock !== undefined && parseInt(variant.stock) <= 0 && product.type !== 'service') {
-            showToast("Cette variante est épuisée !", "warning");
-            return;
-        }
-
-        // If product has variants and no variant is selected, show selection modal
-        if (product.variants && product.variants.length > 0 && !variant) {
-            setSelectedProductForVariant(product);
-            return;
-        }
-
-        const cartItemId = variant ? `${product.id}-${variant.color}-${variant.size}` : product.id;
-        const itemName = variant ? `${product.name} (${variant.color}${variant.color && variant.size ? '/' : ''}${variant.size})` : product.name;
-        const itemImage = variant?.image || product.image;
-
-        const existing = cart.find(item => item.cartItemId === cartItemId);
-        if (existing) {
-            setCart(cart.map(item =>
-                item.cartItemId === cartItemId ? { ...item, quantity: item.quantity + 1 } : item
-            ));
-        } else {
-            setCart([...cart, {
-                ...product,
-                id: product.id, // Keep original ID for stock deduction
-                cartItemId,
-                name: itemName,
-                image: itemImage,
-                quantity: 1,
-                variantInfo: variant
-            }]);
-        }
-    };
-
-    const updateCartItemPrice = (cartItemId: string | number, newPrice: number) => {
-        setCart(cart.map(item => item.cartItemId === cartItemId ? { ...item, price: newPrice } : item));
-    };
-
-    const filteredProducts = products.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (p.brand || '').toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesCategory = selectedCategory === 'Toutes' || p.category === selectedCategory;
-        const matchesBrand = selectedBrand === 'Toutes' || p.brand === selectedBrand;
-        return matchesSearch && matchesCategory && matchesBrand && p.show_on_pos !== false;
-    });
-
-    const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
     const totalAmount = isAgency
         ? agencyLines.reduce((sum, l) => sum + (l.price * l.quantity), 0)
         : cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    const subTotalHT = totalAmount / 1.18;
-    const change = receivedAmount ? parseFloat(receivedAmount) - totalAmount : 0;
-
-    const isGlobalView = activeShop?.id === 0;
-
     const handleCheckout = async () => {
-        if (isGlobalView) {
+        if (!activeShop || activeShop.id === 0) {
             showToast("Action impossible en vue globale. Sélectionnez une boutique.", "error");
             return;
         }
         setIsCheckingOut(true);
 
         try {
+            if (paymentMethod.toLowerCase() === 'cash' && !currentSession && !isAgency) {
+                showToast("La caisse est fermée. Veuillez l'ouvrir dans 'Ma Caisse' avant d'encaisser du Cash.", "error");
+                setIsCheckingOut(false);
+                return;
+            }
+
             if (!isAgency) {
-                // POS Standard Sale
-                const { data: sale, error: saleError } = await supabase
-                    .from('sales')
-                    .insert([{
-                        customer_name: customerName || 'Client Comptant',
-                        total_amount: totalAmount,
-                        payment_method: paymentMethod.toLowerCase(),
-                        shop_id: activeShop?.id,
-                        created_by: profile?.id,
-                        created_at: new Date(saleDate).toISOString(),
-                        status: 'completed'
-                    }])
-                    .select()
-                    .single();
+                const saleData = {
+                    customer_name: customerName || 'Client Comptant',
+                    customer_id: selectedCustomerId,
+                    totalAmount,
+                    paymentMethod: paymentMethod.toLowerCase(),
+                    shopId: activeShop.id,
+                    created_by: profile?.id,
+                    created_at: new Date(saleDate).toISOString(),
+                    project_id: selectedProjectId,
+                    items: cart.map(item => ({
+                        productId: item.id,
+                        quantity: item.quantity,
+                        price: item.price,
+                        variantId: item.variantInfo?.id?.toString() || null,
+                        name: item.name
+                    }))
+                };
 
-                if (saleError) throw saleError;
+                const sale = await safeFetch(`${API_URL}/sales`, {
+                    method: 'POST',
+                    body: JSON.stringify(saleData)
+                });
 
-                const saleItems = cart.map(item => ({
-                    sale_id: sale.id,
-                    product_id: item.id,
-                    quantity: item.quantity,
-                    price: item.price,
-                    description: item.name // Store full name with variant info
-                }));
-
-                const { error: itemsError } = await supabase.from('sale_items').insert(saleItems);
-                if (itemsError) throw itemsError;
-
-                // Decrement stock using RPC
-                for (const item of cart) {
-                    if (item.type !== 'service') {
-                        await supabase.rpc('decrement_stock', {
-                            product_id: item.id,
-                            quantity: item.quantity,
-                            p_variant_id: item.variantInfo?.id?.toString() || null
-                        });
-                    }
+                if (paymentMethod.toLowerCase() === 'cash' && currentSession) {
+                    await supabase.from('cash_movements').insert([{
+                        session_id: currentSession.id,
+                        shop_id: activeShop.id,
+                        type: 'income',
+                        amount: totalAmount,
+                        description: `Vente POS #${sale.invoice_number || sale.id}`,
+                        source: 'sale',
+                        source_id: sale.id?.toString(),
+                        payment_method: paymentMethod.toLowerCase()
+                    }]);
                 }
 
                 showToast("Vente réussie !", "success");
-                setLastSale({ ...sale, items: cart });
+                setLastSale({ ...sale, items: cart, receivedAmount: parseFloat(receivedAmount) || 0 });
                 setIsReceiptOpen(true);
-                setCart([]);
+                resetCart();
                 setReceivedAmount('');
                 setCustomerName('');
                 fetchHistory();
                 fetchProducts();
             } else {
-                // Agency Document Logic (Keeping it simplified for now as it's a specific use case)
-                // For a full fix, we'd need to implement the agency document storage in Supabase here too.
-                // But let's at least fix the main POS for now.
-                showToast("Mode Agence en cours de migration...", "info");
+                if (!customerName) {
+                    showToast("Veuillez saisir le nom du client", "error");
+                    return;
+                }
+
+                const prefix = docType === 'quote' ? 'DEV' : docType === 'invoice' ? 'FAC' : 'BL';
+                const dateCode = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                const docNumber = `${prefix}-${dateCode}-${rand}`;
+
+                const docData = {
+                    customer_name: customerName,
+                    customer_id: selectedCustomerId,
+                    totalAmount,
+                    type: docType,
+                    status: docType === 'quote' ? 'pending' : 'completed',
+                    shopId: activeShop.id,
+                    created_by: profile?.id,
+                    created_at: new Date(saleDate).toISOString(),
+                    invoice_number: docNumber,
+                    with_tva: withTva,
+                    paid_amount: parseFloat(paidAmount) || 0,
+                    project_id: selectedProjectId,
+                    items: agencyLines.map(l => ({
+                        productId: l.product_id || 0,
+                        name: l.name,
+                        quantity: l.quantity,
+                        price: l.price
+                    }))
+                };
+
+                const savedDoc = await safeFetch(`${API_URL}/sales`, {
+                    method: 'POST',
+                    body: JSON.stringify(docData)
+                });
+
+                if (parseFloat(paidAmount) > 0 && currentSession) {
+                    await supabase.from('cash_movements').insert([{
+                        session_id: currentSession.id,
+                        shop_id: activeShop.id,
+                        type: 'income',
+                        amount: parseFloat(paidAmount),
+                        description: `${docType === 'invoice' ? 'Facture' : 'BL'} #${savedDoc.invoice_number || savedDoc.id}`,
+                        source: 'sale',
+                        source_id: savedDoc.id?.toString(),
+                        payment_method: paymentMethod.toLowerCase()
+                    }]);
+                }
+
+                showToast(`${docType === 'quote' ? 'Devis' : 'Document'} enregistré !`, "success");
+                setLastSale({ ...savedDoc, items: agencyLines });
+                setIsReceiptOpen(true);
+                resetAgency();
+                setCustomerName('');
+                setPaidAmount('0');
+                fetchHistory();
             }
         } catch (e: any) {
-            console.error('Checkout Error:', e);
-            showToast(`Erreur : ${e.message}`, "error");
+            showToast(`${e.message}`, "error");
         } finally {
             setIsCheckingOut(false);
         }
@@ -267,20 +221,12 @@ export default function SalesTerminal() {
 
     const handleViewReceipt = async (sale: any) => {
         try {
-            const { data: items, error } = await supabase
-                .from('sale_items')
-                .select(`
-                    *,
-                    products (name)
-                `)
-                .eq('sale_id', sale.id);
-
-            if (error) throw error;
+            const items = await safeFetch(`${API_URL}/sales/${sale.id}/items`);
             if (items) {
                 setLastSale({
                     ...sale,
                     items: items.map((i: any) => ({
-                        name: i.products?.name || 'Article inconnu',
+                        name: i.products?.name || i.description || 'Article inconnu',
                         quantity: i.quantity,
                         price: i.price
                     }))
@@ -304,47 +250,15 @@ export default function SalesTerminal() {
         }
     };
 
-    const addAgencyLine = () => {
-        setAgencyLines([...agencyLines, { id: Date.now(), name: '', quantity: 1, price: 0 }]);
-    };
-
-    const updateAgencyLine = (id: number, field: string, value: any) => {
-        setAgencyLines(agencyLines.map(l => l.id === id ? { ...l, [field]: value } : l));
-    };
-
-    const addProductToAgency = (p: any) => {
-        if (p.stock <= 0 && p.type !== 'service') {
-            showToast(`${p.name} est épuisé !`, "warning");
-            return;
-        }
-        setAgencyLines([...agencyLines, { id: Date.now(), name: p.name, quantity: 1, price: p.price, product_id: p.id }]);
-    };
-
-    const handleTransformDocument = async (sale: any, targetType: 'invoice' | 'delivery_note') => {
+    const handleCancelSale = async (sale: any) => {
+        if (!confirm(`Annuler la vente ${sale.invoice_number || ''} et remettre les articles en stock ?`)) return;
         try {
-            setLoading(true);
-            const res = await fetch(`${API_URL}/sales/${sale.id}/items`);
-            if (res.ok) {
-                const items = await res.json();
-                setDocType(targetType);
-                setCustomerName(sale.customer_name);
-                setWithTva(sale.with_tva);
-                setLinkedDocNumber(sale.invoice_number);
-                setAgencyLines(items.map((i: any) => ({
-                    id: Date.now() + Math.random(),
-                    name: i.products?.name || i.description || 'Article inconnu',
-                    quantity: i.quantity,
-                    price: i.price,
-                    product_id: i.product_id
-                })));
-                setEditingDocId(null); // On crée un NOUVEAU document
-                setActiveTab('shop'); // On retourne à l'éditeur
-                showToast(`Prêt pour conversion en ${targetType === 'invoice' ? 'Facture' : 'Bon de Livraison'}`, "success");
-            }
-        } catch (e) {
-            showToast("Erreur lors de la préparation de la conversion", "error");
-        } finally {
-            setLoading(false);
+            await safeFetch(`${API_URL}/sales/${sale.id}/cancel?shopId=${activeShop?.id}`, { method: 'POST' });
+            showToast("Vente annulée et stock rétabli", "success");
+            fetchHistory();
+            fetchProducts();
+        } catch (e: any) {
+            showToast(e.message || "Erreur lors de l'annulation", "error");
         }
     };
 
@@ -359,7 +273,7 @@ export default function SalesTerminal() {
                             <h1 className="text-lg sm:text-2xl font-black uppercase tracking-tighter text-white font-museo">
                                 LOLLY<span className="text-shop">POS</span>
                             </h1>
-                            <p className="text-[7px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">Système de Vente Premium</p>
+                            <p className="text-[7px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">Système de Vente Premium <span className="text-shop/60 ml-2">v1.5 - MODULAR</span></p>
                         </div>
                         <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
                         <div className="scale-90 sm:scale-100 origin-left">
@@ -383,16 +297,10 @@ export default function SalesTerminal() {
 
                 {/* Mobile Tabs Controller */}
                 <div className="lg:hidden flex p-2 bg-black/20 backdrop-blur-md border-b border-white/5 sticky top-20 sm:top-24 z-20">
-                    <button
-                        onClick={() => setActiveTab('shop')}
-                        className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground'}`}
-                    >
+                    <button onClick={() => setActiveTab('shop')} className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'shop' ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground'}`}>
                         <ShoppingCart className="w-3.5 h-3.5 mr-2" /> Catalogue
                     </button>
-                    <button
-                        onClick={() => setActiveTab('history')}
-                        className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground'}`}
-                    >
+                    <button onClick={() => setActiveTab('history')} className={`flex-1 flex items-center justify-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'history' ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground'}`}>
                         <Clock className="w-3.5 h-3.5 mr-2" /> Historique
                     </button>
                 </div>
@@ -402,210 +310,22 @@ export default function SalesTerminal() {
                     {(activeTab === 'shop' || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
                         <div className={activeTab === 'history' ? 'hidden lg:block' : ''}>
                             {!isAgency ? (
-                                <div className="space-y-6">
-                                    {/* Advanced Search and Dropdown Filters */}
-                                    <div className="flex flex-col space-y-4">
-                                        <div className="relative group">
-                                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-shop transition-colors" />
-                                            <input
-                                                type="text"
-                                                placeholder="Chercher un produit par nom..."
-                                                className="w-full h-16 sm:h-20 bg-white/5 border border-white/10 rounded-[24px] sm:rounded-3xl pl-16 pr-6 text-sm font-bold focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 text-white"
-                                                value={searchQuery}
-                                                onChange={(e) => setSearchQuery(e.target.value)}
-                                            />
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <CustomDropdown
-                                                label="Rayon / Catégorie"
-                                                options={categories.map(cat => ({
-                                                    label: cat,
-                                                    value: cat,
-                                                    icon: <Tags className="w-3.5 h-3.5" />
-                                                }))}
-                                                value={selectedCategory}
-                                                onChange={setSelectedCategory}
-                                                placeholder="Toutes les catégories"
-                                            />
-
-                                            {brands.length > 1 && (
-                                                <CustomDropdown
-                                                    label="Marque"
-                                                    options={brands.map(brand => {
-                                                        const visibleProducts = products.filter(p => p.show_on_pos !== false);
-                                                        const count = brand === 'Toutes'
-                                                            ? visibleProducts.length
-                                                            : visibleProducts.filter(p => p.brand === brand).length;
-                                                        return {
-                                                            label: `${brand} (${count})`,
-                                                            value: brand,
-                                                            icon: <Sparkles className="w-3.5 h-3.5" />
-                                                        };
-                                                    })}
-                                                    value={selectedBrand}
-                                                    onChange={setSelectedBrand}
-                                                    placeholder="Toutes les marques"
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {loading ? (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-8">
-                                            {[...Array(10)].map((_, i) => (
-                                                <div key={i} className="aspect-square bg-white/5 rounded-[32px] sm:rounded-[40px] animate-pulse" />
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-8 pb-32">
-                                            {filteredProducts.map(p => {
-                                                const isOutOfStock = p.stock <= 0 && p.type !== 'service';
-                                                return (
-                                                    <button
-                                                        key={p.id}
-                                                        onClick={() => addToCart(p)}
-                                                        disabled={isOutOfStock}
-                                                        className={`group relative bg-white/[0.03] border border-white/5 rounded-[32px] sm:rounded-[40px] p-4 sm:p-6 text-left hover:bg-white/[0.08] hover:border-shop/30 hover:scale-[1.02] active:scale-95 transition-all duration-500 overflow-hidden shadow-lg ${isOutOfStock ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}
-                                                    >
-                                                        <div className="relative aspect-square rounded-[24px] sm:rounded-[32px] overflow-hidden mb-4 sm:mb-6 bg-black/20">
-                                                            {p.image && !imageErrors[p.id] ? (
-                                                                <Image
-                                                                    src={p.image}
-                                                                    alt={p.name}
-                                                                    fill
-                                                                    className="object-cover group-hover:scale-110 transition-transform duration-700"
-                                                                    onError={() => setImageErrors(prev => ({ ...prev, [p.id]: true }))}
-                                                                />
-                                                            ) : (
-                                                                <div className="w-full h-full flex items-center justify-center">
-                                                                    <LayoutDashboard className="w-8 h-8 text-white/10" />
-                                                                </div>
-                                                            )}
-                                                            <div className="absolute top-3 right-3">
-                                                                <ExpiryBadge expiryDate={p.expiry_date} />
-                                                            </div>
-                                                        </div>
-                                                        <div className="space-y-1 sm:space-y-2">
-                                                            <div className="flex items-center space-x-2">
-                                                                {p.brand && <span className="text-[8px] font-black uppercase px-1.5 py-0.5 bg-shop/10 text-shop rounded border border-shop/20">{p.brand}</span>}
-                                                                <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-white transition-colors">{p.category}</p>
-                                                            </div>
-                                                            <h3 className="font-bold text-xs sm:text-sm text-white line-clamp-1">{p.name}</h3>
-                                                            <div className="flex items-center justify-between pt-2 sm:pt-4">
-                                                                <p className="text-sm sm:text-lg font-black text-white">{Number(p.price).toLocaleString()} <span className="text-[10px] text-muted-foreground ml-1">CFA</span></p>
-                                                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:bg-shop group-hover:text-white transition-all">
-                                                                    <Plus className="w-4 h-4" />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="absolute top-4 left-4">
-                                                            <div className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border backdrop-blur-md ${p.stock <= 5 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'
-                                                                }`}>
-                                                                Stock: {p.stock}
-                                                            </div>
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </div>
+                                <ProductGrid 
+                                    products={products} loading={loading} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
+                                    categories={categories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
+                                    brands={brands} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand}
+                                    addToCart={addToCart} imageErrors={imageErrors} setImageErrors={setImageErrors}
+                                />
                             ) : (
-                                <div className="space-y-8">
-                                    {/* Agency Document UI (Simplified for tabs) */}
-                                    <div className="glass-panel p-6 sm:p-10 rounded-[40px] border-white/5 bg-white/[0.01] space-y-8">
-                                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                                            <div className="flex items-center space-x-4">
-                                                <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center">
-                                                    <FileText className="w-6 h-6 text-shop" />
-                                                </div>
-                                                <div>
-                                                    <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter text-white font-museo">Édition Document</h2>
-                                                    <div className="flex items-center space-x-2">
-                                                        <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                                            {linkedDocNumber ? `Lien avec : ${linkedDocNumber}` : 'Gestion des devis et factures'}
-                                                        </p>
-                                                        {linkedDocNumber && (
-                                                            <button onClick={() => setLinkedDocNumber(null)} className="text-red-400 hover:text-red-500">
-                                                                <X className="w-3 h-3" />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex bg-white/5 p-1.5 rounded-[20px] border border-white/10 w-full md:w-auto">
-                                                {(['quote', 'invoice', 'delivery_note'] as const).map(t => (
-                                                    <button key={t} onClick={() => setDocType(t)} className={`flex-1 md:flex-none px-4 sm:px-6 py-2.5 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${docType === t ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground hover:text-white'}`}>
-                                                        {t === 'quote' ? 'Devis' : t === 'invoice' ? 'Facture' : 'Bon Livr.'}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                        {/* Simplified agency form context */}
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Destinataire (Nom / Entreprise)</label>
-                                                <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Ex: Client ABC..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Recherche Produit Rapide</label>
-                                                <div className="relative group">
-                                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-shop transition-colors" />
-                                                    <input
-                                                        list="agency-product-list"
-                                                        value={productSearch}
-                                                        onChange={e => setProductSearch(e.target.value)}
-                                                        onKeyDown={e => {
-                                                            if (e.key === 'Enter') {
-                                                                const found = products.find(p => p.name.toLowerCase() === productSearch.toLowerCase());
-                                                                if (found) {
-                                                                    addProductToAgency(found);
-                                                                    setProductSearch('');
-                                                                }
-                                                            }
-                                                        }}
-                                                        placeholder="Chercher..."
-                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
-                                                    />
-                                                    <datalist id="agency-product-list">
-                                                        {products.map(p => <option key={p.id} value={p.name}>{p.price.toLocaleString()} FCFA</option>)}
-                                                    </datalist>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-3">
-                                            {agencyLines.map(l => (
-                                                <div key={l.id} className="flex items-center space-x-3 bg-white/5 p-3 rounded-2xl border border-white/5">
-                                                    <input value={l.name} onChange={e => updateAgencyLine(l.id, 'name', e.target.value)} placeholder="Désignation..." className="flex-1 bg-transparent border-none outline-none text-sm font-bold text-white" />
-                                                    <div className="flex items-center space-x-2 bg-black/20 rounded-xl px-2 py-1">
-                                                        <input type="number" value={l.quantity} onChange={e => updateAgencyLine(l.id, 'quantity', parseInt(e.target.value))} className="w-10 bg-transparent text-center text-xs font-black text-white outline-none" />
-                                                        <span className="text-[8px] font-black opacity-30">QTÉ</span>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2 bg-black/20 rounded-xl px-3 py-1">
-                                                        <input type="number" value={l.price || ''} onChange={e => updateAgencyLine(l.id, 'price', parseFloat(e.target.value))} className="w-24 bg-transparent text-right text-xs font-black text-white outline-none" />
-                                                        <span className="text-[8px] font-black opacity-30">CFA</span>
-                                                    </div>
-                                                    <button onClick={() => setAgencyLines(agencyLines.filter(x => x.id !== l.id))} className="text-muted-foreground hover:text-red-400"><X className="w-4 h-4" /></button>
-                                                </div>
-                                            ))}
-                                            <button onClick={addAgencyLine} className="text-[10px] font-black uppercase text-shop flex items-center"><PlusCircle className="w-3.5 h-3.5 mr-1" /> Ajouter une ligne</button>
-                                        </div>
-                                        <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-6 border-t border-white/5">
-                                            <div className="w-full sm:w-auto">
-                                                <p className="text-[10px] font-black uppercase text-muted-foreground mb-2">Acompte reçu</p>
-                                                <input type="number" value={paidAmount} onChange={e => setPaidAmount(e.target.value)} className="w-full sm:w-48 bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs font-black text-white outline-none focus:border-shop/50" />
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Total TTC</p>
-                                                <h2 className="text-3xl sm:text-5xl font-black text-shop">{totalAmount.toLocaleString()} <span className="text-lg">CFA</span></h2>
-                                            </div>
-                                        </div>
-                                        <button disabled={totalAmount <= 0 || !customerName || isCheckingOut} onClick={handleCheckout} className="w-full py-5 bg-white text-black rounded-[28px] font-black text-lg uppercase tracking-[0.2em] shadow-2xl hover:bg-shop hover:text-white transition-all flex items-center justify-center space-x-3">
-                                            {isCheckingOut ? <RefreshCw className="animate-spin" /> : <><Check /> <span>Confirmer</span></>}
-                                        </button>
-                                    </div>
-                                </div>
+                                <AgencyForm 
+                                    docType={docType} setDocType={setDocType} linkedDocNumber={linkedDocNumber} setLinkedDocNumber={setLinkedDocNumber}
+                                    customerName={customerName} setCustomerName={setCustomerName} allCustomers={allCustomers}
+                                    setSelectedCustomerId={setSelectedCustomerId} productSearch={productSearch} setProductSearch={setProductSearch}
+                                    products={products} addProductToAgency={addProductToAgency} agencyLines={agencyLines} updateAgencyLine={updateAgencyLine}
+                                    setAgencyLines={setAgencyLines} addAgencyLine={addAgencyLine} paidAmount={paidAmount} setPaidAmount={setPaidAmount}
+                                    totalAmount={totalAmount} isCheckingOut={isCheckingOut} handleCheckout={handleCheckout}
+                                    projects={projects} selectedProjectId={selectedProjectId} setSelectedProjectId={setSelectedProjectId}
+                                />
                             )}
                         </div>
                     )}
@@ -613,91 +333,14 @@ export default function SalesTerminal() {
                     {/* History Tab */}
                     {(activeTab === 'history' || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
                         <div className={`space-y-8 ${activeTab === 'shop' ? 'hidden lg:block mt-20 border-t border-white/5 pt-20' : ''}`}>
-                            <div className="flex items-center space-x-4">
-                                <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center">
-                                    <Clock className="w-6 h-6 text-shop" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl sm:text-3xl font-black uppercase tracking-tighter text-white font-museo">Ventes Récentes</h2>
-                                    <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Suivi en temps réel</p>
-                                </div>
-                            </div>
-
-                            <div className="glass-panel rounded-[32px] sm:rounded-[40px] overflow-hidden border-white/5 bg-white/[0.01]">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left">
-                                        <thead className="bg-white/5 border-b border-white/5">
-                                            <tr>
-                                                <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Client</th>
-                                                <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest">Date</th>
-                                                <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest">{isAgency ? 'Type & N°' : 'Mode'}</th>
-                                                <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest text-right">Total</th>
-                                                <th className="px-8 py-6 text-[10px] font-black uppercase text-muted-foreground tracking-widest text-center">Ticket</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-white/5">
-                                            {agencyHistory.filter(s => !isAgency || s.type === docType).map((sale) => (
-                                                <tr key={sale.id} className="hover:bg-white/[0.02] transition-colors group">
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex items-center space-x-3">
-                                                            <div className={`w-2 h-2 rounded-full ${sale.type === 'quote' ? 'bg-orange-500' : 'bg-green-500'} shadow-[0_0_10px_rgba(34,197,94,0.5)]`} />
-                                                            <div className="flex flex-col">
-                                                                <span className="font-bold text-white uppercase text-xs">{sale.customer_name || 'Client Comptant'}</span>
-                                                                {sale.profiles?.email && (
-                                                                    <span className="text-[7px] text-shop font-black uppercase tracking-widest mt-0.5">Par: {sale.profiles.email.split('@')[0]}</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-8 py-6 text-[10px] font-bold text-muted-foreground uppercase">{new Date(sale.created_at).toLocaleDateString()}</td>
-                                                    <td className="px-8 py-6">
-                                                        <div className="flex flex-col">
-                                                            <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase w-fit ${sale.type === 'quote' ? 'bg-orange-500/20 text-orange-400' :
-                                                                sale.type === 'delivery_note' ? 'bg-blue-500/20 text-blue-400' :
-                                                                    'bg-green-500/20 text-green-400'
-                                                                }`}>
-                                                                {sale.type === 'quote' ? 'Devis' : sale.type === 'delivery_note' ? 'Bon de Livraison' : 'Facture'}
-                                                            </span>
-                                                            {sale.invoice_number && (
-                                                                <span className="text-[9px] font-bold text-white/40 mt-1">{sale.invoice_number}</span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-8 py-6 text-right font-black text-shop text-sm">{Number(sale.total_amount).toLocaleString()}</td>
-                                                    <td className="px-8 py-6 text-center">
-                                                        <div className="flex items-center justify-center space-x-2">
-                                                            {isAgency && sale.type === 'quote' && (
-                                                                <button
-                                                                    onClick={() => handleTransformDocument(sale, 'invoice')}
-                                                                    title="Transformer en Facture"
-                                                                    className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
-                                                                >
-                                                                    <ArrowRight className="w-4 h-4" />
-                                                                </button>
-                                                            )}
-                                                            {isAgency && sale.type === 'invoice' && (
-                                                                <button
-                                                                    onClick={() => handleTransformDocument(sale, 'delivery_note')}
-                                                                    title="Transformer en Bon de Livraison"
-                                                                    className="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500 hover:text-white transition-all"
-                                                                >
-                                                                    <Truck className="w-4 h-4" />
-                                                                </button>
-                                                            )}
-                                                            <button onClick={() => handleViewReceipt(sale)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-shop transition-all group-hover:scale-110">
-                                                                <Receipt className="w-4 h-4" />
-                                                            </button>
-                                                            <button onClick={() => handleDeleteSale(sale.id)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-red-400 transition-all opacity-0 group-hover:opacity-100">
-                                                                <Trash2 className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                            <SalesHistoryTable 
+                                history={agencyHistory} isAgency={isAgency} docType={docType}
+                                handleTransformDocument={async (sale, type) => {
+                                    const success = await handleTransformDocument(sale, type);
+                                    if (success) setActiveTab('shop');
+                                }}
+                                handleViewReceipt={handleViewReceipt} handleDeleteSale={handleDeleteSale} handleCancelSale={handleCancelSale}
+                            />
                         </div>
                     )}
                 </div>
@@ -705,77 +348,14 @@ export default function SalesTerminal() {
 
             {/* Sidebar Cart */}
             {!isAgency && (
-                <aside className={`fixed inset-y-0 right-0 z-[150] w-full sm:w-[420px] bg-[#0a0a0c] transition-transform duration-500 transform lg:static lg:translate-x-0 lg:w-[420px] lg:m-4 lg:rounded-[40px] lg:shadow-2xl ${isCartOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'}`}>
-                    <div className="flex flex-col h-full overflow-hidden lg:rounded-[40px] glass-panel border-none">
-                        <div className="p-6 sm:p-8 border-b border-white/5 bg-white/[0.01] flex justify-between items-center">
-                            <div>
-                                <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white">Panier</h2>
-                                <div className="flex items-center space-x-2">
-                                    <p className="text-[10px] text-muted-foreground uppercase font-black">{cart.length} Articles</p>
-                                    <button onClick={() => setCart([])} className="text-[8px] font-black text-red-400 uppercase hover:underline ml-2">Vider</button>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsCartOpen(false)} className="lg:hidden p-2 bg-white/5 rounded-xl text-white"><X className="w-5 h-5" /></button>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar">
-                            {cart.map(item => (
-                                <div key={item.id} className="glass-card p-3 sm:p-4 rounded-3xl flex items-center space-x-4 border-transparent hover:border-shop/20 transition-all group">
-                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0 text-base sm:text-lg uppercase">
-                                        {item.image ? (
-                                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                        ) : (
-                                            <span className="font-black text-shop">{item.name.charAt(0)}</span>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-[10px] sm:text-xs truncate text-white">{item.name}</h4>
-                                        <div className="flex items-center">
-                                            <input type="number" value={item.price} onChange={(e) => updateCartItemPrice(item.id, parseFloat(e.target.value))} className="w-16 sm:w-20 bg-black/20 border border-white/5 rounded-lg px-2 py-0.5 text-[9px] sm:text-[10px] font-black text-shop outline-none" />
-                                            <span className="text-[7px] sm:text-[8px] font-black text-muted-foreground uppercase ml-1">CFA</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center bg-white/5 rounded-xl border border-white/5 p-1">
-                                        <button onClick={() => setCart(cart.map(i => i.cartItemId === item.cartItemId && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i))} className="p-1 hover:text-shop transition-colors"><Minus className="w-3 h-3 text-white" /></button>
-                                        <span className="w-6 sm:w-8 text-center text-[10px] sm:text-xs font-black text-white">{item.quantity}</span>
-                                        <button onClick={() => { const p = products.find(p => p.id === item.id); if (p) addToCart(p, item.variantInfo); }} className="p-1 hover:text-shop transition-colors"><Plus className="w-3 h-3 text-white" /></button>
-                                    </div>
-                                    <button onClick={() => setCart(cart.filter(i => i.cartItemId !== item.cartItemId))} className="text-muted-foreground hover:text-red-400 p-1"><Trash2 className="w-4 h-4" /></button>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="p-6 sm:p-8 bg-white/[0.02] border-t border-white/5 space-y-4">
-                            <div className="grid grid-cols-3 gap-2">
-                                {(['Cash', 'Wave', 'OM'] as const).map(m => (
-                                    <button key={m} onClick={() => setPaymentMethod(m)} className={`flex flex-col items-center py-2.5 rounded-2xl border transition-all ${paymentMethod === m ? 'bg-shop text-white border-shop' : 'bg-white/5 border-white/10 text-muted-foreground'}`}>
-                                        {m === 'Cash' ? <Banknote className="w-3.5 h-3.5" /> : <Wallet className="w-3.5 h-3.5" />}
-                                        <span className="text-[7px] sm:text-[8px] font-black uppercase mt-1">{m}</span>
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="flex justify-between items-center pt-2 border-t border-white/5">
-                                <span className="text-xs font-black text-muted-foreground uppercase">TOTAL</span>
-                                <span className="text-2xl sm:text-3xl font-black text-shop">{totalAmount.toLocaleString()} CFA</span>
-                            </div>
-                            <button disabled={cart.length === 0 || isCheckingOut} onClick={handleCheckout} className="w-full py-4 sm:py-5 bg-shop text-white rounded-[24px] sm:rounded-[28px] font-black text-lg shadow-2xl transition-all active:scale-95 uppercase tracking-widest">
-                                {isCheckingOut ? <RefreshCw className="animate-spin mx-auto w-6 h-6" /> : 'ENCAISSER'}
-                            </button>
-                        </div>
-                    </div>
-                </aside>
-            )}
-
-            {/* Mobile Footer Cart Bar */}
-            {!isAgency && cart.length > 0 && !isCartOpen && (
-                <div onClick={() => setIsCartOpen(true)} className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[90%] bg-shop text-white p-4 rounded-3xl shadow-2xl flex items-center justify-between border-2 border-white/20 animate-in slide-in-from-bottom-4">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center font-black">{cartCount}</div>
-                        <div className="flex flex-col leading-none">
-                            <span className="text-[8px] font-black uppercase opacity-60">Panier</span>
-                            <span className="text-lg font-black">{totalAmount.toLocaleString()} CFA</span>
-                        </div>
-                    </div>
-                    <div className="bg-white text-shop px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase shadow-lg">Payer</div>
-                </div>
+                <CartSidebar 
+                    cart={cart} setCart={setCart} addToCart={addToCart} updateCartItemPrice={updateCartItemPrice}
+                    products={products} isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen}
+                    paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} receivedAmount={receivedAmount}
+                    setReceivedAmount={setReceivedAmount} totalAmount={totalAmount} isCheckingOut={isCheckingOut}
+                    handleCheckout={handleCheckout} projects={projects} selectedProjectId={selectedProjectId}
+                    setSelectedProjectId={setSelectedProjectId}
+                />
             )}
 
             {lastSale && <ReceiptModal isOpen={isReceiptOpen} onClose={() => setIsReceiptOpen(false)} saleData={lastSale} shop={activeShop} />}
@@ -786,75 +366,37 @@ export default function SalesTerminal() {
                     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4">
                         <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setSelectedProductForVariant(null)} />
                         <div className="relative glass-card w-full max-w-lg p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
-                            <button onClick={() => setSelectedProductForVariant(null)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors">
-                                <X className="w-5 h-5" />
-                            </button>
-
+                            <button onClick={() => setSelectedProductForVariant(null)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                             <div className="flex flex-col items-center text-center space-y-6">
                                 <div className="w-32 h-32 rounded-3xl bg-white/5 border border-white/10 overflow-hidden relative shadow-2xl">
-                                    <Image
-                                        src={selectedProductForVariant.image}
-                                        alt={selectedProductForVariant.name}
-                                        fill
-                                        className="object-cover"
-                                    />
+                                    <Image src={selectedProductForVariant.image} alt={selectedProductForVariant.name} fill className="object-cover" />
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-black uppercase tracking-tight text-white">{selectedProductForVariant.name}</h3>
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Sélectionner une Variante</p>
                                 </div>
-
                                 <div className="w-full space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                                     <div className="grid grid-cols-1 gap-3">
                                         {selectedProductForVariant.variants.map((v: any, i: number) => (
-                                            <button
-                                                key={i}
-                                                disabled={v.stock !== undefined && parseInt(v.stock) <= 0}
-                                                onClick={() => {
-                                                    addToCart(selectedProductForVariant, v);
-                                                    setSelectedProductForVariant(null);
-                                                }}
-                                                className={`group flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 transition-all w-full text-left ${v.stock !== undefined && parseInt(v.stock) <= 0 ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:border-shop/50 hover:bg-shop/5'}`}
-                                            >
+                                            <button key={i} disabled={v.stock !== undefined && parseInt(v.stock) <= 0} onClick={() => { addToCart(selectedProductForVariant, v); setSelectedProductForVariant(null); }} className={`group flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 transition-all w-full text-left ${v.stock !== undefined && parseInt(v.stock) <= 0 ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:border-shop/50 hover:bg-shop/5'}`}>
                                                 <div className="flex items-center space-x-4">
                                                     <div className="w-12 h-12 rounded-xl bg-black/20 overflow-hidden border border-white/5">
-                                                        {v.image ? (
-                                                            <img src={v.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center bg-white/5">
-                                                                <ImageIcon className="w-4 h-4 text-white/10" />
-                                                            </div>
-                                                        )}
+                                                        {v.image ? <img src={v.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : <div className="w-full h-full flex items-center justify-center bg-white/5"><ImageIcon className="w-4 h-4 text-white/10" /></div>}
                                                     </div>
                                                     <div>
                                                         <div className="flex items-center space-x-2">
                                                             <p className="text-sm font-bold text-white uppercase">{v.color || 'Standard'}</p>
-                                                            {v.stock !== undefined && (
-                                                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border ${parseInt(v.stock) <= 2 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'}`}>
-                                                                    S: {v.stock}
-                                                                </span>
-                                                            )}
+                                                            {v.stock !== undefined && <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border ${parseInt(v.stock) <= 2 ? 'bg-red-500/20 border-red-500/30 text-red-400' : 'bg-green-500/20 border-green-500/30 text-green-400'}`}>S: {v.stock}</span>}
                                                         </div>
                                                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{v.size || 'Unique'}</p>
                                                     </div>
                                                 </div>
-                                                <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-shop group-hover:text-white transition-all">
-                                                    <Plus className="w-4 h-4" />
-                                                </div>
+                                                <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center group-hover:bg-shop group-hover:text-white transition-all"><Plus className="w-4 h-4" /></div>
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-
-                                <button
-                                    onClick={() => {
-                                        addToCart(selectedProductForVariant, { color: 'Standard', size: 'N/A' });
-                                        setSelectedProductForVariant(null);
-                                    }}
-                                    className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white transition-colors py-2"
-                                >
-                                    Continuer sans variante spécifique
-                                </button>
+                                <button onClick={() => { addToCart(selectedProductForVariant, { color: 'Standard', size: 'N/A' }); setSelectedProductForVariant(null); }} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white transition-colors py-2">Continuer sans variante spécifique</button>
                             </div>
                         </div>
                     </div>

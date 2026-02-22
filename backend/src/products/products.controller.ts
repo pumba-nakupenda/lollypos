@@ -18,6 +18,11 @@ export class ProductsController {
         return this.productsService.bulkCreate(createProductDtos);
     }
 
+    @Post('bulk-stock')
+    bulkUpdateStock(@Body() updates: { id: number, stock: number, variants?: any[] }[]) {
+        return this.productsService.bulkUpdateStock(updates);
+    }
+
     @Get()
     findAll(@Query('shopId') shopId?: string) {
         return this.productsService.findAll(shopId ? +shopId : undefined);
@@ -36,6 +41,12 @@ export class ProductsController {
     @Delete(':id')
     remove(@Param('id') id: string) {
         return this.productsService.remove(+id);
+    }
+
+    @Post('reset-stock')
+    resetStock(@Query('shopId') shopId: string) {
+        if (!shopId) throw new Error('shopId est requis');
+        return this.productsService.resetStock(+shopId);
     }
 
     @Patch('categories/rename')

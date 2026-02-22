@@ -35,4 +35,9 @@ export class SalesController {
     remove(@Param('id') id: string) {
         return this.salesService.remove(id); // Sales IDs are UUIDs
     }
+
+    @Post(':id/cancel')
+    cancel(@Param('id') id: string, @Query('shopId') shopId?: string) {
+        return this.salesService.cancel(id, shopId ? +shopId : undefined);
+    }
 }

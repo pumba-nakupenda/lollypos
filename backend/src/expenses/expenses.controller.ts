@@ -41,8 +41,13 @@ export class ExpensesController {
   }
 
   @Post('categories')
-  createCategory(@Body() body: { name: string, shopId: number, isPersonal: boolean }) {
-    return this.expensesService.createCategory(body.name, body.shopId, body.isPersonal);
+  createCategory(@Body() body: { name: string, shopId: number, isPersonal: boolean, budget?: number }) {
+    return this.expensesService.createCategory(body.name, body.shopId, body.isPersonal, body.budget);
+  }
+
+  @Patch('categories/:id')
+  updateCategory(@Param('id') id: string, @Body() body: { name?: string, budget?: number }) {
+    return this.expensesService.updateCategory(+id, body);
   }
 
   @Delete('categories/:id')

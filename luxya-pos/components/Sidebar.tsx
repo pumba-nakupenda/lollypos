@@ -25,7 +25,8 @@ import {
     Lock,
     RefreshCw,
     Globe,
-    FileText
+    FileText,
+    FolderKanban
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { useShop } from '@/context/ShopContext'
@@ -43,6 +44,9 @@ const navGroups = [
         title: "Opérations",
         items: [
             { name: 'Caisse POS', href: '/sales', icon: ShoppingBag },
+            { name: 'Ma Caisse', href: '/cash-management', icon: LayoutDashboard, roles: ['admin', 'manager'] },
+            { name: 'Portfolio', href: '/portfolio', icon: Users, roles: ['admin', 'manager'], agencyOnly: true },
+            { name: 'Projets', href: '/projects', icon: FolderKanban, roles: ['admin', 'manager'], agencyOnly: true },
             { name: 'Clients', href: '/customers', icon: Users, roles: ['admin', 'manager'] },
             { name: 'Dettes', href: '/debts', icon: CreditCard, roles: ['admin', 'manager'] },
         ]
@@ -60,6 +64,7 @@ const navGroups = [
         title: "Finance & Frais",
         items: [
             { name: 'Depenses', href: '/expenses', icon: Receipt, roles: ['admin', 'manager'] },
+            { name: 'Rapports', href: '/reports', icon: BarChart3, roles: ['admin', 'manager'] },
         ]
     },
     {
@@ -109,6 +114,7 @@ export default function Sidebar() {
                 {navGroups.map((group) => {
                     const filteredItems = group.items.filter((item: any) => {
                         if (item.superAdminOnly && !profile?.is_super_admin) return false
+                        if (item.agencyOnly && activeShop?.id !== 3) return false
                         if (!item.roles) return true
                         if (item.name === 'Inventaire' && profile?.has_stock_access) return true
                         return item.roles.includes(profile?.role || '')
@@ -117,15 +123,21 @@ export default function Sidebar() {
                         if (item.href === '/sales') {
                             return { ...item, name: activeShop?.id === 3 ? 'Facturation' : 'Caisse POS' }
                         }
+                        if (item.href === '/cash-management') {
+                            return { ...item, name: activeShop?.id === 3 ? 'Trésorerie' : 'Ma Caisse' }
+                        }
+                        if (item.href === '/portfolio') {
+                            return { ...item, name: 'Relevés Clients' }
+                        }
                         return item
                     })
 
                     // Add Personal Expenses dynamically to Finance group for Agency
                     if (group.title === "Finance & Frais" && activeShop?.id === 3 && (profile?.role === 'admin' || profile?.role === 'manager')) {
-                        filteredItems.push({ 
-                            name: 'Dépenses Perso', 
-                            href: '/personal-expenses', 
-                            icon: Tag 
+                        filteredItems.push({
+                            name: 'Dépenses Perso',
+                            href: '/personal-expenses',
+                            icon: Tag
                         });
                     }
 
@@ -198,7 +210,7 @@ export default function Sidebar() {
         <>
             {/* Mobile Toggle Button */}
             <div className="lg:hidden fixed top-4 left-4 z-[150]">
-                <button 
+                <button
                     onClick={() => setIsMobileOpen(true)}
                     className="p-3 bg-shop text-white rounded-2xl shadow-2xl shadow-shop/40 active:scale-90 transition-all border border-white/10 backdrop-blur-xl"
                 >

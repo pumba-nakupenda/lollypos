@@ -42,9 +42,16 @@ export function UserProvider({
             const res = await fetch('/api/user/profile', { cache: 'no-store' })
             const contentType = res.headers.get('content-type')
 
+            // PROTECTION AGAINST COLD START / HTML REDIRECTS
+            if (contentType && contentType.includes('text/html')) {
+                console.warn('[UserContext] Received HTML instead of JSON. Server might be starting or redirecting.')
+                setError("Le serveur de profil est en cours de démarrage. Veuillez patienter...")
+                return
+            }
+
             if (res.ok && contentType?.includes('application/json')) {
                 const data = await res.json()
-                
+
                 // BLOQUER SI C'EST UN CLIENT (Lolly Shop only)
                 if (data.user_type === 'client') {
                     setProfile(null)
@@ -56,12 +63,8 @@ export function UserProvider({
                 setError(null)
             } else {
                 const isJson = contentType?.includes('application/json')
-                const text = !isJson ? await res.text().catch(() => '') : ''
-                if (text.startsWith('<!DOCTYPE')) {
-                    console.error('[UserContext] Received HTML instead of JSON')
-                }
                 const errData = isJson ? await res.json().catch(() => ({})) : {}
-                setError(errData.error || `Réponse invalide (${res.status}): ${contentType?.split(';')[0] || 'Inconnu'}`)
+                setError(errData.error || `Réponse invalide (${res.status})`)
             }
         } catch (err: any) {
             console.error('Failed to fetch profile:', err)

@@ -25,38 +25,48 @@ export default function LoginPage() {
         setError(null)
 
         try {
+            console.log("Attempting Supabase login...");
             const { error: authError } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             })
 
             if (authError) {
+                console.error("Supabase Auth Error:", authError);
                 setError(authError.message)
                 return
             }
 
+            console.log("Login successful, logging connection to backend...");
             // Successfully logged in - Log connection to backend
             try {
                 const { data: { session } } = await supabase.auth.getSession()
                 if (session?.user) {
-                    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/log-connection`, {
+                    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:3005';
+                    console.log(`Backend API URL: ${apiUrl}`);
+                    const response = await fetch(`${apiUrl}/auth/log-connection`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             userId: session.user.id,
                             email: session.user.email,
                             device: navigator.userAgent,
-                            ip: 'client-side' // IP handles better on backend
+                            ip: 'client-side'
                         })
-                    })
+                    }).catch(err => {
+                        console.error("Backend fetch failed directly:", err);
+                        throw err;
+                    });
+                    console.log("Backend response status:", response.status);
                 }
             } catch (e) {
-                console.warn('Logging connection failed (non-critical)')
+                console.warn('Logging connection failed (non-critical):', e)
             }
 
             router.push('/')
             router.refresh()
         } catch (err: any) {
+            console.error("Overall login catch block:", err);
             setError(err.message || 'Une erreur est survenue')
         } finally {
             setLoading(false)
@@ -84,7 +94,7 @@ export default function LoginPage() {
                 {/* Login Card */}
                 <div className="glass-panel p-6 sm:p-10 rounded-[32px] sm:rounded-[48px] shadow-2xl relative group border-white/10">
                     <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent rounded-[32px] sm:rounded-[48px] pointer-events-none" />
-                    
+
                     <form onSubmit={handleLogin} className="space-y-5 sm:space-y-6 relative z-10">
                         {error && (
                             <div className="p-3 sm:p-4 rounded-2xl bg-red-500/10 border border-red-500/20 animate-in fade-in slide-in-from-top-2 duration-300">

@@ -2,11 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 import { supabase } from '@/utils/supabase'
-import { createClient } from '@/utils/supabase/server'
+import { createClient, createAdminClient } from '@/utils/supabase/server'
 import { API_URL } from '@/utils/api'
 
 export async function createProduct(formData: FormData) {
     const supabaseServer = await createClient()
+    const supabaseAdmin = await createAdminClient()
     const { data: { user } } = await supabaseServer.auth.getUser()
 
     if (!user) return { error: 'Non authentifié' }
@@ -51,12 +52,12 @@ export async function createProduct(formData: FormData) {
     if (imageFile && imageFile.size > 0 && typeof imageFile !== 'string') {
         const fileExt = imageFile.name.split('.').pop()
         const fileName = `${Math.random().toString(36).slice(2, 11)}_${Date.now()}.${fileExt}`
-        const { data, error: uploadError } = await supabase.storage
+        const { data, error: uploadError } = await supabaseAdmin.storage
             .from('products')
             .upload(fileName, imageFile)
 
         if (!uploadError) {
-            const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+            const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
             imageUrl = publicUrl
         }
     }
@@ -66,12 +67,12 @@ export async function createProduct(formData: FormData) {
         if (file && file.size > 0 && typeof file !== 'string') {
             const fileExt = file.name.split('.').pop()
             const fileName = `gallery_${Math.random().toString(36).slice(2, 11)}_${Date.now()}.${fileExt}`
-            const { data, error: uploadError } = await supabase.storage
+            const { data, error: uploadError } = await supabaseAdmin.storage
                 .from('products')
                 .upload(fileName, file)
 
             if (!uploadError) {
-                const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+                const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
                 galleryUrls.push(publicUrl)
             }
         }
@@ -108,12 +109,12 @@ export async function createProduct(formData: FormData) {
         if (vFile && vFile.size > 0 && typeof vFile !== 'string') {
             const fileExt = vFile.name.split('.').pop()
             const fileName = `variant_${variant.id}_${Date.now()}.${fileExt}`
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabaseAdmin.storage
                 .from('products')
                 .upload(fileName, vFile)
 
             if (!uploadError) {
-                const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+                const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
                 parsedVariants[i].image = publicUrl
             }
         }
@@ -143,6 +144,7 @@ export async function createProduct(formData: FormData) {
 
 export async function updateProduct(productId: number, formData: FormData) {
     const supabaseServer = await createClient()
+    const supabaseAdmin = await createAdminClient()
     const { data: { user } } = await supabaseServer.auth.getUser()
     if (!user) return { error: 'Non authentifié' }
 
@@ -168,13 +170,15 @@ export async function updateProduct(productId: number, formData: FormData) {
     const existingGallery = formData.get('existingGallery') ? JSON.parse(formData.get('existingGallery') as string) : []
     const isImageDeleted = formData.get('isImageDeleted') === 'true'
 
-    // Logic: 
-    // 1. If a new file is uploaded, it will eventually overwrite imageUrl.
-    // 2. If isImageDeleted is true and no NEW image is provided, we want to clear it.
-    // 3. Otherwise, we keep current or AI suggestion.
-    let imageUrl = aiImageUrl || currentImageUrl || ''
-    
-    if (isImageDeleted && (!imageFile || imageFile.size === 0)) {
+    // Logic: Ensure new URLs or files override current ones
+    let imageUrl = currentImageUrl || ''
+
+    // If we have a new URL from paste/search, it takes priority
+    if (aiImageUrl && aiImageUrl.startsWith('http') && aiImageUrl !== currentImageUrl) {
+        imageUrl = aiImageUrl
+    }
+
+    if (isImageDeleted && (!imageFile || imageFile.size === 0) && !aiImageUrl) {
         imageUrl = ''
     }
 
@@ -182,30 +186,38 @@ export async function updateProduct(productId: number, formData: FormData) {
 
     // Handle Main Image Upload
     if (imageFile && imageFile.size > 0 && typeof imageFile !== 'string') {
-        const fileExt = imageFile.name.split('.').pop()
+        const fileExt = imageFile.name?.split('.').pop() || 'png'
         const fileName = `${Math.random().toString(36).slice(2, 11)}_${Date.now()}.${fileExt}`
-        const { data, error: uploadError } = await supabase.storage
+
+        console.log(`[UPDATE_PRODUCT] Uploading main image: ${fileName}, size: ${imageFile.size}`);
+
+        const { data, error: uploadError } = await supabaseAdmin.storage
             .from('products')
             .upload(fileName, imageFile)
 
         if (!uploadError) {
-            const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+            const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
             imageUrl = publicUrl
+            console.log(`[UPDATE_PRODUCT] Main image upload success: ${imageUrl}`);
+        } else {
+            console.error('[UPDATE_PRODUCT] Main image upload error:', uploadError);
         }
     }
 
     // Handle New Gallery Uploads
     for (const file of galleryFiles) {
         if (file && file.size > 0 && typeof file !== 'string') {
-            const fileExt = file.name.split('.').pop()
+            const fileExt = file.name?.split('.').pop() || 'png'
             const fileName = `gallery_${Math.random().toString(36).slice(2, 11)}_${Date.now()}.${fileExt}`
-            const { data, error: uploadError } = await supabase.storage
+            const { data, error: uploadError } = await supabaseAdmin.storage
                 .from('products')
                 .upload(fileName, file)
 
             if (!uploadError) {
-                const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+                const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
                 galleryUrls.push(publicUrl)
+            } else {
+                console.error('[UPDATE_PRODUCT] Gallery upload error:', uploadError);
             }
         }
     }
@@ -238,15 +250,17 @@ export async function updateProduct(productId: number, formData: FormData) {
         const vFile = formData.get(`variant_image_${variant.id}`) as File | null
 
         if (vFile && vFile.size > 0 && typeof vFile !== 'string') {
-            const fileExt = vFile.name.split('.').pop()
+            const fileExt = vFile.name?.split('.').pop() || 'png'
             const fileName = `variant_${variant.id}_${Date.now()}.${fileExt}`
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await supabaseAdmin.storage
                 .from('products')
                 .upload(fileName, vFile)
 
             if (!uploadError) {
-                const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+                const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
                 parsedVariants[i].image = publicUrl
+            } else {
+                console.error(`[UPDATE_PRODUCT] Variant ${variant.id} upload error:`, uploadError);
             }
         }
     }
@@ -338,5 +352,26 @@ export async function bulkCreateProducts(products: any[]) {
     } catch (error) {
         console.error('[BULK] Connection error:', error);
         return { error: 'Erreur de connexion au serveur Render' }
+    }
+}
+
+export async function bulkUpdateStock(updates: any[]) {
+    try {
+        const response = await fetch(`${API_URL}/products/bulk-stock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+        })
+
+        if (response.ok) {
+            revalidatePath('/inventory')
+            return { success: true }
+        }
+
+        const errData = await response.json().catch(() => ({}));
+        return { error: errData.message || 'Échec de la mise à jour massive' }
+    } catch (error) {
+        console.error('[BULK_STOCK] Connection error:', error);
+        return { error: 'Erreur de connexion au serveur' }
     }
 }

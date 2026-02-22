@@ -4,6 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 
 interface ProductStoriesProps {
     products: any[];
@@ -41,13 +42,17 @@ export default function ProductStories({ products }: ProductStoriesProps) {
                                 className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-red-500 to-purple-600 mb-2"
                             >
                                 <div className="w-full h-full rounded-full bg-white p-[2px]">
-                                    <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-50 border border-gray-100">
-                                        <Image
-                                            src={product.image}
-                                            alt={product.name}
-                                            fill
-                                            className="object-contain p-2 group-hover:scale-110 transition-transform duration-500"
-                                        />
+                                    <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-50 border border-gray-100 flex items-center justify-center">
+                                        {product.image ? (
+                                            <Image
+                                                src={product.image}
+                                                alt={product.name}
+                                                fill
+                                                className="object-contain p-2 group-hover:scale-110 transition-transform duration-500"
+                                            />
+                                        ) : (
+                                            <Sparkles className="w-6 h-6 text-gray-200" />
+                                        )}
                                     </div>
                                 </div>
 

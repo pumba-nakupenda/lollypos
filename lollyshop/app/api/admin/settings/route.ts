@@ -4,6 +4,15 @@ import { NextResponse } from 'next/server';
 export async function GET() {
     try {
         const supabase = await createClient();
+
+        // Verify admin
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase.from('profiles').select('role, is_super_admin').eq('id', user?.id).single();
+
+        if (profile?.role !== 'admin' && !profile?.is_super_admin) {
+            return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+        }
+
         const { data, error } = await supabase
             .from('site_settings')
             .select('content')
@@ -23,9 +32,9 @@ export async function POST(req: Request) {
         
         // Verifier que l'utilisateur est admin
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
+        const { data: profile } = await supabase.from('profiles').select('role, is_super_admin').eq('id', user?.id).single();
         
-        if (profile?.role !== 'admin') {
+        if (profile?.role !== 'admin' && !profile?.is_super_admin) {
             return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
         }
 

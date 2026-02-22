@@ -21,25 +21,38 @@ import Link from 'next/link'
 import { useShop } from '@/context/ShopContext'
 import ShopSelector from '@/components/ShopSelector'
 import CustomDropdown from '@/components/CustomDropdown'
+import { ProfitabilityIndicator, ProfitabilityHistory } from '@/components/ProfitabilityComponents'
 
 export default function AnalyticsPage() {
     const { activeShop } = useShop()
     const [data, setData] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [selectedCategory, setSelectedCategory] = useState('Toutes')
+    const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'))
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+    const [historyData, setHistoryData] = useState<any[]>([])
 
     useEffect(() => {
         fetchAnalytics()
-    }, [activeShop, selectedCategory])
+    }, [activeShop, selectedCategory, selectedMonth, selectedYear])
 
     const fetchAnalytics = async () => {
         try {
             setLoading(true)
-            const shopId = activeShop?.id || 'all'
-            const res = await fetch(`/api/analytics?shopId=${shopId}&category=${selectedCategory}`)
-            if (res.ok) {
-                const analyticsData = await res.json()
+            const shopId = (!activeShop || activeShop.id === 0) ? 'all' : activeShop.id
+            const ts = Date.now()
+            const [analyticsRes, historyRes] = await Promise.all([
+                fetch(`/api/analytics?shopId=${shopId}&category=${selectedCategory}&month=${selectedMonth}&year=${selectedYear}&_=${ts}`),
+                fetch(`/api/analytics/history?shopId=${shopId}&year=${selectedYear}&_=${ts}`)
+            ])
+
+            if (analyticsRes.ok) {
+                const analyticsData = await analyticsRes.json()
                 setData(analyticsData)
+            }
+            if (historyRes.ok) {
+                const history = await historyRes.json()
+                setHistoryData(history)
             }
         } catch (err) {
             console.error('Failed to fetch analytics')
@@ -54,14 +67,23 @@ export default function AnalyticsPage() {
         </div>
     )
 
-    const metrics = data?.metrics || { totalSales: 0, totalExpenses: 0, profit: 0 }
+    const metrics = data?.metrics || {
+        totalSales: 0,
+        totalExpenses: 0,
+        profit: 0,
+        totalSalesHT: 0,
+        seuilRentabilite: 0,
+        pointMortDate: new Date().toISOString(),
+        isPointMortOutOfRange: false,
+        actualCash: 0
+    }
     const topProducts = data?.topProducts || []
     const trend = data?.trend || []
     const categories = ['Toutes', ...(data?.availableCategories || [])]
-    const categoryOptions = categories.map(cat => ({ 
-        label: cat, 
-        value: cat, 
-        icon: <Tag className="w-3.5 h-3.5" /> 
+    const categoryOptions = categories.map(cat => ({
+        label: cat,
+        value: cat,
+        icon: <Tag className="w-3.5 h-3.5" />
     }))
 
     return (
@@ -73,22 +95,47 @@ export default function AnalyticsPage() {
                         <div className="w-10 h-10 bg-shop rounded-xl flex items-center justify-center shadow-lg shadow-shop/20">
                             <BarChart3 className="w-6 h-6 text-white" />
                         </div>
-                        <div>
+                        <div className="flex items-center">
                             <h1 className="text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">Intelligence</h1>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Analytics Dashboard</p>
+                            <span className="ml-4 px-2 py-1 bg-shop/20 text-[10px] font-black rounded-lg border border-shop/40 text-shop animate-pulse shadow-[0_0_15px_rgba(var(--shop-primary),0.1)] whitespace-nowrap">
+                                v1.2 - REFINED
+                            </span>
                         </div>
                     </div>
 
                     <div className="flex items-center space-x-6">
+                        {/* Month/Year Filters */}
+                        <div className="flex items-center space-x-2">
+                            <CustomDropdown
+                                options={Array.from({ length: 12 }, (_, i) => ({
+                                    label: new Date(0, i).toLocaleDateString('fr-FR', { month: 'long' }),
+                                    value: (i + 1).toString().padStart(2, '0')
+                                }))}
+                                value={selectedMonth}
+                                onChange={(val) => setSelectedMonth(val)}
+                                className="min-w-[140px]"
+                            />
+                            <CustomDropdown
+                                options={[
+                                    { label: '2024', value: '2024' },
+                                    { label: '2025', value: '2025' },
+                                    { label: '2026', value: '2026' }
+                                ]}
+                                value={selectedYear}
+                                onChange={(val) => setSelectedYear(val)}
+                                className="min-w-[100px]"
+                            />
+                        </div>
+
                         {/* Category Filter */}
-                        <CustomDropdown 
+                        <CustomDropdown
                             options={categoryOptions}
                             value={selectedCategory}
                             onChange={(val) => setSelectedCategory(val)}
                             className="min-w-[180px]"
                         />
-                        
-                        <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center bg-white/5 px-4 py-2 rounded-xl border border-white/5">
+
+                        <div className="hidden md:flex text-[10px] font-black uppercase tracking-widest text-muted-foreground items-center bg-white/5 px-4 py-2 rounded-xl border border-white/5">
                             <div className="w-2 h-2 rounded-full bg-shop mr-2 animate-pulse" />
                             Temps réel
                         </div>
@@ -125,6 +172,18 @@ export default function AnalyticsPage() {
                     />
                 </div>
 
+                {/* Profitability Indicator */}
+                <ProfitabilityIndicator
+                    currentTurnover={metrics.totalSalesHT || 0}
+                    breakEvenPoint={metrics.seuilRentabilite || 0}
+                    pointMortDate={metrics.pointMortDate}
+                    isOutOfRange={metrics.isPointMortOutOfRange}
+                    actualCash={metrics.actualCash}
+                />
+
+                {/* Profitability History */}
+                <ProfitabilityHistory history={historyData} />
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Activity Chart (Income vs Expenses) */}
                     <div className="lg:col-span-2 glass-panel rounded-[40px] p-8 border-white/5 bg-white/[0.01] relative overflow-hidden">
@@ -152,7 +211,7 @@ export default function AnalyticsPage() {
                                     <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
                                         <div className="flex w-full justify-center items-end space-x-1 h-full pb-2">
                                             {/* Income Bar */}
-                                            <div 
+                                            <div
                                                 className="w-full bg-shop/40 border-t border-shop/50 rounded-t-sm transition-all group-hover:bg-shop group-hover:shadow-[0_0_15px_rgba(var(--shop-primary),0.3)]"
                                                 style={{ height: `${(day.income / maxVal) * 100}%` }}
                                             >
@@ -161,7 +220,7 @@ export default function AnalyticsPage() {
                                                 </div>
                                             </div>
                                             {/* Outcome Bar */}
-                                            <div 
+                                            <div
                                                 className="w-full bg-red-500/20 border-t border-red-500/30 rounded-t-sm transition-all group-hover:bg-red-500/60"
                                                 style={{ height: `${(day.outcome / maxVal) * 100}%` }}
                                             >
@@ -224,7 +283,7 @@ export default function AnalyticsPage() {
 function MetricCard({ title, value, icon, trend, isUp, color }: any) {
     // Correct color handling for tailwind classes in template literals
     const colorClass = color === 'shop' ? 'shop' : color;
-    
+
     return (
         <div className="glass-card p-8 rounded-[40px] relative overflow-hidden group">
             <div className={`absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-all transform group-hover:scale-110 group-hover:-rotate-12`}>

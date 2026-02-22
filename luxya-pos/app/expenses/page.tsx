@@ -30,11 +30,13 @@ import ShopSelector from '@/components/ShopSelector'
 import CustomDropdown from '@/components/CustomDropdown'
 import { redirect } from 'next/navigation'
 import { API_URL } from '@/utils/api'
+import { createClient } from '@/utils/supabase/client'
 
 export default function ExpensesPage() {
     const { activeShop, shops } = useShop()
     const { profile, loading: profileLoading } = useUser()
     const { showToast } = useToast()
+    const supabase = createClient()
     const [expenses, setExpenses] = useState<any[]>([])
 
     const [selectedShopId, setSelectedShopId] = useState<number>(1)
@@ -51,17 +53,19 @@ export default function ExpensesPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
+    const [projects, setProjects] = useState<any[]>([])
     const [newExpense, setNewExpense] = useState({
         description: '',
         amount: '',
         category: 'Personnel',
         date: new Date().toISOString().split('T')[0],
         is_recurring: false,
-        frequency: 'monthly' as any
+        frequency: 'monthly' as any,
+        project_id: ''
     })
 
     const categories = [
-        'Personnel', 'Loyer', 'Électricité', 'Transport', 
+        'Personnel', 'Loyer', 'Électricité', 'Transport',
         'Stock', 'Maintenance', 'Marketing', 'Publicité',
         'Logistique', 'Fournitures', 'Abonnements', 'Impôts',
         'Frais Bancaires', 'Autre'
@@ -78,14 +82,20 @@ export default function ExpensesPage() {
             redirect('/')
         }
         fetchExpenses()
+        fetchProjects()
     }, [activeShop, profile])
+
+    const fetchProjects = async () => {
+        const { data } = await supabase.from('agency_projects').select('id, name').order('name');
+        if(data) setProjects(data);
+    }
 
     const fetchExpenses = async () => {
         try {
             setLoading(true)
-            // On ajoute includePersonal=true si on est sur l'agence (3)
+            const ts = Date.now()
             const includePersonal = activeShop?.id === 3 ? '&includePersonal=true' : ''
-            const url = activeShop ? `${API_URL}/expenses?shopId=${activeShop.id}${includePersonal}` : `${API_URL}/expenses`
+            const url = activeShop ? `${API_URL}/expenses?shopId=${activeShop.id}${includePersonal}&_=${ts}` : `${API_URL}/expenses?_=${ts}`
             const res = await fetch(url)
             if (res.ok) {
                 const data = await res.json()
@@ -108,7 +118,8 @@ export default function ExpensesPage() {
             category: exp.category,
             date: new Date(exp.date).toISOString().split('T')[0],
             is_recurring: exp.is_recurring,
-            frequency: exp.frequency || 'monthly'
+            frequency: exp.frequency || 'monthly',
+            project_id: exp.project_id || ''
         })
         setIsCreateModalOpen(true)
     }
@@ -126,7 +137,9 @@ export default function ExpensesPage() {
 
     const handleCreateExpense = async (e: React.FormEvent) => {
         e.preventDefault()
-        const finalShopId = profile?.shop_id || activeShop?.id || selectedShopId;
+        const currentSelection = activeShop?.id !== 0 ? activeShop?.id : selectedShopId;
+        const finalShopId = currentSelection || profile?.shop_id;
+
         if (!finalShopId) return showToast("Veuillez sélectionner une boutique", "warning")
 
         try {
@@ -145,7 +158,8 @@ export default function ExpensesPage() {
                     shopId: finalShopId,
                     created_by: profile?.id,
                     is_recurring: newExpense.is_recurring,
-                    frequency: newExpense.is_recurring ? newExpense.frequency : null
+                    frequency: newExpense.is_recurring ? newExpense.frequency : null,
+                    project_id: newExpense.project_id || null
                 })
             })
 
@@ -159,7 +173,8 @@ export default function ExpensesPage() {
                     category: 'Personnel',
                     date: new Date().toISOString().split('T')[0],
                     is_recurring: false,
-                    frequency: 'monthly'
+                    frequency: 'monthly',
+                    project_id: ''
                 })
                 fetchExpenses()
             } else {
@@ -182,6 +197,23 @@ export default function ExpensesPage() {
 
     const totalExpenses = expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0)
 
+    // NEW: Group expenses by category
+    const groupedExpenses = expenses.reduce((groups: any, exp) => {
+        const category = exp.category || 'Autre'
+        if (!groups[category]) {
+            groups[category] = {
+                items: [],
+                total: 0
+            }
+        }
+        groups[category].items.push(exp)
+        groups[category].total += parseFloat(exp.amount)
+        return groups
+    }, {})
+
+    // Sort categories by total amount (highest first)
+    const sortedCategories = Object.keys(groupedExpenses).sort((a, b) => groupedExpenses[b].total - groupedExpenses[a].total)
+
     // Calculate Pie Chart Data
     const categoryTotals = expenses.reduce((acc: any, exp) => {
         acc[exp.category] = (acc[exp.category] || 0) + parseFloat(exp.amount);
@@ -202,7 +234,10 @@ export default function ExpensesPage() {
                             <Receipt className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-base sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">Depenses</h1>
+                            <h1 className="text-base sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none flex items-center">
+                                Depenses
+                                <span className="ml-2 px-1 py-0.5 bg-shop/20 text-[6px] rounded border border-shop/30 text-shop animate-pulse">v1.3 - GROUPED</span>
+                            </h1>
                             <p className="text-[7px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 hidden xs:block">Gestion des Flux Sortants</p>
                         </div>
                     </div>
@@ -267,7 +302,7 @@ export default function ExpensesPage() {
                                     {(() => {
                                         let cumulativePercent = 0;
                                         const colors = ['#0055ff', '#ff4d8d', '#fbbf24', '#10b981', '#8b5cf6', '#ef4444', '#06b6d4', '#6366f1'];
-                                        
+
                                         // Handle 100% single category case
                                         if (chartData.length === 1) {
                                             return <circle cx="50" cy="50" r="40" fill={colors[0]} className="hover:opacity-80 transition-opacity cursor-help" />;
@@ -281,7 +316,7 @@ export default function ExpensesPage() {
                                             const endX = Math.cos(2 * Math.PI * cumulativePercent / 100) * 40 + 50;
                                             const endY = Math.sin(2 * Math.PI * cumulativePercent / 100) * 40 + 50;
                                             const largeArc = percent > 50 ? 1 : 0;
-                                            
+
                                             return (
                                                 <path
                                                     key={i}
@@ -362,55 +397,81 @@ export default function ExpensesPage() {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {expenses.map((exp) => (
-                                <div key={exp.id} className="glass-card p-5 rounded-[28px] border border-white/5 active:scale-[0.98] transition-all">
-                                    <div className="flex items-start justify-between mb-4">
+                        <div className="space-y-12 pb-20">
+                            {sortedCategories.map((category) => (
+                                <div key={category} className="space-y-6">
+                                    {/* Category Header */}
+                                    <div className="flex items-center justify-between px-4 sm:px-6">
                                         <div className="flex items-center space-x-3">
-                                            <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 text-red-400 shrink-0">
-                                                <Receipt className="w-5 h-5" />
+                                            <div className="w-8 h-8 rounded-lg bg-shop/10 flex items-center justify-center border border-shop/20">
+                                                <Tag className="w-4 h-4 text-shop" />
                                             </div>
-                                            <div className="min-w-0">
-                                                <p className="font-bold text-sm text-white truncate uppercase">{exp.description}</p>
-                                                <div className="flex items-center space-x-2">
-                                                    <p className="text-[8px] text-muted-foreground uppercase tracking-widest font-black opacity-50">Trans. #{exp.id}</p>
-                                                    {exp.profiles?.email && (
-                                                        <span className="text-[7px] text-shop font-black uppercase tracking-widest">Saisi par: {exp.profiles.email.split('@')[0]}</span>
-                                                    )}
-                                                </div>
+                                            <div>
+                                                <h4 className="text-lg font-black uppercase tracking-tight text-white">{category}</h4>
+                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">
+                                                    {groupedExpenses[category].items.length} {groupedExpenses[category].items.length > 1 ? 'Transactions' : 'Transaction'}
+                                                </p>
                                             </div>
                                         </div>
-                                        <div className="text-right flex flex-col items-end space-y-2">
-                                            <p className="text-sm font-black text-red-400">-{parseFloat(exp.amount).toLocaleString()} <span className="text-[8px] uppercase">CFA</span></p>
-                                            <div className="flex space-x-2">
-                                                <button onClick={() => handleEdit(exp)} className="p-1.5 bg-white/5 rounded-lg text-muted-foreground hover:text-shop transition-all">
-                                                    <Pencil className="w-3 h-3" />
-                                                </button>
-                                                <button onClick={() => handleDelete(exp.id)} className="p-1.5 bg-white/5 rounded-lg text-muted-foreground hover:text-red-400 transition-all">
-                                                    <Trash2 className="w-3 h-3" />
-                                                </button>
-                                            </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">TOTAL {category}</p>
+                                            <p className="text-xl font-black text-white">{groupedExpenses[category].total.toLocaleString()} <span className="text-[10px]">FCFA</span></p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                                        <div className="flex items-center space-x-3">
-                                            <div className="flex items-center">
-                                                <Tag className="w-3 h-3 mr-1.5 text-shop/60" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{exp.category}</span>
-                                            </div>
-                                            {exp.is_recurring && (
-                                                <div className="flex items-center bg-blue-500/10 px-2 py-0.5 rounded text-blue-400 border border-blue-500/20">
-                                                    <Repeat className="w-2.5 h-2.5 mr-1" />
-                                                    <span className="text-[7px] font-black uppercase">{exp.frequency}</span>
+
+                                    {/* Expense Cards Grid for this Category */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {groupedExpenses[category].items.map((exp: any) => (
+                                            <div key={exp.id} className="glass-card p-5 rounded-[28px] border border-white/5 active:scale-[0.98] transition-all hover:border-white/10 group">
+                                                <div className="flex items-start justify-between mb-4">
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center border border-red-500/20 text-red-400 shrink-0 group-hover:bg-red-500/20 transition-all">
+                                                            <Receipt className="w-5 h-5" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="font-bold text-sm text-white truncate uppercase">{exp.description}</p>
+                                                            <div className="flex items-center space-x-2">
+                                                                <p className="text-[8px] text-muted-foreground uppercase tracking-widest font-black opacity-50">Trans. #{exp.id}</p>
+                                                                {exp.profiles?.email && (
+                                                                    <span className="text-[7px] text-shop font-black uppercase tracking-widest">Saisi par: {exp.profiles.email.split('@')[0]}</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right flex flex-col items-end space-y-2">
+                                                        <p className="text-sm font-black text-red-400">-{parseFloat(exp.amount).toLocaleString()} <span className="text-[8px] uppercase">CFA</span></p>
+                                                        <div className="flex space-x-2 opacity-0 group-hover:opacity-100 transition-all">
+                                                            <button onClick={() => handleEdit(exp)} className="p-1.5 bg-white/5 rounded-lg text-muted-foreground hover:text-shop transition-all">
+                                                                <Pencil className="w-3 h-3" />
+                                                            </button>
+                                                            <button onClick={() => handleDelete(exp.id)} className="p-1.5 bg-white/5 rounded-lg text-muted-foreground hover:text-red-400 transition-all">
+                                                                <Trash2 className="w-3 h-3" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center">
-                                            <Calendar className="w-3 h-3 mr-1.5 text-muted-foreground opacity-50" />
-                                            <span className="text-[9px] font-bold text-muted-foreground uppercase">
-                                                {new Date(exp.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                                            </span>
-                                        </div>
+                                                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className="flex items-center">
+                                                            <Tag className="w-3 h-3 mr-1.5 text-shop/60" />
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{exp.category}</span>
+                                                        </div>
+                                                        {exp.is_recurring && (
+                                                            <div className="flex items-center bg-blue-500/10 px-2 py-0.5 rounded text-blue-400 border border-blue-500/20">
+                                                                <Repeat className="w-2.5 h-2.5 mr-1" />
+                                                                <span className="text-[7px] font-black uppercase">{exp.frequency}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center">
+                                                        <Calendar className="w-3 h-3 mr-1.5 text-muted-foreground opacity-50" />
+                                                        <span className="text-[9px] font-bold text-muted-foreground uppercase">
+                                                            {new Date(exp.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             ))}
@@ -477,6 +538,20 @@ export default function ExpensesPage() {
                                     />
                                 </div>
                             </div>
+                            
+                            <div className="space-y-2">
+                                <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Lier à un Projet (Optionnel)</label>
+                                <select
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-5 sm:px-6 text-sm focus:border-shop/50 outline-none transition-all text-white"
+                                    value={newExpense.project_id}
+                                    onChange={e => setNewExpense({ ...newExpense, project_id: e.target.value })}
+                                >
+                                    <option value="">Ne pas lier</option>
+                                    {projects.map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                    ))}
+                                </select>
+                            </div>
 
                             <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/5">
                                 <div className="flex items-center justify-between">
@@ -484,9 +559,9 @@ export default function ExpensesPage() {
                                         <Repeat className="w-4 h-4 text-blue-400" />
                                         <span className="text-[10px] font-black uppercase text-white">Paiement Récurrent</span>
                                     </div>
-                                    <button 
+                                    <button
                                         type="button"
-                                        onClick={() => setNewExpense({...newExpense, is_recurring: !newExpense.is_recurring})}
+                                        onClick={() => setNewExpense({ ...newExpense, is_recurring: !newExpense.is_recurring })}
                                         className={`w-10 h-5 rounded-full relative transition-all ${newExpense.is_recurring ? 'bg-shop' : 'bg-white/10'}`}
                                     >
                                         <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${newExpense.is_recurring ? 'left-6' : 'left-1'}`} />
@@ -497,7 +572,7 @@ export default function ExpensesPage() {
                                         {frequencies.map(f => (
                                             <button
                                                 key={f.value} type="button"
-                                                onClick={() => setNewExpense({...newExpense, frequency: f.value})}
+                                                onClick={() => setNewExpense({ ...newExpense, frequency: f.value })}
                                                 className={`py-2 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all ${newExpense.frequency === f.value ? 'bg-white text-black border-white' : 'bg-white/5 text-muted-foreground border-white/10'}`}
                                             >
                                                 {f.label}
@@ -535,8 +610,8 @@ export default function ExpensesPage() {
                                     </span>
                                 </div>
                                 {(!profile?.shop_id && isGlobalView) && (
-                                    <CustomDropdown 
-                                        options={shops.map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5"/> }))}
+                                    <CustomDropdown
+                                        options={shops.map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5" /> }))}
                                         value={selectedShopId}
                                         onChange={setSelectedShopId}
                                     />

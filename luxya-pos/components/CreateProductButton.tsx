@@ -172,10 +172,19 @@ export default function CreateProductButton() {
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
+        const formData = new FormData(e.currentTarget)
+
+        // NEW: Mandatory cost_price validation for Physical Products in Shops 1 & 2
+        const isPhysicalShop = selectedShopId === 1 || selectedShopId === 2;
+        const costPrice = parseFloat(formData.get('cost_price') as string || '0');
+
+        if (itemType === 'product' && isPhysicalShop && costPrice <= 0) {
+            setError("Le prix de revient est obligatoire pour les produits physiques (Luxya/Homtek).");
+            return;
+        }
+
         setLoading(true)
         setError(null)
-
-        const formData = new FormData(e.currentTarget)
         formData.set('shopId', selectedShopId.toString())
         formData.set('type', itemType)
         formData.set('show_on_pos', showOnPos.toString())

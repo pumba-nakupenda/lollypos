@@ -8,7 +8,7 @@ import {
     Megaphone, Calendar, Upload, Loader2, X, Search,
     Globe, Eye, EyeOff, Star, TrendingUp,
     Filter, CheckCircle2, Clock, Truck, AlertCircle,
-    ExternalLink, ChevronDown, UserCheck, Award, Phone, User, Ticket, Printer, MessageSquare, ThumbsUp, ThumbsDown, Pencil, RotateCcw, Tags
+    ExternalLink, ChevronDown, UserCheck, Award, Phone, User, Ticket, Printer, MessageSquare, ThumbsUp, ThumbsDown, Pencil, RotateCcw, Tags, HardDrive
 } from 'lucide-react';
 import Link from 'next/link';
 import CustomerDetailsModal from '@/components/CustomerDetailsModal';
@@ -46,6 +46,19 @@ const DEFAULT_GROUPS = [
     }
 ];
 
+const DEFAULT_SETTINGS = {
+    announcement: "BIENVENUE CHEZ LOLLY SAS",
+    slides: [],
+    event: {
+        title: "",
+        subtitle: "",
+        image: "",
+        mini_image: "",
+        link: "/"
+    },
+    category_groups: DEFAULT_GROUPS
+};
+
 export default function AdminDashboard() {
     const { showToast } = useToast();
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -56,6 +69,7 @@ export default function AdminDashboard() {
     const [coupons, setCoupons] = useState<any[]>([]);
     const [shippingZones, setShippingZones] = useState<any[]>([]);
     const [reviews, setReviews] = useState<any[]>([]);
+    const [media, setMedia] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [analytics, setAnalytics] = useState<any>({
         dailySales: [],
@@ -88,6 +102,7 @@ export default function AdminDashboard() {
         if (activeTab === 'coupons') fetchCoupons();
         if (activeTab === 'shipping') fetchShippingZones();
         if (activeTab === 'reviews') fetchReviews();
+        if (activeTab === 'media') fetchMedia();
     }, [activeTab]);
 
     useEffect(() => {
@@ -126,7 +141,10 @@ export default function AdminDashboard() {
                 .sort((a, b) => a.stock - b.stock)
                 .slice(0, 5);
 
-            setAnalytics({ dailySales: salesByDay, topProducts, lowStock });
+            // Broken Links detection
+            const brokenImages = products.filter(p => p.image && !p.image.includes('gnxclfjxnkrivppvuuiw.supabase.co')).length;
+
+            setAnalytics({ dailySales: salesByDay, topProducts, lowStock, brokenImages });
         }
     }, [orders, products]);
 
@@ -135,22 +153,26 @@ export default function AdminDashboard() {
         try {
             const res = await fetch('/api/admin/settings');
             const data = await res.json();
-            setSettings(data);
+            // Merge with defaults to prevent missing key errors
+            setSettings({
+                ...DEFAULT_SETTINGS,
+                ...data,
+                slides: data?.slides || DEFAULT_SETTINGS.slides, // Ensure slides array is always present
+                event: { ...DEFAULT_SETTINGS.event, ...(data?.event || {}) },
+                category_groups: data?.category_groups || DEFAULT_SETTINGS.category_groups // Ensure category_groups array is always present
+            });
         } catch (error) { console.error("Failed to fetch settings"); }
         finally { setLoading(false); }
     };
 
     const fetchCategories = async () => {
         try {
-            const res = await fetch('/api/admin/products');
+            const res = await fetch('/api/admin/categories'); // Use new dedicated API route
             const data = await res.json();
             if (Array.isArray(data)) {
-                // Filter by products shown on website to be shop-aware
-                const visibleProducts = data.filter((p: any) => p.show_on_website);
-                const unique = Array.from(new Set(visibleProducts.map((p: any) => p.category))).filter(Boolean).sort() as string[];
-                setCategories(unique);
+                setCategories(data);
             }
-        } catch (error) { console.error("Failed to fetch categories"); }
+        } catch (error) { console.error("Failed to fetch categories:", error); }
     };
 
     const fetchShippingZones = async () => {
@@ -233,6 +255,31 @@ export default function AdminDashboard() {
         finally { setLoading(false); }
     };
 
+    const fetchMedia = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/admin/media');
+            const data = await res.json();
+            if (Array.isArray(data)) setMedia(data);
+        } catch (error) { console.error("Failed to fetch media"); }
+        finally { setLoading(false); }
+    };
+
+    const deleteMedia = async (fileName: string) => {
+        if (!confirm("Supprimer ce fichier définitivement ?")) return;
+        try {
+            const res = await fetch('/api/admin/media', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fileName })
+            });
+            if (res.ok) {
+                showToast("Fichier supprimé");
+                fetchMedia();
+            }
+        } catch (error) { showToast("Erreur suppression", "error"); }
+    };
+
     const updateReviewStatus = async (id: string, status: string) => {
         try {
             const res = await fetch('/api/admin/reviews', {
@@ -296,7 +343,10 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(settings)
             });
-            if (res.ok) showToast("Configuration sauvegardée !", "success");
+            if (res.ok) {
+                showToast("Configuration sauvegardée !", "success");
+                fetchSettings(); // Re-fetch settings after successful save
+            }
         } catch (error) { showToast("Erreur lors de la sauvegarde", "error"); }
         finally { setIsSaving(false); }
     };
@@ -455,6 +505,7 @@ export default function AdminDashboard() {
                         <AdminLink icon={<Truck className="w-4 h-4" />} label="Livraison" active={activeTab === 'shipping'} onClick={() => setActiveTab('shipping')} />
                         <AdminLink icon={<MessageSquare className="w-4 h-4" />} label="Avis Clients" active={activeTab === 'reviews'} onClick={() => setActiveTab('reviews')} />
                         <AdminLink icon={<ShoppingCart className="w-4 h-4" />} label="Commandes" active={activeTab === 'orders'} onClick={() => setActiveTab('orders')} />
+                        <AdminLink icon={<HardDrive className="w-4 h-4" />} label="Médias" active={activeTab === 'media'} onClick={() => setActiveTab('media')} />
                         <AdminLink icon={<Settings className="w-4 h-4" />} label="Configuration" active={activeTab === 'config'} onClick={() => setActiveTab('config')} />
                     </nav>
 
@@ -474,10 +525,11 @@ export default function AdminDashboard() {
                             </header>
 
                             {/* Main Stats */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
                                 <StatCard title="Chiffre d'Affaires" value={orders.filter(o => o.status !== 'cancelled').reduce((acc, o) => acc + Number(o.total_amount), 0).toLocaleString()} unit="CFA" trend="+15%" />
                                 <StatCard title="Commandes Web" value={orders.length.toString()} unit="Total" trend="+8%" />
                                 <StatCard title="Panier Moyen" value={orders.length ? Math.round(orders.reduce((acc, o) => acc + Number(o.total_amount), 0) / orders.length).toLocaleString() : '0'} unit="CFA" trend="+2%" />
+                                <StatCard title="Santé Catalogue" value={(analytics.brokenImages || 0).toString()} unit="Liens Cassés" trend="Urgence" />
                             </div>
 
                             <div className="grid grid-cols-1 xl:grid-cols-2 gap-12">
@@ -487,8 +539,8 @@ export default function AdminDashboard() {
                                         <TrendingUp className="w-3 h-3 mr-2 text-lolly" /> Ventes (7 derniers jours)
                                     </h3>
                                     <div className="flex items-end justify-between h-64 gap-4 px-4">
-                                        {analytics.dailySales.map((day: any, i: number) => {
-                                            const max = Math.max(...analytics.dailySales.map((d: any) => d.total)) || 1;
+                                        {(analytics.dailySales || []).map((day: any, i: number) => {
+                                            const max = Math.max(...(analytics.dailySales || []).map((d: any) => d.total)) || 1;
                                             const height = (day.total / max) * 100;
                                             return (
                                                 <div key={i} className="flex-1 flex flex-col items-center group relative">
@@ -515,7 +567,7 @@ export default function AdminDashboard() {
                                             <Star className="w-3 h-3 mr-2 text-orange-500" /> Meilleures Ventes
                                         </h3>
                                         <div className="space-y-4">
-                                            {analytics.topProducts.map((p: any, i: number) => (
+                                            {(analytics.topProducts || []).map((p: any, i: number) => (
                                                 <div key={i} className="flex items-center justify-between p-4 bg-black/20 rounded-2xl border border-white/5">
                                                     <div className="flex items-center space-x-4">
                                                         <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center text-[10px] font-black text-gray-500">
@@ -538,7 +590,7 @@ export default function AdminDashboard() {
                                             <AlertCircle className="w-3 h-3 mr-2 text-red-500" /> Stock Critique (Web)
                                         </h3>
                                         <div className="space-y-4">
-                                            {analytics.lowStock.map((p: any, i: number) => (
+                                            {(analytics.lowStock || []).map((p: any, i: number) => (
                                                 <div key={i} className="flex items-center justify-between p-4 bg-red-500/5 rounded-2xl border border-red-500/10">
                                                     <span className="text-xs font-bold text-gray-300">{p.name}</span>
                                                     <span className="text-[10px] font-black text-red-500 bg-red-500/10 px-3 py-1 rounded-full">Reste: {p.stock}</span>
@@ -1193,6 +1245,49 @@ export default function AdminDashboard() {
                         </div>
                     )}
 
+                    {activeTab === 'media' && (
+                        <div className="p-12 animate-in fade-in duration-500">
+                            <header className="mb-12 flex items-center justify-between">
+                                <div>
+                                    <h2 className="text-4xl font-black uppercase tracking-tighter italic">Gestion des Fichiers</h2>
+                                    <p className="text-gray-500 text-sm font-medium uppercase tracking-widest mt-2">Médias & Images produits</p>
+                                </div>
+                            </header>
+
+                            {loading ? (
+                                <div className="flex flex-col items-center justify-center py-40">
+                                    <Loader2 className="w-12 h-12 animate-spin text-lolly mb-6" />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-500">Chargement des fichiers...</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 pb-40">
+                                    {media.map((file, i) => (
+                                        <div key={i} className="group relative bg-white/5 border border-white/5 rounded-3xl overflow-hidden aspect-square hover:border-lolly/30 transition-all shadow-xl">
+                                            <img src={file.url} alt={file.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4">
+                                                <p className="text-[8px] font-black uppercase tracking-widest text-center mb-4 line-clamp-2">{file.name}</p>
+                                                <div className="flex space-x-2">
+                                                    <a href={file.url} target="_blank" className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+                                                        <ExternalLink className="w-4 h-4" />
+                                                    </a>
+                                                    <button onClick={() => deleteMedia(file.name)} className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {media.length === 0 && (
+                                        <div className="col-span-full text-center py-40 opacity-20">
+                                            <HardDrive className="w-12 h-12 mx-auto mb-4" />
+                                            <p className="text-xs font-black uppercase tracking-widest">Aucun fichier trouvé</p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeTab === 'config' && (
                         <div className="p-12 animate-in fade-in duration-500">
                             <header className="mb-12 flex items-center justify-between">
@@ -1248,7 +1343,7 @@ export default function AdminDashboard() {
                                         </div>
 
                                         <div className="space-y-10">
-                                            {settings.slides.map((slide: any, i: number) => (
+                                            {(settings.slides || []).map((slide: any, i: number) => (
                                                 <div key={i} className="p-10 bg-black/40 rounded-[40px] border border-white/5 relative group">
                                                     <button onClick={() => removeSlide(i)} className="absolute top-6 right-6 p-3 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-2xl transition-all opacity-0 group-hover:opacity-100">
                                                         <Trash2 className="w-5 h-5" />
@@ -1299,17 +1394,17 @@ export default function AdminDashboard() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                 <div className="space-y-4">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Bannière Large (Desktop)</label>
-                                                    <ImageUploadField value={settings.event.image} onChange={(url) => setSettings({ ...settings, event: { ...settings.event, image: url } })} />
+                                                    <ImageUploadField value={settings.event?.image || ''} onChange={(url) => setSettings({ ...settings, event: { ...(settings.event || {}), image: url } })} bucket="events" />
                                                 </div>
                                                 <div className="space-y-4">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Bannière Menu (600x60)</label>
-                                                    <ImageUploadField value={settings.event.mini_image} onChange={(url) => setSettings({ ...settings, event: { ...settings.event, mini_image: url } })} />
+                                                    <ImageUploadField value={settings.event?.mini_image || ''} onChange={(url) => setSettings({ ...settings, event: { ...(settings.event || {}), mini_image: url } })} bucket="events" />
                                                 </div>
                                             </div>
                                             <div className="space-y-6">
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Titre de l'évènement</label>
-                                                    <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white" value={settings.event.title} onChange={e => setSettings({ ...settings, event: { ...settings.event, title: e.target.value } })} />
+                                                    <input type="text" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-lolly/50 outline-none text-white" value={settings.event?.title || ''} onChange={e => setSettings({ ...settings, event: { ...(settings.event || {}), title: e.target.value } })} />
                                                 </div>
                                                 <div className="space-y-2">
                                                     <label className="text-[9px] font-black uppercase text-gray-500 ml-2">Description Marketing</label>
@@ -1495,7 +1590,7 @@ function OrderStatusBadge({ status }: { status: string }) {
     }
 }
 
-function ImageUploadField({ value, onChange }: { value: string, onChange: (url: string) => void }) {
+function ImageUploadField({ value, onChange, bucket = 'products' }: { value: string, onChange: (url: string) => void, bucket?: string }) {
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1505,6 +1600,7 @@ function ImageUploadField({ value, onChange }: { value: string, onChange: (url: 
         setUploading(true);
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('bucket', bucket); // Add bucket to form data
         try {
             const res = await fetch('/api/admin/upload', { method: 'POST', body: formData });
             const data = await res.json();

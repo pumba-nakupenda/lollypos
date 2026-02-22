@@ -21,14 +21,17 @@ export class SalesService {
                 .from('sales')
                 .insert({
                     total_amount: createSaleDto.totalAmount,
-                    payment_method: createSaleDto.paymentMethod,
+                    payment_method: createSaleDto.paymentMethod || 'cash',
                     shop_id: createSaleDto.shopId,
-                    customer_name: (createSaleDto as any).customer_name,
+                    customer_name: createSaleDto.customer_name,
+                    customer_id: createSaleDto.customer_id,
                     created_by: createSaleDto.created_by,
-                    with_tva: (createSaleDto as any).with_tva ?? true,
-                    type: (createSaleDto as any).type || 'invoice',
-                    paid_amount: (createSaleDto as any).paid_amount || 0,
-                    linked_doc_number: (createSaleDto as any).linked_doc_number
+                    with_tva: createSaleDto.with_tva ?? true,
+                    type: createSaleDto.type || 'invoice',
+                    status: createSaleDto.status || 'completed',
+                    paid_amount: createSaleDto.paid_amount || 0,
+                    invoice_number: createSaleDto.invoice_number,
+                    parent_id: createSaleDto.parent_id
                 })
                 .select('*')
                 .single();
@@ -40,12 +43,12 @@ export class SalesService {
 
             this.logger.log(`[SALES] Master record created: ${sale.id}`);
 
-            // 2. Insert items
             const saleItems = createSaleDto.items.map(item => ({
                 sale_id: sale.id,
                 product_id: item.productId === 0 ? null : item.productId,
                 quantity: item.quantity,
                 price: item.price,
+                variant_id: item.variantId || null,
                 description: item.productId === 0 ? item.name : undefined
             }));
 
@@ -56,28 +59,6 @@ export class SalesService {
             if (itemsError) {
                 this.logger.error(`[SALES] Items insert FAILED: ${JSON.stringify(itemsError)}`);
                 throw new Error(`Erreur Items: ${itemsError.message} (Code: ${itemsError.code})`);
-            }
-
-            // 3. Update Inventory (ONLY for real products)
-            for (const item of createSaleDto.items) {
-                if (!item.productId || item.productId === 0) continue; // Skip if service
-
-                // Update sales count
-                await this.supabase.rpc('increment_sales_count', {
-                    p_id: item.productId,
-                    p_qty: item.quantity
-                });
-
-                this.logger.debug(`[SALES] Updating stock for PID ${item.productId}${item.variantId ? ` (Var: ${item.variantId})` : ''}: -${item.quantity}`);
-                const { error: rpcError } = await this.supabase.rpc('decrement_stock', {
-                    p_id: item.productId,
-                    p_qty: item.quantity,
-                    p_variant_id: item.variantId || null
-                });
-
-                if (rpcError) {
-                    this.logger.warn(`[SALES] Stock RPC Error for PID ${item.productId}: ${rpcError.message}`);
-                }
             }
 
             return sale;
@@ -133,6 +114,7 @@ export class SalesService {
                 quantity,
                 price,
                 description,
+                variant_id,
                 products (
                     name
                 )
@@ -177,12 +159,12 @@ export class SalesService {
 
             if (deleteError) throw new Error(`Delete Items Error: ${deleteError.message}`);
 
-            // 3. Insert new items
             const saleItems = updateSaleDto.items.map(item => ({
                 sale_id: id,
                 product_id: item.productId === 0 ? null : item.productId,
                 quantity: item.quantity,
                 price: item.price,
+                variant_id: item.variantId || null,
                 description: item.productId === 0 ? item.name : undefined
             }));
 
@@ -208,5 +190,39 @@ export class SalesService {
 
         if (error) throw new Error(error.message);
         return { success: true };
+    }
+
+    async cancel(id: string, shopId?: number) {
+        this.logger.log(`[SALES] Cancelling sale ID: ${id}`);
+        try {
+            const { data: sale, error: saleError } = await this.supabase
+                .from('sales')
+                .select('shop_id, status')
+                .eq('id', id)
+                .single();
+
+            if (saleError) throw new Error(`Fetch Sale Error: ${saleError.message}`);
+            if (sale.status === 'cancelled') throw new Error('Sale already cancelled');
+            const actualShopId = shopId || sale.shop_id;
+
+            const { data: items, error: itemsError } = await this.supabase
+                .from('sale_items')
+                .select('product_id, quantity, variant_id')
+                .eq('sale_id', id);
+
+            if (itemsError) throw new Error(`Fetch Items Error: ${itemsError.message}`);
+
+            const { error: updateError } = await this.supabase
+                .from('sales')
+                .update({ status: 'cancelled' })
+                .eq('id', id);
+
+            if (updateError) throw new Error(`Update Status Error: ${updateError.message}`);
+
+            return { success: true };
+        } catch (err) {
+            this.logger.error(`[SALES] Cancel Failure: ${err.message}`);
+            throw err;
+        }
     }
 }

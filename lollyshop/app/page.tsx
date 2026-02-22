@@ -210,11 +210,12 @@ export default async function Home(props: {
 
     const isFiltering = query || catFilter !== "all" || shopFilter !== "all" || brandFilter !== "all" || priceFilter !== "all" || onlyInStock === 'true' || sort !== 'newest';
 
-    const event = siteSettings?.event || {
-        title: "Livraison Offerte",
-        description: "Gratuite sur tout Dakar ce week-end !",
-        image: "https://images.unsplash.com/photo-1590874102752-ce229799d529?q=80&w=1000",
-        link: "/?sort=best"
+    const event = {
+        title: siteSettings?.event?.title || "Livraison Offerte",
+        description: siteSettings?.event?.description || "Gratuite sur tout Dakar ce week-end !",
+        image: siteSettings?.event?.image || "https://images.unsplash.com/photo-1590874102752-ce229799d529?q=80&w=1000",
+        miniImage: siteSettings?.event?.mini_image || siteSettings?.event?.image || "https://images.unsplash.com/photo-1590874102752-ce229799d529?q=80&w=1000",
+        link: siteSettings?.event?.link || "/?sort=best"
     };
 
     const showAmazonHome = !isFiltering && sort === 'newest';
@@ -261,14 +262,18 @@ export default async function Home(props: {
                             </div>
                             <div className="bg-white p-6 shadow-sm border border-gray-200 rounded-sm">
                                 <h3 className="text-xl font-bold mb-4 text-lolly">{event.title}</h3>
-                                <div className="aspect-square relative mb-4 overflow-hidden rounded-xl bg-gray-50 border border-gray-100">
-                                    <Image
-                                        src={event.miniImage || event.image}
-                                        alt="Event"
-                                        fill
-                                        className="object-contain p-2"
-                                    />
-                                </div>
+                                                                  <div className="aspect-square relative mb-4 overflow-hidden rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                                                                      {event.miniImage || event.image ? (
+                                                                          <Image
+                                                                              src={event.miniImage || event.image}
+                                                                              alt="Event"
+                                                                              fill
+                                                                              className="object-contain p-2"
+                                                                          />
+                                                                      ) : (
+                                                                          <Sparkles className="w-10 h-10 text-gray-200" />
+                                                                      )}
+                                                                  </div>
                                 <Link href={event.link || "#"} className="text-sm text-[#0055ff] hover:underline block font-black uppercase tracking-widest text-center">Découvrir</Link>
                             </div>
                         </div>
@@ -283,11 +288,13 @@ export default async function Home(props: {
                                         products={group.products}
                                         hexColor={group.color}
                                     />
-                                    {idx === 0 && (
-                                        <div className="py-4">
-                                            <Link href={event.link || "/?sort=best"} className="block relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-[32px] shadow-2xl group border-4 border-white">
-                                                <Image src={event.image} alt="Event" fill className="object-cover group-hover:scale-105 transition-transform duration-[3000ms]" />
-                                                <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent flex flex-col justify-center px-6 sm:px-12 md:px-16 text-white">
+                                                                          {idx === 0 && (
+                                                                              <div className="py-4">
+                                                                                  <Link href={event.link || "/?sort=best"} className="block relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-[32px] shadow-2xl group border-4 border-white bg-gray-100">
+                                                                                      {event.image ? (
+                                                                                          <Image src={event.image} alt="Event" fill className="object-cover group-hover:scale-105 transition-transform duration-[3000ms]" />
+                                                                                      ) : null}
+                                                                                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent flex flex-col justify-center px-6 sm:px-12 md:px-16 text-white">
                                                     <h3 className="text-2xl sm:text-5xl md:text-7xl font-black uppercase italic leading-none tracking-tighter drop-shadow-2xl">{event.title}</h3>
                                                     <p className="text-xs sm:text-xl md:text-2xl font-bold mt-2 sm:mt-4 max-w-xs sm:max-w-xl leading-tight line-clamp-2">{event.description}</p>
                                                     <div className="mt-4 sm:mt-8 bg-[#0055ff] text-white px-6 py-2.5 sm:px-10 sm:py-4 rounded-full w-fit font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] shadow-2xl">En profiter</div>

@@ -7,8 +7,8 @@ export async function GET() {
         
         // Verify admin
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
-        if (profile?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+        const { data: profile } = await supabase.from('profiles').select('role, is_super_admin').eq('id', user?.id).single();
+        if (profile?.role !== 'admin' && !profile?.is_super_admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
         const { data, error } = await supabase
             .from('shipping_zones')
@@ -28,8 +28,8 @@ export async function POST(req: Request) {
         
         // Verify admin
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
-        if (profile?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+        const { data: profile } = await supabase.from('profiles').select('role, is_super_admin').eq('id', user?.id).single();
+        if (profile?.role !== 'admin' && !profile?.is_super_admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
         const body = await req.json();
         const { data, error } = await supabase
@@ -51,8 +51,8 @@ export async function DELETE(req: Request) {
         
         // Verify admin
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
-        if (profile?.role !== 'admin') return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
+        const { data: profile } = await supabase.from('profiles').select('role, is_super_admin').eq('id', user?.id).single();
+        if (profile?.role !== 'admin' && !profile?.is_super_admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
