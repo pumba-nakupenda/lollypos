@@ -178,7 +178,6 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
 
     const fetchCategories = () => {
         authFetch(`${API_URL}/products`)
-            .then(res => res.json())
             .then(data => {
                 const cats = new Set(data.map((p: any) => p.category).filter(Boolean))
                 setExistingCategories(Array.from(cats) as string[])
@@ -721,15 +720,12 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                             const name = nameRef.current?.value;
                                             if (!name) return showToast("Saisissez un nom d'abord", "warning");
                                             showToast("L'IA rédige...", "info");
-                                            const res = await authFetch(`${API_URL}/ai/analyze`, {
+                                            const data = await authFetch(`${API_URL}/ai/analyze`, {
                                                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({ question: `Rédige une description de vente courte et élégante pour "${name}" (Catégorie: ${selectedCategory}). Pas d'introduction.` })
                                             });
-                                            if (res.ok) {
-                                                const data = await res.json();
-                                                if (descRef.current) descRef.current.value = data.answer.trim().replace(/^"|"$/g, '');
-                                                showToast("Généré !", "success");
-                                            }
+                                            if (descRef.current) descRef.current.value = data.answer.trim().replace(/^"|"$/g, '');
+                                            showToast("Généré !", "success");
                                         }}
                                         className="flex items-center space-x-1.5 px-3 py-1 bg-shop/10 text-shop rounded-lg text-[8px] font-black uppercase border border-shop/20 shadow-lg"
                                     >

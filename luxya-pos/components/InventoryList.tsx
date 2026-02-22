@@ -180,7 +180,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
 
         setIsCreating(true);
         try {
-            const res = await authFetch(`${API_URL}/products`, {
+            await authFetch(`${API_URL}/products`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -201,13 +201,11 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                     show_on_website: true
                 })
             });
-            if (res.ok) {
-                showToast("Produit ajouté !", "success");
-                setIsQuickModalOpen(false);
-                setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', brand: '', expiry_date: '', image: '' });
-                setVariants([]);
-                window.location.reload();
-            }
+            showToast("Produit ajouté !", "success");
+            setIsQuickModalOpen(false);
+            setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', brand: '', expiry_date: '', image: '' });
+            setVariants([]);
+            window.location.reload();
         } catch (err) { showToast("Erreur de création", "error"); } finally { setIsCreating(false); }
     };
 
@@ -298,12 +296,11 @@ export default function InventoryList({ products, allCategories = [], allBrands 
         setUpdatingStockId(id)
 
         try {
-            const res = await authFetch(`${API_URL}/products/${id}`, {
+            await authFetch(`${API_URL}/products/${id}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ stock: newStock })
             })
-            if (!res.ok) throw new Error('Update failed')
             showToast("Stock mis à jour", "success")
         } catch (err) {
             setLocalProducts(oldProducts)
@@ -331,7 +328,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
         setUpdatingStockId(productId)
 
         try {
-            const res = await authFetch(`${API_URL}/products/${productId}`, {
+            await authFetch(`${API_URL}/products/${productId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -339,7 +336,6 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                     stock: newTotalStock
                 })
             })
-            if (!res.ok) throw new Error('Update failed')
             showToast("Variante mise à jour", "success")
         } catch (err) {
             setLocalProducts(oldProducts)
@@ -363,10 +359,9 @@ export default function InventoryList({ products, allCategories = [], allBrands 
         setLocalProducts(prev => prev.filter(p => p.id !== id))
 
         try {
-            const res = await authFetch(`${API_URL}/products/${id}`, {
+            await authFetch(`${API_URL}/products/${id}`, {
                 method: 'DELETE'
             })
-            if (!res.ok) throw new Error('Delete failed')
             showToast("Produit supprimé", "success")
         } catch (err) {
             setLocalProducts(oldProducts)

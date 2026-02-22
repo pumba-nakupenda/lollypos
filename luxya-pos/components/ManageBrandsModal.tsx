@@ -24,22 +24,18 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
 
     const handleRename = async (oldName: string) => {
         if (!newName || newName === oldName) return setEditingBrand(null)
-        
+
         setLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/products/brands/rename`, {
+            await authFetch(`${API_URL}/products/brands/rename`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldName, newName, shopId })
             })
 
-            if (res.ok) {
-                showToast("Marque renommée avec succès", "success")
-                setEditingBrand(null)
-                onRefresh()
-            } else {
-                throw new Error()
-            }
+            showToast("Marque renommée avec succès", "success")
+            setEditingBrand(null)
+            onRefresh()
         } catch (err) {
             showToast("Erreur lors du renommage", "error")
         } finally {
@@ -52,16 +48,14 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
 
         setLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/products/brands/delete`, {
+            await authFetch(`${API_URL}/products/brands/delete`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, shopId })
             })
 
-            if (res.ok) {
-                showToast("Marque supprimée", "success")
-                onRefresh()
-            }
+            showToast("Marque supprimée", "success")
+            onRefresh()
         } catch (err) {
             showToast("Erreur lors de la suppression", "error")
         } finally {
@@ -72,8 +66,8 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 backdrop-blur-xl bg-black/40">
             <div className="relative glass-card w-full max-w-md p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
-                <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5"/></button>
-                
+                <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
+
                 <div className="flex items-center space-x-3 mb-8">
                     <div className="w-10 h-10 bg-shop/20 rounded-xl flex items-center justify-center">
                         <Sparkles className="w-5 h-5 text-shop" />
@@ -89,26 +83,26 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
                             <div key={brand} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-shop/30 transition-all">
                                 {editingBrand === brand ? (
                                     <div className="flex-1 flex items-center space-x-2">
-                                        <input 
+                                        <input
                                             autoFocus
                                             value={newName}
                                             onChange={(e) => setNewName(e.target.value)}
                                             className="flex-1 bg-white/10 border border-shop/50 rounded-lg px-3 py-1.5 text-sm outline-none text-white"
                                         />
-                                        <button onClick={() => handleRename(brand)} className="p-2 bg-green-500 rounded-lg text-white"><Check className="w-4 h-4"/></button>
-                                        <button onClick={() => setEditingBrand(null)} className="p-2 bg-white/10 rounded-lg"><X className="w-4 h-4"/></button>
+                                        <button onClick={() => handleRename(brand)} className="p-2 bg-green-500 rounded-lg text-white"><Check className="w-4 h-4" /></button>
+                                        <button onClick={() => setEditingBrand(null)} className="p-2 bg-white/10 rounded-lg"><X className="w-4 h-4" /></button>
                                     </div>
                                 ) : (
                                     <>
                                         <span className="text-sm font-bold uppercase text-white">{brand}</span>
                                         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button 
+                                            <button
                                                 onClick={() => { setEditingBrand(brand); setNewName(brand); }}
                                                 className="p-2 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-white"
                                             >
                                                 <Edit2 className="w-3.5 h-3.5" />
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(brand)}
                                                 className="p-2 hover:bg-red-500/20 rounded-lg text-muted-foreground hover:text-red-400"
                                             >

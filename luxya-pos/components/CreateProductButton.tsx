@@ -134,7 +134,6 @@ export default function CreateProductButton() {
             }
 
             authFetch(`${API_URL}/products`)
-                .then(res => res.json())
                 .then(data => {
                     const cats = new Set(data.map((p: any) => p.category).filter(Boolean))
                     setExistingCategories(Array.from(cats) as string[])

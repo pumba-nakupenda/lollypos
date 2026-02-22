@@ -32,17 +32,15 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
         setLoading(true)
         try {
             const shopParam = shopId ? `?shopId=${shopId}` : ''
-            const res = await authFetch(`${API_URL}/products/categories/rename${shopParam}`, {
+            await authFetch(`${API_URL}/products/categories/rename${shopParam}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldName, newName: newName.trim() })
             })
 
-            if (res.ok) {
-                showToast("Catégorie renommée avec succès", "success")
-                setEditingCat(null)
-                onRefresh()
-            }
+            showToast("Catégorie renommée avec succès", "success")
+            setEditingCat(null)
+            onRefresh()
         } catch (err) {
             showToast("Erreur lors du renommage", "error")
         } finally {
@@ -56,14 +54,12 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
         setLoading(true)
         try {
             const shopParam = shopId ? `?shopId=${shopId}` : ''
-            const res = await authFetch(`${API_URL}/products/categories/${encodeURIComponent(name)}${shopParam}`, {
+            await authFetch(`${API_URL}/products/categories/${encodeURIComponent(name)}${shopParam}`, {
                 method: 'DELETE'
             })
 
-            if (res.ok) {
-                showToast("Catégorie supprimée", "success")
-                onRefresh()
-            }
+            showToast("Catégorie supprimée", "success")
+            onRefresh()
         } catch (err) {
             showToast("Erreur lors de la suppression", "error")
         } finally {
@@ -98,13 +94,13 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
                                 <div key={cat} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 group hover:border-shop/30 transition-all">
                                     {editingCat === cat ? (
                                         <div className="flex-1 flex items-center space-x-2 mr-2">
-                                            <input 
+                                            <input
                                                 autoFocus
                                                 value={newName}
                                                 onChange={(e) => setNewName(e.target.value)}
                                                 className="flex-1 bg-black/40 border border-shop/50 rounded-xl px-3 py-1.5 text-xs text-white outline-none"
                                             />
-                                            <button 
+                                            <button
                                                 disabled={loading}
                                                 onClick={() => handleRename(cat)}
                                                 className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
@@ -116,13 +112,13 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
                                         <>
                                             <span className="text-sm font-bold text-white/80 uppercase truncate">{cat}</span>
                                             <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button 
+                                                <button
                                                     onClick={() => { setEditingCat(cat); setNewName(cat); }}
                                                     className="p-2 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-shop"
                                                 >
                                                     <Edit2 className="w-3.5 h-3.5" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDelete(cat)}
                                                     className="p-2 hover:bg-red-500/10 rounded-lg text-muted-foreground hover:text-red-400"
                                                 >

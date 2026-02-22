@@ -24,20 +24,18 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
 
     const handleRename = async (oldName: string) => {
         if (!newName || newName === oldName) return setEditingColor(null)
-        
+
         setLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/products/colors/rename`, {
+            await authFetch(`${API_URL}/products/colors/rename`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ oldName, newName, shopId })
             })
 
-            if (res.ok) {
-                showToast("Couleur mise à jour partout !", "success")
-                setEditingColor(null)
-                onRefresh()
-            }
+            showToast("Couleur mise à jour partout !", "success")
+            setEditingColor(null)
+            onRefresh()
         } catch (err) {
             showToast("Erreur lors de la mise à jour", "error")
         } finally {
@@ -50,16 +48,14 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
 
         setLoading(true)
         try {
-            const res = await authFetch(`${API_URL}/products/colors/delete`, {
+            await authFetch(`${API_URL}/products/colors/delete`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, shopId })
             })
 
-            if (res.ok) {
-                showToast("Couleur supprimée de l'inventaire", "success")
-                onRefresh()
-            }
+            showToast("Couleur supprimée de l'inventaire", "success")
+            onRefresh()
         } catch (err) {
             showToast("Erreur lors de la suppression", "error")
         } finally {
@@ -70,8 +66,8 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 backdrop-blur-xl bg-black/40">
             <div className="relative glass-card w-full max-w-md p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
-                <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5"/></button>
-                
+                <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
+
                 <div className="flex items-center space-x-3 mb-8">
                     <div className="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
                         <Palette className="w-5 h-5 text-purple-400" />
@@ -87,16 +83,16 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
                             <div key={color} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-purple-500/30 transition-all">
                                 {editingColor === color ? (
                                     <div className="flex-1 flex items-center space-x-2">
-                                        <input 
+                                        <input
                                             autoFocus
                                             value={newName}
                                             onChange={(e) => setNewName(e.target.value)}
                                             className="flex-1 bg-white/10 border border-purple-500/50 rounded-lg px-3 py-1.5 text-sm outline-none text-white"
                                         />
                                         <button onClick={() => handleRename(color)} className="p-2 bg-green-500 rounded-lg text-white">
-                                            {loading ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4"/>}
+                                            {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                                         </button>
-                                        <button onClick={() => setEditingColor(null)} className="p-2 bg-white/10 rounded-lg"><X className="w-4 h-4"/></button>
+                                        <button onClick={() => setEditingColor(null)} className="p-2 bg-white/10 rounded-lg"><X className="w-4 h-4" /></button>
                                     </div>
                                 ) : (
                                     <>
@@ -105,13 +101,13 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
                                             <span className="text-sm font-bold uppercase text-white">{color}</span>
                                         </div>
                                         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button 
+                                            <button
                                                 onClick={() => { setEditingColor(color); setNewName(color); }}
                                                 className="p-2 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-white"
                                             >
                                                 <Edit2 className="w-3.5 h-3.5" />
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={() => handleDelete(color)}
                                                 className="p-2 hover:bg-red-500/20 rounded-lg text-muted-foreground hover:text-red-400"
                                             >

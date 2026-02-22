@@ -61,7 +61,7 @@ export default function AiFloatingButton() {
         try {
             const shopId = activeShop?.id === 0 ? '' : activeShop?.id;
             const res = await authFetch(`${API_URL}/products?shopId=${shopId || 1}`);
-            if (res.ok) setProducts(await res.json());
+            setProducts(res);
         } catch (e) { }
     };
 
@@ -226,8 +226,8 @@ export default function AiFloatingButton() {
                                                     {m.role === 'assistant' ? <Bot className="w-3 h-3" /> : <User className="w-3 h-3" />}
                                                 </div>
                                                 <div className={`p-4 rounded-2xl leading-relaxed shadow-xl ${m.role === 'assistant'
-                                                        ? 'bg-white/[0.03] border border-white/10 text-white/90'
-                                                        : 'bg-shop text-white'
+                                                    ? 'bg-white/[0.03] border border-white/10 text-white/90'
+                                                    : 'bg-shop text-white'
                                                     }`}>
                                                     <div className="prose prose-invert max-w-none prose-sm">
                                                         <ReactMarkdown

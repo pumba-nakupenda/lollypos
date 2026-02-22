@@ -30,20 +30,16 @@ export default function ExpiryAlertBanner({ shopId }: ExpiryAlertBannerProps) {
         try {
             setLoading(true);
             const shopParam = shopId && shopId !== 0 ? `?shopId=${shopId}` : '';
-            const res = await authFetch(`${API_URL}/products${shopParam}`);
+            const products: Product[] = await authFetch(`${API_URL}/products${shopParam}`);
 
-            if (res.ok) {
-                const products: Product[] = await res.json();
+            // Filter products that are expired or expiring soon (within 30 days)
+            const expiring = products.filter(p => {
+                if (!p.expiry_date) return false;
+                const status = getExpiryStatus(p.expiry_date);
+                return status.isExpired || status.isNearExpiry;
+            });
 
-                // Filter products that are expired or expiring soon (within 30 days)
-                const expiring = products.filter(p => {
-                    if (!p.expiry_date) return false;
-                    const status = getExpiryStatus(p.expiry_date);
-                    return status.isExpired || status.isNearExpiry;
-                });
-
-                setExpiringProducts(expiring);
-            }
+            setExpiringProducts(expiring);
         } catch (error) {
             console.error('Failed to fetch expiring products:', error);
         } finally {

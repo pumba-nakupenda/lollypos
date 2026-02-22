@@ -75,37 +75,24 @@ export default function DashboardContent({ user }: { user: any }) {
 
             // Fetch everything in parallel with month/year
             const ts = Date.now()
-            const [analyticsRes, salesRes, forecastRes, historyRes] = await Promise.all([
+            const [aData, sData, fData, hData] = await Promise.all([
                 authFetch(`${API_URL}/analytics?shopId=${shopId}&category=${selectedCategory}&month=${selectedMonth}&year=${selectedYear}&_=${ts}`),
                 authFetch(`${API_URL}/sales?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
                 authFetch(`${API_URL}/ai/forecast?shopId=${shopId === 'all' ? '' : shopId}&_=${ts}`),
                 authFetch(`${API_URL}/analytics/history?shopId=${shopId}&year=${selectedYear}&_=${ts}`)
             ])
+            setAnalytics(aData)
+            setAiForecast(fData.predictions || [0, 0, 0])
+            setHistoryData(hData)
 
-            if (analyticsRes.ok && salesRes.ok) {
-                const aData = await analyticsRes.json()
-                const sData = await salesRes.json()
-                setAnalytics(aData)
-
-                if (forecastRes.ok) {
-                    const fData = await forecastRes.json()
-                    setAiForecast(fData.predictions || [0, 0, 0])
-                }
-
-                if (historyRes.ok) {
-                    const hData = await historyRes.json()
-                    setHistoryData(hData)
-                }
-
-                // Filter recent sales list to match the selected month too for consistency
-                const filteredRecentSales = sData.filter((s: any) => {
-                    const d = new Date(s.created_at)
-                    return (d.getMonth() + 1).toString().padStart(2, '0') === selectedMonth && d.getFullYear().toString() === selectedYear
-                })
-                setSales(filteredRecentSales.slice(0, 8))
-            }
+            // Filter recent sales list to match the selected month too for consistency
+            const filteredRecentSales = sData.filter((s: any) => {
+                const d = new Date(s.created_at)
+                return (d.getMonth() + 1).toString().padStart(2, '0') === selectedMonth && d.getFullYear().toString() === selectedYear
+            })
+            setSales(filteredRecentSales.slice(0, 8))
         } catch (err) {
-            console.error('Failed to fetch dashboard data')
+            console.error('Failed to fetch dashboard data', err)
         } finally {
             setLoading(false)
         }
@@ -114,24 +101,19 @@ export default function DashboardContent({ user }: { user: any }) {
     const handleViewReceipt = async (sale: any) => {
         try {
             // Fetch items for this specific sale using the new efficient endpoint
-            const res = await authFetch(`${API_URL}/sales/${sale.id}/items`)
-            if (res.ok) {
-                const saleItems = await res.json()
+            const saleItems = await authFetch(`${API_URL}/sales/${sale.id}/items`)
 
-                setSelectedSaleForReceipt({
-                    ...sale,
-                    paymentMethod: sale.payment_method,
-                    totalAmount: sale.total_amount,
-                    items: saleItems.map((i: any) => ({
-                        name: i.products?.name || 'Article inconnu',
-                        price: i.price,
-                        quantity: i.quantity
-                    }))
-                })
-                setIsReceiptOpen(true)
-            } else {
-                showToast("Impossible de récupérer les détails de cette vente", "error")
-            }
+            setSelectedSaleForReceipt({
+                ...sale,
+                paymentMethod: sale.payment_method,
+                totalAmount: sale.total_amount,
+                items: saleItems.map((i: any) => ({
+                    name: i.products?.name || 'Article inconnu',
+                    price: i.price,
+                    quantity: i.quantity
+                }))
+            })
+            setIsReceiptOpen(true)
         } catch (err) {
             showToast("Erreur lors de la récupération du ticket", "error")
         }

@@ -73,17 +73,14 @@ export default function PersonalExpensesPage() {
     const fetchCategories = async () => {
         try {
             const ts = Date.now()
-            const res = await authFetch(`${API_URL}/expenses/categories/list?shopId=3&isPersonal=true&_=${ts}`)
-            if (res.ok) {
-                const data = await res.json()
-                if (Array.isArray(data)) {
-                    setCategories(data)
-                    if (data.length > 0 && !newExpense.category) {
-                        setNewExpense(prev => ({ ...prev, category: data[0].name }))
-                    }
-                } else {
-                    setCategories([])
+            const data = await authFetch(`${API_URL}/expenses/categories/list?shopId=3&isPersonal=true&_=${ts}`)
+            if (Array.isArray(data)) {
+                setCategories(data)
+                if (data.length > 0 && !newExpense.category) {
+                    setNewExpense(prev => ({ ...prev, category: data[0].name }))
                 }
+            } else {
+                setCategories([])
             }
         } catch (e) {
             console.error("Fetch categories error:", e)
@@ -94,18 +91,13 @@ export default function PersonalExpensesPage() {
         try {
             setLoading(true)
             const ts = Date.now()
-            const res = await authFetch(`${API_URL}/expenses?shopId=3&includePersonal=true&_=${ts}`)
-            if (res.ok) {
-                const data = await res.json()
-                if (Array.isArray(data)) {
-                    setExpenses(data)
-                } else {
-                    setExpenses([])
-                }
-                setError(null)
+            const data = await authFetch(`${API_URL}/expenses?shopId=3&includePersonal=true&_=${ts}`)
+            if (Array.isArray(data)) {
+                setExpenses(data)
             } else {
-                setError('Impossible de charger les dépenses personnelles')
+                setExpenses([])
             }
+            setError(null)
         } catch (err) {
             setError('Erreur de connexion')
         } finally {
@@ -117,19 +109,14 @@ export default function PersonalExpensesPage() {
         e.preventDefault()
         if (!newCatName.trim()) return
         try {
-            const res = await authFetch(`${API_URL}/expenses/categories`, {
+            await authFetch(`${API_URL}/expenses/categories`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: newCatName, shopId: 3, isPersonal: true })
             })
-            if (res.ok) {
-                setNewCatName('')
-                await fetchCategories()
-                showToast("Catégorie ajoutée", "success")
-            } else {
-                const data = await res.json();
-                showToast(`Erreur : ${data.message || 'Impossible d\'ajouter'}`, "error")
-            }
+            setNewCatName('')
+            await fetchCategories()
+            showToast("Catégorie ajoutée", "success")
         } catch (e: any) {
             showToast(`Erreur réseau : ${e.message}`, "error")
         }
@@ -138,11 +125,9 @@ export default function PersonalExpensesPage() {
     const handleDeleteCategory = async (id: number) => {
         if (!confirm("Supprimer cette catégorie ?")) return
         try {
-            const res = await authFetch(`${API_URL}/expenses/categories/${id}`, { method: 'DELETE' })
-            if (res.ok) {
-                await fetchCategories()
-                showToast("Catégorie supprimée", "success")
-            }
+            await authFetch(`${API_URL}/expenses/categories/${id}`, { method: 'DELETE' })
+            await fetchCategories()
+            showToast("Catégorie supprimée", "success")
         } catch (e) { }
     }
 
@@ -155,7 +140,7 @@ export default function PersonalExpensesPage() {
             const url = editingId ? `${API_URL}/expenses/${editingId}` : `${API_URL}/expenses`
             const method = editingId ? 'PATCH' : 'POST'
 
-            const res = await authFetch(url, {
+            await authFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -167,21 +152,19 @@ export default function PersonalExpensesPage() {
                 })
             })
 
-            if (res.ok) {
-                showToast(editingId ? "Dépense mise à jour" : "Dépense perso enregistrée", "success")
-                setIsCreateModalOpen(false)
-                setEditingId(null)
-                // We keep the last category selected to make multi-entry faster
-                setNewExpense(prev => ({
-                    ...prev,
-                    description: '',
-                    amount: '',
-                    date: new Date().toISOString().split('T')[0]
-                }))
-                fetchPersonalExpenses()
-            }
-        } catch (err) {
-            showToast("Erreur de connexion", "error")
+            showToast(editingId ? "Dépense mise à jour" : "Dépense créée", "success")
+            setIsCreateModalOpen(false)
+            setNewExpense({
+                description: '',
+                amount: '',
+                category: categories.length > 0 ? categories[0].name : '', // Assuming categories[0] has a 'name' property
+                date: new Date().toISOString().split('T')[0]
+            })
+            setEditingId(null)
+            fetchPersonalExpenses() // Renamed from fetchExpenses
+            // fetchStats() // No fetchStats in this file, assuming it's not needed or handled elsewhere
+        } catch (e: any) {
+            showToast(e.message || "Erreur lors de l'opération", "error")
         } finally {
             setCreating(false)
         }
@@ -190,11 +173,9 @@ export default function PersonalExpensesPage() {
     const handleDelete = async (id: number) => {
         if (!confirm("Supprimer cette dépense perso ?")) return
         try {
-            const res = await authFetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' })
-            if (res.ok) {
-                showToast("Dépense supprimée", "success")
-                fetchPersonalExpenses()
-            }
+            await authFetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' })
+            showToast("Dépense supprimée", "success")
+            fetchPersonalExpenses()
         } catch (e) { showToast("Erreur", "error") }
     }
 
@@ -464,17 +445,13 @@ export default function PersonalExpensesPage() {
                                                     const val = parseFloat(e.target.value) || 0
                                                     if (val !== Number(cat?.budget)) {
                                                         try {
-                                                            const res = await authFetch(`${API_URL}/expenses/categories/${cat.id}`, {
+                                                            await authFetch(`${API_URL}/expenses/categories/${cat.id}`, {
                                                                 method: 'PATCH',
                                                                 headers: { 'Content-Type': 'application/json' },
                                                                 body: JSON.stringify({ budget: val })
                                                             })
-                                                            if (res.ok) {
-                                                                await fetchCategories()
-                                                                showToast("Budget mis à jour", "success")
-                                                            } else {
-                                                                showToast("Erreur lors de la mise à jour", "error")
-                                                            }
+                                                            await fetchCategories()
+                                                            showToast("Budget mis à jour", "success")
                                                         } catch (err) { showToast("Erreur maj budget", "error") }
                                                     }
                                                 }}
