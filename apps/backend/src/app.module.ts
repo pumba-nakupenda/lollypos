@@ -18,7 +18,7 @@ import { AuthGuard } from './auth/auth.guard';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 20 }]),
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     ScheduleModule.forRoot(),
     SupabaseModule,
     AuthModule,

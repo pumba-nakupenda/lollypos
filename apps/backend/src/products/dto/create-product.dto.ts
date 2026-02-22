@@ -1,8 +1,17 @@
 import {
     IsString, IsNumber, IsOptional, IsBoolean, IsArray,
-    IsUrl, IsDateString, IsEnum, IsUUID, Min, MaxLength, IsInt
+    IsUrl, IsDateString, IsEnum, IsUUID, Min, MaxLength, IsInt, ValidateNested
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+class VariantDto {
+    @IsOptional() @IsString() @MaxLength(100) color?: string;
+    @IsOptional() @IsString() @MaxLength(100) size?: string;
+    @IsOptional() @IsInt() @Min(0) @Type(() => Number) stock?: number;
+    @IsOptional() @IsString() image?: string;
+    @IsOptional() @IsNumber() @Min(0) @Type(() => Number) price?: number;
+    @IsOptional() @IsString() id?: string;
+}
 
 export class CreateProductDto {
     @IsString()

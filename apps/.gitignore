@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Next.js
+.next/
+**/ .next/
+out/
+
+# Production
+build/
+dist/
+
+# Misc
+.DS_Store
+*.pem
+*.log
+startup.log
+
+# Env files
+.env
+.env.local
+.env.production
+**/.env*
+
+# Vercel
+.vercel
+
+# IDE
+.vscode/
+.idea/

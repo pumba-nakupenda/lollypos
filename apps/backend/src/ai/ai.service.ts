@@ -9,7 +9,9 @@ export class AiService {
     private readonly logger = new Logger(AiService.name);
     private genAI: GoogleGenerativeAI;
     private model: any;
-    private chatSessions: Map<string, any> = new Map();
+    private chatSessions: Map<string, { chat: any; createdAt: number }> = new Map();
+    private readonly SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
+    private readonly MAX_SESSIONS = 50;
 
     constructor(
         private configService: ConfigService,
@@ -37,17 +39,44 @@ export class AiService {
         return (this.supabaseService as any).getAdminClient();
     }
 
+    private cleanupSessions() {
+        const now = Date.now();
+        for (const [key, session] of this.chatSessions.entries()) {
+            if (now - session.createdAt > this.SESSION_TTL_MS) {
+                this.chatSessions.delete(key);
+            }
+        }
+        // Hard cap: remove oldest if over limit
+        if (this.chatSessions.size > this.MAX_SESSIONS) {
+            const oldest = [...this.chatSessions.entries()]
+                .sort((a, b) => a[1].createdAt - b[1].createdAt)[0];
+            if (oldest) this.chatSessions.delete(oldest[0]);
+        }
+    }
+
     async analyzeBusiness(userQuestion: string, shopId?: number) {
         if (!this.model) return "Système financier non initialisé.";
 
         try {
-            // RÉCUPÉRATION ANALYTIQUE PROFONDE
+            this.cleanupSessions();
+
+            // Fetch data scoped to the requested shop (or global if no shopId)
             const [salesRes, productsRes, expensesRes, debtsRes, itemsRes] = await Promise.all([
-                this.admin.from('sales').select('*').order('created_at', { ascending: false }),
-                this.admin.from('products').select('*'),
-                this.admin.from('expenses').select('*').order('date', { ascending: false }),
-                this.admin.from('debts').select('*, customers(name)'),
-                this.admin.from('sale_items').select('*, products(name, price, cost_price)')
+                shopId
+                    ? this.admin.from('sales').select('total_amount, paid_amount, created_at').eq('shop_id', shopId).order('created_at', { ascending: false }).limit(500)
+                    : this.admin.from('sales').select('total_amount, paid_amount, shop_id, created_at').order('created_at', { ascending: false }).limit(500),
+                shopId
+                    ? this.admin.from('products').select('name, price, cost_price, stock').eq('shop_id', shopId)
+                    : this.admin.from('products').select('name, price, cost_price, stock, shop_id'),
+                shopId
+                    ? this.admin.from('expenses').select('amount, category, date').eq('shop_id', shopId).order('date', { ascending: false }).limit(200)
+                    : this.admin.from('expenses').select('amount, category, date, shop_id').order('date', { ascending: false }).limit(200),
+                shopId
+                    ? this.admin.from('debts').select('remaining_amount, type').eq('shop_id', shopId)
+                    : this.admin.from('debts').select('remaining_amount, type, shop_id'),
+                shopId
+                    ? this.admin.from('sale_items').select('quantity, price, products(name, price, cost_price)').eq('products.shop_id', shopId).limit(1000)
+                    : this.admin.from('sale_items').select('quantity, price, products(name, price, cost_price)').limit(1000),
             ]);
 
             const allSales = salesRes.data || [];
@@ -111,17 +140,20 @@ export class AiService {
                 MISSION : Analyse, conseille, et critique si nécessaire. Sois le bras droit du patron.
             `;
 
-            let chat = this.chatSessions.get(shopId ? `shop_${shopId}` : 'global');
-            if (!chat) {
-                chat = this.model.startChat({ history: [] });
-                this.chatSessions.set(shopId ? `shop_${shopId}` : 'global', chat);
+            const sessionKey = shopId ? `shop_${shopId}` : 'global';
+            let sessionEntry = this.chatSessions.get(sessionKey);
+            if (!sessionEntry || Date.now() - sessionEntry.createdAt > this.SESSION_TTL_MS) {
+                const chat = this.model.startChat({ history: [] });
+                sessionEntry = { chat, createdAt: Date.now() };
+                this.chatSessions.set(sessionKey, sessionEntry);
             }
 
-            const result = await chat.sendMessage(`${systemInstruction}\n\nPATRON : ${userQuestion}`);
+            const result = await sessionEntry.chat.sendMessage(`${systemInstruction}\n\nPATRON : ${userQuestion}`);
             return result.response.text();
 
         } catch (error: any) {
-            return `Erreur d'analyse financière : ${error.message}`;
+            this.logger.error(`[AI] analyzeBusiness error: ${error.message}`);
+            return "Une erreur est survenue lors de l'analyse financière.";
         }
     }
 
