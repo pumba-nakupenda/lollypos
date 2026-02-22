@@ -35,8 +35,6 @@ async function bootstrap() {
     transform: true,        // Convertit automatiquement les types (string -> number, etc.)
   }));
 
-  const port = process.env.PORT ?? 3005;
-  console.log(`[BOOTSTRAP] Server starting on port: ${port}`);
-  await app.listen(port, '0.0.0.0');
+  await app.listen(process.env.PORT ?? 3005, '0.0.0.0');
 }
 bootstrap();
