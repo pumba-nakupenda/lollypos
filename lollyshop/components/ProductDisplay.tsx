@@ -244,7 +244,7 @@ export default function ProductDisplay({ product, related, isPage = false, onClo
                             onClick={() => setActiveTab('reviews')}
                             className={`pb-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'reviews' ? 'text-[#0055ff] border-b-2 border-[#0055ff]' : 'text-gray-300 hover:text-black'}`}
                         >
-                            Avis ({product.avg_rating?.toFixed(1) || '4.5'}/5)
+                            Avis ({product.review_count > 0 ? `${Number(product.avg_rating).toFixed(1)}/5` : '0'})
                         </button>
                     </div>
 

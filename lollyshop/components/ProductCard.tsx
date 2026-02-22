@@ -151,18 +151,20 @@ export default function ProductCard({ product }: { product: any }) {
                 <div className="flex-1 space-y-1 sm:space-y-1.5">
                     <div className="flex items-center space-x-1 sm:space-x-2">
                         <span className={`text-[7px] sm:text-[8px] font-black uppercase tracking-widest ${shopColor}`}>{shopName}</span>
-                        <div className="flex items-center space-x-1">
-                            <div className="flex text-[#FF9900] scale-75 sm:scale-100 origin-left">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                        key={star}
-                                        className={`w-2.5 h-2.5 ${star <= Math.round(product.avg_rating || 4.5) ? 'fill-current' : 'text-gray-200'}`}
-                                    />
-                                ))}
+                        {product.avg_rating && product.review_count > 0 && (
+                            <div className="flex items-center space-x-1">
+                                <div className="flex text-[#FF9900] scale-75 sm:scale-100 origin-left">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <Star
+                                            key={star}
+                                            className={`w-2.5 h-2.5 ${star <= Math.round(product.avg_rating) ? 'fill-current' : 'text-gray-200'}`}
+                                        />
+                                    ))}
+                                </div>
+                                <span className="text-[8px] text-[#FF9900] font-black">{Number(product.avg_rating).toFixed(1)}</span>
+                                <span className="text-[8px] text-gray-400 font-bold">({product.review_count})</span>
                             </div>
-                            <span className="text-[8px] text-[#FF9900] font-black">{product.avg_rating || '4.5'}</span>
-                            <span className="text-[8px] text-gray-400 font-bold">({product.review_count || '12'})</span>
-                        </div>
+                        )}
                     </div>
 
                     <h3 className="text-xs sm:text-sm font-bold text-gray-900 line-clamp-3 leading-tight group-hover:text-lolly transition-colors min-h-[42px] sm:min-h-[48px]">
