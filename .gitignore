@@ -4,22 +4,18 @@ node_modules/
 
 # Next.js
 .next/
-**/.next/
+**/ .next/
 out/
 
-# NestJS / Build
-dist/
+# Production
 build/
+dist/
 
-# Logs
+# Misc
+.DS_Store
+*.pem
 *.log
-**/*.log
-backend_debug.log
-debug_server.log
 startup.log
-apps/backend/backend_output.log
-apps/backend/job.log
-apps/startup.log
 
 # Env files
 .env
@@ -27,32 +23,9 @@ apps/startup.log
 .env.production
 **/.env*
 
-# Temp / diagnostic files
-temp_sql_migrations_*/
-duplicates_list.json
-duplicates_refined.json
-full_schema.json
-import_products.json
-luxya_products.json
-luxya_products_after.json
-old_products.json
-recovered_expenses.json
-recovered_sales.json
-test-bulk.json
-test-minimal.json
-test-product.json
-test-product-expiry.json
-apps/test_ai.json
-diag_schema*.js
-archive_sql/
+# Vercel
+.vercel
 
 # IDE
 .vscode/
 .idea/
-
-# OS
-.DS_Store
-*.pem
-
-# Vercel
-.vercel
