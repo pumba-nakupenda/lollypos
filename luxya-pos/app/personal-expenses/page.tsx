@@ -23,6 +23,7 @@ import { useUser } from '@/context/UserContext'
 import { useToast } from '@/context/ToastContext'
 
 import ShopSelector from '@/components/ShopSelector'
+import CustomDropdown from '@/components/CustomDropdown'
 import { redirect } from 'next/navigation'
 import { API_URL, authFetch } from '@/utils/api'
 
@@ -373,15 +374,16 @@ export default function PersonalExpensesPage() {
 
                             <div className="space-y-2">
                                 <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-2">Appliquer à l'Enveloppe</label>
-                                <select
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white outline-none focus:border-purple-500 appearance-none"
+                                <CustomDropdown
+                                    options={Array.isArray(categories) ? categories.map(cat => ({
+                                        label: cat.name,
+                                        value: cat.name,
+                                        icon: <Tag className="w-4 h-4" />
+                                    })) : []}
                                     value={newExpense.category}
-                                    onChange={e => setNewExpense({ ...newExpense, category: e.target.value })}
-                                >
-                                    {Array.isArray(categories) && categories.map(cat => (
-                                        <option key={cat.id} value={cat.name} className="bg-[#0a0a0c]">{cat.name}</option>
-                                    ))}
-                                </select>
+                                    onChange={val => setNewExpense({ ...newExpense, category: val })}
+                                    placeholder="Choisir une enveloppe..."
+                                />
                             </div>
 
                             <input

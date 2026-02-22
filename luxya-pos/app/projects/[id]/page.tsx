@@ -5,8 +5,10 @@ import {
     ArrowLeft, Plus, Loader2, X, CheckCircle2, Circle, Clock,
     AlertTriangle, Trash2, Edit2, Save, Users, Calendar, Flag,
     Link2, Link2Off, ChevronDown, GripVertical, CheckSquare, Square,
-    MessageSquare, Send, DollarSign, ArrowUpRight, ArrowDownRight, FolderKanban, Archive
+    MessageSquare, Send, DollarSign, ArrowUpRight, ArrowDownRight, FolderKanban, Archive,
+    User, LayoutDashboard, Building2, PauseCircle, XCircle
 } from 'lucide-react'
+import CustomDropdown from '@/components/CustomDropdown'
 import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useShop } from '@/context/ShopContext'
@@ -901,35 +903,48 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Statut</label>
-                                        <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                            value={taskForm.status} onChange={e => setTaskForm({ ...taskForm, status: e.target.value as Task['status'] })}>
-                                            <option value="todo">À faire</option>
-                                            <option value="in_progress">En cours</option>
-                                            <option value="done">Terminé</option>
-                                        </select>
+                                        <CustomDropdown
+                                            options={[
+                                                { label: 'À faire', value: 'todo', icon: <Circle className="w-4 h-4" /> },
+                                                { label: 'En cours', value: 'in_progress', icon: <Clock className="w-4 h-4" /> },
+                                                { label: 'Terminé', value: 'done', icon: <CheckCircle2 className="w-4 h-4" /> },
+                                            ]}
+                                            value={taskForm.status}
+                                            onChange={val => setTaskForm({ ...taskForm, status: val })}
+                                            searchable={false}
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Priorité</label>
-                                        <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                            value={taskForm.priority} onChange={e => setTaskForm({ ...taskForm, priority: e.target.value as Task['priority'] })}>
-                                            <option value="basse">Basse</option>
-                                            <option value="normale">Normale</option>
-                                            <option value="haute">Haute</option>
-                                            <option value="urgente">Urgente</option>
-                                        </select>
+                                        <CustomDropdown
+                                            options={[
+                                                { label: 'Basse', value: 'basse', icon: <Flag className="w-4 h-4 text-gray-400" /> },
+                                                { label: 'Normale', value: 'normale', icon: <Flag className="w-4 h-4 text-blue-400" /> },
+                                                { label: 'Haute', value: 'haute', icon: <Flag className="w-4 h-4 text-orange-400" /> },
+                                                { label: 'Urgente', value: 'urgente', icon: <Flag className="w-4 h-4 text-red-400" /> },
+                                            ]}
+                                            value={taskForm.priority}
+                                            onChange={val => setTaskForm({ ...taskForm, priority: val })}
+                                            searchable={false}
+                                        />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Assignation</label>
-                                        <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                            value={taskForm.assignee_id} onChange={e => setTaskForm({ ...taskForm, assignee_id: e.target.value })}>
-                                            <option value="">— Non assigné —</option>
-                                            {profiles.map(p => (
-                                                <option key={p.id} value={p.id}>{p.full_name || p.email}</option>
-                                            ))}
-                                        </select>
+                                        <CustomDropdown
+                                            options={[
+                                                { label: '— Non assigné —', value: '', icon: <User className="w-4 h-4" /> },
+                                                ...profiles.map(p => ({
+                                                    label: p.full_name || p.email || 'Sans nom',
+                                                    value: p.id,
+                                                    icon: <User className="w-4 h-4" />
+                                                }))
+                                            ]}
+                                            value={taskForm.assignee_id}
+                                            onChange={val => setTaskForm({ ...taskForm, assignee_id: val })}
+                                        />
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Deadline</label>
@@ -1058,21 +1073,29 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Type</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                        value={editingProjectForm.type} onChange={e => setEditingProjectForm({ ...editingProjectForm, type: e.target.value as 'client' | 'agence' })}>
-                                        <option value="client">👤 Client</option>
-                                        <option value="agence">🏢 Agence</option>
-                                    </select>
+                                    <CustomDropdown
+                                        options={[
+                                            { label: '👤 Client', value: 'client' },
+                                            { label: '🏢 Agence', value: 'agence' },
+                                        ]}
+                                        value={editingProjectForm.type}
+                                        onChange={val => setEditingProjectForm({ ...editingProjectForm, type: val })}
+                                        searchable={false}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Statut</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                        value={editingProjectForm.status} onChange={e => setEditingProjectForm({ ...editingProjectForm, status: e.target.value as Project['status'] })}>
-                                        <option value="planifie">Planifié</option>
-                                        <option value="en_cours">En cours</option>
-                                        <option value="termine">Terminé</option>
-                                        <option value="annule">Annulé</option>
-                                    </select>
+                                    <CustomDropdown
+                                        options={[
+                                            { label: 'Planifié', value: 'planifie', icon: <PauseCircle className="w-4 h-4" /> },
+                                            { label: 'En cours', value: 'en_cours', icon: <Clock className="w-4 h-4" /> },
+                                            { label: 'Terminé', value: 'termine', icon: <CheckCircle2 className="w-4 h-4" /> },
+                                            { label: 'Annulé', value: 'annule', icon: <XCircle className="w-4 h-4" /> },
+                                        ]}
+                                        value={editingProjectForm.status}
+                                        onChange={val => setEditingProjectForm({ ...editingProjectForm, status: val })}
+                                        searchable={false}
+                                    />
                                 </div>
                             </div>
 
@@ -1080,11 +1103,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                             {editingProjectForm.type === 'client' && (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Client</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                        value={editingProjectForm.client_id || ''} onChange={e => setEditingProjectForm({ ...editingProjectForm, client_id: e.target.value || null })}>
-                                        <option value="">— Sélectionner un client —</option>
-                                        {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
+                                    <CustomDropdown
+                                        options={[
+                                            { label: '— Sélectionner un client —', value: '' },
+                                            ...customers.map(c => ({
+                                                label: c.name,
+                                                value: c.id,
+                                                icon: <User className="w-4 h-4" />
+                                            }))
+                                        ]}
+                                        value={editingProjectForm.client_id || ''}
+                                        onChange={val => setEditingProjectForm({ ...editingProjectForm, client_id: val || null })}
+                                    />
                                 </div>
                             )}
 

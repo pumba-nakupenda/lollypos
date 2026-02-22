@@ -1,10 +1,11 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Globe, Save, Image as ImageIcon, MessageCircle, Type, Layout, RefreshCw, Plus, Trash2, Upload, X, Sparkles, ChevronDown, Tags } from 'lucide-react'
+import { Globe, Save, Image as ImageIcon, MessageCircle, Type, Layout, RefreshCw, Plus, Trash2, Upload, X, Sparkles, ChevronDown, Tags, Shield } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { API_URL, authFetch } from '@/utils/api'
+import CustomDropdown from '@/components/CustomDropdown'
 
 const DEFAULT_GROUPS = [
     {
@@ -317,10 +318,15 @@ export default function WebManagementPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[8px] sm:text-[9px] font-black uppercase text-muted-foreground ml-2">Marque</label>
-                                            <select value={slide.brand} onChange={e => updateSlide(slide.id, 'brand', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white outline-none focus:border-shop/50">
-                                                <option value="LUXYA">LUXYA (ROUGE)</option>
-                                                <option value="HOMTEK">HOMTEK (BLEU)</option>
-                                            </select>
+                                            <CustomDropdown
+                                                options={[
+                                                    { label: 'LUXYA (ROUGE)', value: 'LUXYA', icon: <Shield className="w-4 h-4 text-red-500" /> },
+                                                    { label: 'HOMTEK (BLEU)', value: 'HOMTEK', icon: <Globe className="w-4 h-4 text-blue-500" /> },
+                                                ]}
+                                                value={slide.brand}
+                                                onChange={val => updateSlide(slide.id, 'brand', val)}
+                                                searchable={false}
+                                            />
                                         </div>
                                         <div className="md:col-span-2 space-y-2">
                                             <div className="flex justify-between items-center ml-2">
@@ -500,29 +506,26 @@ export default function WebManagementPage() {
                                                     </div>
                                                     <div className="w-full md:w-56 space-y-2">
                                                         <label className="text-[8px] font-black uppercase text-muted-foreground ml-2">Ajouter existante</label>
-                                                        <div className="relative">
-                                                            <select
-                                                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs font-bold focus:border-shop/50 outline-none text-white appearance-none cursor-pointer"
-                                                                onClick={(e) => e.stopPropagation()}
-                                                                onChange={(e) => {
-                                                                    if (e.target.value) {
-                                                                        addCategoryToGroup(index, e.target.value);
-                                                                        e.target.value = ""; // Reset select
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <option value="">Sélectionner...</option>
-                                                                {(() => {
-                                                                    const allUsed = (settings.category_groups || []).flatMap((g: any) => g.match || []);
-                                                                    return categories.filter(cat => !allUsed.includes(cat)).map((cat, i) => (
-                                                                        <option key={i} value={cat} className="text-black">{cat}</option>
-                                                                    ));
-                                                                })()}
-                                                            </select>
-                                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                                                                <Plus className="w-3.5 h-3.5" />
-                                                            </div>
-                                                        </div>
+                                                        <CustomDropdown
+                                                            options={(() => {
+                                                                const allUsed = (settings.category_groups || []).flatMap((g: any) => g.match || []);
+                                                                return [
+                                                                    { label: 'Sélectionner...', value: '' },
+                                                                    ...categories.filter(cat => !allUsed.includes(cat)).map(cat => ({
+                                                                        label: cat,
+                                                                        value: cat,
+                                                                        icon: <Tags className="w-4 h-4" />
+                                                                    }))
+                                                                ];
+                                                            })()}
+                                                            value=""
+                                                            onChange={val => {
+                                                                if (val) {
+                                                                    addCategoryToGroup(index, val);
+                                                                }
+                                                            }}
+                                                            placeholder="Sélectionner..."
+                                                        />
                                                         <p className="text-[8px] text-muted-foreground leading-tight p-1">
                                                             Ajoutez une catégorie sans doublon.
                                                         </p>

@@ -1,7 +1,8 @@
 'use client'
 
 import React from 'react';
-import { FileText, X, Search, PlusCircle, Check, RefreshCw } from 'lucide-react';
+import { FileText, X, Search, PlusCircle, Check, RefreshCw, LayoutDashboard } from 'lucide-react';
+import CustomDropdown from '@/components/CustomDropdown';
 
 interface AgencyFormProps {
     docType: 'quote' | 'invoice' | 'delivery_note';
@@ -138,16 +139,20 @@ export default function AgencyForm({
 
             <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Lier à un Projet (Optionnel)</label>
-                <select
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                <CustomDropdown
+                    options={[
+                        { label: 'Ne pas lier', value: '' },
+                        ...projects.map(p => ({
+                            label: p.name,
+                            value: p.id,
+                            icon: <LayoutDashboard className="w-4 h-4" />
+                        }))
+                    ]}
                     value={selectedProjectId || ''}
-                    onChange={e => setSelectedProjectId(e.target.value || null)}
-                >
-                    <option value="">Ne pas lier</option>
-                    {projects.map(p => (
-                        <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                </select>
+                    onChange={val => setSelectedProjectId(val || null)}
+                    placeholder="Lier à un Projet..."
+                    searchable={projects.length > 5}
+                />
             </div>
 
             <div className="flex flex-col sm:flex-row justify-between items-end gap-6 pt-6 border-t border-white/5">

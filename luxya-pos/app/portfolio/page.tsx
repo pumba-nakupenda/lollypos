@@ -10,6 +10,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
 import { API_URL } from '@/utils/api'
+import CustomDropdown from '@/components/CustomDropdown'
 
 export default function AgencyPortfolioPage() {
     const supabase = useMemo(() => createClient(), [])
@@ -100,16 +101,17 @@ export default function AgencyPortfolioPage() {
                     </div>
 
                     <div className="flex items-center space-x-4 max-w-sm w-full">
-                        <div className="relative w-full group">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-shop transition-colors" />
-                            <select
-                                onChange={(e) => setSelectedCustomerId(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-sm font-bold outline-none focus:border-shop/50 transition-all appearance-none text-white"
-                            >
-                                <option value="">SÉLECTIONNER UN CLIENT...</option>
-                                {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                        </div>
+                        <CustomDropdown
+                            options={customers.map(c => ({
+                                label: c.name,
+                                value: c.id,
+                                icon: <User className="w-4 h-4" />
+                            }))}
+                            value={selectedCustomerId || ''}
+                            onChange={setSelectedCustomerId}
+                            placeholder="SÉLECTIONNER UN CLIENT..."
+                            className="w-full"
+                        />
                     </div>
                 </div>
             </header>

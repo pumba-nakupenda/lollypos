@@ -536,16 +536,19 @@ export default function ExpensesPage() {
 
                             <div className="space-y-2">
                                 <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Lier à un Projet (Optionnel)</label>
-                                <select
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-5 sm:px-6 text-sm focus:border-shop/50 outline-none transition-all text-white"
+                                <CustomDropdown
+                                    options={[
+                                        { label: 'Ne pas lier', value: '', icon: <Tag className="w-4 h-4" /> },
+                                        ...projects.map(p => ({
+                                            label: p.name,
+                                            value: p.id,
+                                            icon: <Receipt className="w-4 h-4" />
+                                        }))
+                                    ]}
                                     value={newExpense.project_id}
-                                    onChange={e => setNewExpense({ ...newExpense, project_id: e.target.value })}
-                                >
-                                    <option value="">Ne pas lier</option>
-                                    {projects.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
+                                    onChange={val => setNewExpense({ ...newExpense, project_id: val })}
+                                    placeholder="Lier à un Projet..."
+                                />
                             </div>
 
                             <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/5">

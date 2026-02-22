@@ -602,11 +602,16 @@ export default function AdminDashboard() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Rôle</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-[10px] font-black uppercase outline-none focus:border-shop/50 appearance-none bg-black" value={newUserData.role} onChange={e => setNewUserData({ ...newUserData, role: e.target.value })}>
-                                        <option value="cashier">Caissier</option>
-                                        <option value="manager">Manager</option>
-                                        <option value="admin">Admin</option>
-                                    </select>
+                                    <CustomDropdown
+                                        options={[
+                                            { label: 'Caissier', value: 'cashier', icon: <Users className="w-4 h-4" /> },
+                                            { label: 'Manager', value: 'manager', icon: <Shield className="w-4 h-4" /> },
+                                            { label: 'Admin', value: 'admin', icon: <Shield className="w-4 h-4" /> },
+                                        ]}
+                                        value={newUserData.role}
+                                        onChange={val => setNewUserData({ ...newUserData, role: val })}
+                                        searchable={false}
+                                    />
                                 </div>
                             </div>
 
@@ -670,11 +675,16 @@ export default function AdminDashboard() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Rôle</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 px-4 text-[10px] font-black uppercase outline-none focus:border-shop/50 appearance-none bg-black" value={editData.role} onChange={e => setEditData({ ...editData, role: e.target.value })}>
-                                        <option value="cashier">Caissier</option>
-                                        <option value="manager">Manager</option>
-                                        <option value="admin">Admin</option>
-                                    </select>
+                                    <CustomDropdown
+                                        options={[
+                                            { label: 'Caissier', value: 'cashier', icon: <Users className="w-4 h-4" /> },
+                                            { label: 'Manager', value: 'manager', icon: <Shield className="w-4 h-4" /> },
+                                            { label: 'Admin', value: 'admin', icon: <Shield className="w-4 h-4" /> },
+                                        ]}
+                                        value={editData.role}
+                                        onChange={val => setEditData({ ...editData, role: val })}
+                                        searchable={false}
+                                    />
                                 </div>
                             </div>
 

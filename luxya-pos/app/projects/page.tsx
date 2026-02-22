@@ -4,8 +4,10 @@ import React, { useState, useEffect } from 'react'
 import {
     FolderKanban, Plus, Search, Users, Calendar, ChevronRight,
     X, Loader2, Briefcase, Building2, CheckCircle2, Clock, XCircle, PauseCircle,
-    DollarSign, ArrowRight, ListTodo, Archive
+    DollarSign, ArrowRight, ListTodo, Archive,
+    FileText, User, LayoutDashboard
 } from 'lucide-react'
+import CustomDropdown from '@/components/CustomDropdown'
 import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useShop } from '@/context/ShopContext'
@@ -528,37 +530,48 @@ export default function ProjectsPage() {
                             {/* Template Selector */}
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Utiliser un modèle (Optionnel)</label>
-                                <select 
-                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
+                                <CustomDropdown
+                                    options={[
+                                        { label: 'Partir de zéro', value: '', icon: <FileText className="w-4 h-4" /> },
+                                        ...templates.map(t => ({
+                                            label: t.name,
+                                            value: t.id,
+                                            icon: <LayoutDashboard className="w-4 h-4" />
+                                        }))
+                                    ]}
                                     value={selectedTemplateId}
-                                    onChange={e => setSelectedTemplateId(e.target.value)}
-                                >
-                                    <option value="">Partir de zéro</option>
-                                    {templates.map(t => (
-                                        <option key={t.id} value={t.id}>{t.name}</option>
-                                    ))}
-                                </select>
+                                    onChange={setSelectedTemplateId}
+                                    placeholder="Partir de zéro..."
+                                />
                             </div>
 
                             {/* Type + Status */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Type</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                        value={newProject.type} onChange={e => setNewProject({ ...newProject, type: e.target.value as 'client' | 'agence' })}>
-                                        <option value="client">👤 Client</option>
-                                        <option value="agence">🏢 Agence</option>
-                                    </select>
+                                    <CustomDropdown
+                                        options={[
+                                            { label: '👤 Client', value: 'client' },
+                                            { label: '🏢 Agence', value: 'agence' },
+                                        ]}
+                                        value={newProject.type}
+                                        onChange={val => setNewProject({ ...newProject, type: val })}
+                                        searchable={false}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Statut</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                        value={newProject.status} onChange={e => setNewProject({ ...newProject, status: e.target.value as Project['status'] })}>
-                                        <option value="planifie">Planifié</option>
-                                        <option value="en_cours">En cours</option>
-                                        <option value="termine">Terminé</option>
-                                        <option value="annule">Annulé</option>
-                                    </select>
+                                    <CustomDropdown
+                                        options={[
+                                            { label: 'Planifié', value: 'planifie', icon: <PauseCircle className="w-4 h-4" /> },
+                                            { label: 'En cours', value: 'en_cours', icon: <Clock className="w-4 h-4" /> },
+                                            { label: 'Terminé', value: 'termine', icon: <CheckCircle2 className="w-4 h-4" /> },
+                                            { label: 'Annulé', value: 'annule', icon: <XCircle className="w-4 h-4" /> },
+                                        ]}
+                                        value={newProject.status}
+                                        onChange={val => setNewProject({ ...newProject, status: val })}
+                                        searchable={false}
+                                    />
                                 </div>
                             </div>
 
@@ -566,11 +579,19 @@ export default function ProjectsPage() {
                             {newProject.type === 'client' && (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Client</label>
-                                    <select className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 appearance-none"
-                                        value={newProject.client_id} onChange={e => setNewProject({ ...newProject, client_id: e.target.value })}>
-                                        <option value="">— Sélectionner un client —</option>
-                                        {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                                    </select>
+                                    <CustomDropdown
+                                        options={[
+                                            { label: '— Sélectionner un client —', value: '' },
+                                            ...customers.map(c => ({
+                                                label: c.name,
+                                                value: c.id,
+                                                icon: <User className="w-4 h-4" />
+                                            }))
+                                        ]}
+                                        value={newProject.client_id}
+                                        onChange={val => setNewProject({ ...newProject, client_id: val })}
+                                        placeholder="Sélectionner un client..."
+                                    />
                                 </div>
                             )}
 
