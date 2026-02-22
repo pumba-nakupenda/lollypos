@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Query, UseGuards, Get } from '@nestjs/common';
+import { Controller, Post, Body, Query, UseGuards, Get, BadRequestException } from '@nestjs/common';
 import { AiService } from './ai.service';
 
 @Controller('ai')
@@ -15,14 +15,17 @@ export class AiController {
         @Body('question') question: string,
         @Query('shopId') shopId?: string
     ) {
-        console.log(`[TRAFFIC] Requête IA reçue : "${question}" pour Shop: ${shopId}`);
+        if (!question || typeof question !== 'string') {
+            throw new BadRequestException('Le champ "question" est requis.');
+        }
+        if (question.length > 1000) {
+            throw new BadRequestException('La question ne peut pas dépasser 1000 caractères.');
+        }
         const id = shopId ? parseInt(shopId) : undefined;
         try {
             const answer = await this.aiService.analyzeBusiness(question, id);
-            console.log(`[TRAFFIC] Réponse générée avec succès`);
             return { answer };
         } catch (err) {
-            console.error(`[TRAFFIC] CRASH dans le contrôleur :`, err.message);
             return { answer: "Erreur fatale interne au serveur." };
         }
     }
