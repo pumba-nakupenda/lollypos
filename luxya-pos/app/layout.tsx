@@ -25,6 +25,7 @@ export const metadata: Metadata = {
 import { ShopProvider } from "@/context/ShopContext";
 import { UserProvider, UserProfile } from "@/context/UserContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { TimeTrackerProvider } from "@/context/TimeTrackerContext";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import Sidebar from "@/components/Sidebar";
@@ -75,31 +76,33 @@ export default async function RootLayout({
     }
   }
 
-  const isCashier = initialProfile?.role === 'cashier';
-  const showAi = initialProfile?.is_super_admin === true && pathname !== '/login';
-
-  return (
-    <html lang="fr" className="dark">
-      <body
-        className={`${outfit.variable} ${geistMono.variable} ${museo.variable} antialiased selection:bg-shop/30 overflow-x-hidden`}
-      >
-        <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-shop/10 via-background to-background" />
-        <Suspense fallback={<GlobalLoader />}>
-          <ToastProvider>
-            <UserProvider initialProfile={initialProfile}>
-              <ShopProvider>
-                <div className="flex min-h-screen relative">
-                  {!isCashier && <Sidebar />}
-                  <main className={`flex-1 min-w-0 overflow-y-auto ${isCashier ? 'w-full' : ''}`}>
-                    {children}
-                  </main>
-                  {showAi && <AiFloatingButton />}
-                </div>
-              </ShopProvider>
-            </UserProvider>
-          </ToastProvider>
-        </Suspense>
-      </body>
-    </html>
-  );
-}
+    const isSharePage = pathname.includes('/projects/share/');
+    const showAi = initialProfile?.is_super_admin === true && pathname !== '/login' && !isSharePage;
+  
+    return (
+      <html lang="fr" className="dark">
+        <body
+          className={`${outfit.variable} ${geistMono.variable} ${museo.variable} antialiased selection:bg-shop/30 overflow-x-hidden`}
+        >
+          <div className="fixed inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-shop/10 via-background to-background" />
+          <Suspense fallback={<GlobalLoader />}>
+            <ToastProvider>
+              <UserProvider initialProfile={initialProfile}>
+                <ShopProvider>
+                  <TimeTrackerProvider>
+                    <div className="flex min-h-screen relative">
+                      {!isSharePage && <Sidebar />}
+                      <main className={`flex-1 min-w-0 overflow-y-auto ${isSharePage ? 'w-full' : ''}`}>
+                        {children}
+                      </main>
+                      {showAi && <AiFloatingButton />}
+                    </div>
+                  </TimeTrackerProvider>
+                </ShopProvider>
+              </UserProvider>
+            </ToastProvider>
+          </Suspense>
+        </body>
+      </html>
+    );
+  }

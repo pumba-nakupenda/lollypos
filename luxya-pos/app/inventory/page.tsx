@@ -131,32 +131,32 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
   };
 
   return (
-    <div className="min-h-screen pb-20">
-      {/* ... header reste inchangé ... */}
-      <header className="glass-panel sticky top-2 sm:top-4 z-50 mx-2 sm:mx-4 rounded-2xl sm:rounded-[24px] shadow-xl border-white/5">
+    <div className="min-h-screen pb-20 bg-[#0a0a0c]">
+      <header className="glass-panel sticky top-0 z-50 mx-0 sm:mx-4 sm:top-4 rounded-none sm:rounded-[24px] shadow-xl border-white/5">
         <div className="max-w-7xl mx-auto py-3 sm:py-4 px-4 sm:px-8 flex justify-between items-center">
           <div className="flex items-center space-x-3 sm:space-x-6">
-            <Link href="/" className="p-2 sm:p-2.5 glass-card rounded-xl text-muted-foreground hover:text-shop transition-all">
+            <Link href="/" prefetch={false} className="p-2 sm:p-2.5 glass-card rounded-xl text-muted-foreground hover:text-shop transition-all">
               <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
             </Link>
-            <div className="h-6 sm:h-8 w-px bg-white/10" />
+            <div className="hidden sm:block h-8 w-px bg-white/10" />
             <div>
-              <h1 className="text-base sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">
+              <h1 className="text-sm sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">
                 Inventaire
               </h1>
-              <p className="text-[7px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{shopName}</p>
+              <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 sm:mt-1">{shopName}</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
             <Link
               href="/inventory/quick"
-              className="hidden sm:flex items-center px-4 py-2 bg-white/5 text-shop border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-shop/10 transition-all"
+              prefetch={false}
+              className="hidden lg:flex items-center px-4 py-2 bg-white/5 text-shop border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-shop/10 transition-all"
             >
               <Plus className="w-3.5 h-3.5 mr-2" />
               Inventaire Rapide
             </Link>
-            <div className="hidden md:block">
+            <div className="hidden sm:block">
               <ShopSelector />
             </div>
             <CreateProductButton />
@@ -164,52 +164,52 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto py-6 sm:py-8 px-4 sm:px-6 space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <main className="max-w-7xl mx-auto py-4 sm:py-8 px-3 sm:px-6 space-y-4 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
-            <div className="relative z-10">
-              <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Total Produits</p>
-              <h2 className="text-xl sm:text-2xl font-black">{totalCount}</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          <div className="glass-card p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] flex flex-col sm:flex-row sm:items-center justify-between group overflow-hidden relative min-w-0">
+            <div className="relative z-10 min-w-0">
+              <p className="text-[8px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1 truncate">Total Produits</p>
+              <h2 className="text-lg sm:text-2xl font-black truncate">{totalCount}</h2>
             </div>
-            <Package className="w-8 h-8 text-white/5 absolute right-4 group-hover:scale-110 group-hover:text-shop/20 transition-all duration-500" />
+            <Package className="w-6 h-6 sm:w-8 sm:h-8 text-white/5 absolute right-3 top-3 sm:top-auto sm:right-4 group-hover:scale-110 group-hover:text-shop/20 transition-all duration-500" />
           </div>
 
-          {profile?.is_super_admin && (
+          {(profile?.is_super_admin || profile?.role === 'inventory') && (
             <>
-              <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
-                <div className="relative z-10">
-                  <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Investissement (Achat)</p>
-                  <h2 className="text-xl sm:text-2xl font-black text-blue-400 tracking-tight">{totalCost.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
+              <div className="glass-card p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] flex flex-col sm:flex-row sm:items-center justify-between group overflow-hidden relative min-w-0">
+                <div className="relative z-10 min-w-0">
+                  <p className="text-[8px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1 truncate">Investissement</p>
+                  <h2 className="text-lg sm:text-2xl font-black text-blue-400 tracking-tight truncate">{totalCost.toLocaleString()} <span className="text-[8px] sm:text-[10px]">CFA</span></h2>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center absolute right-4 group-hover:bg-blue-500/20 transition-all">
-                  <TrendingUp className="w-4 h-4 text-blue-400" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-blue-500/10 flex items-center justify-center absolute right-3 top-3 sm:top-auto sm:right-4 group-hover:bg-blue-500/20 transition-all">
+                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-blue-400" />
                 </div>
               </div>
 
-              <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative">
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Valeur Stock (Vente)</p>
-                    <span className="bg-green-500/20 text-green-400 text-[8px] font-black px-2 py-0.5 rounded-full border border-green-500/20">+{marginPercent.toFixed(1)}% MARGE</span>
+              <div className="glass-card p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] flex flex-col sm:flex-row sm:items-center justify-between group overflow-hidden relative min-w-0">
+                <div className="relative z-10 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-2">
+                    <p className="text-[8px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1 truncate">Valeur Stock</p>
+                    <span className="bg-green-500/20 text-green-400 text-[7px] sm:text-[8px] font-black px-1.5 py-0.5 rounded-full border border-green-500/20 w-fit mb-1 sm:mb-0">+{marginPercent.toFixed(1)}%</span>
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-shop-secondary tracking-tight">{totalValue.toLocaleString()} <span className="text-[10px]">CFA</span></h2>
+                  <h2 className="text-lg sm:text-2xl font-black text-shop-secondary tracking-tight truncate">{totalValue.toLocaleString()} <span className="text-[8px] sm:text-[10px]">CFA</span></h2>
                 </div>
-                <div className="w-8 h-8 rounded-full bg-shop-secondary/10 flex items-center justify-center absolute right-4 group-hover:bg-shop-secondary/20 transition-all">
-                  <TrendingUp className="w-4 h-4 text-shop-secondary" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-shop-secondary/10 flex items-center justify-center absolute right-3 top-3 sm:top-auto sm:right-4 group-hover:bg-shop-secondary/20 transition-all">
+                  <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-shop-secondary" />
                 </div>
               </div>
             </>
           )}
 
-          <div className="glass-card p-5 sm:p-6 rounded-[24px] sm:rounded-[32px] flex items-center justify-between group overflow-hidden relative border-red-500/10">
-            <div className="relative z-10">
-              <p className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">Alertes Stock</p>
-              <h2 className={`text-xl sm:text-2xl font-black ${outOfStock > 0 ? 'text-red-400' : 'text-green-400'}`}>
+          <div className="glass-card p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] flex flex-col sm:flex-row sm:items-center justify-between group overflow-hidden relative border-red-500/10 min-w-0">
+            <div className="relative z-10 min-w-0">
+              <p className="text-[8px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1 truncate">Alertes Stock</p>
+              <h2 className={`text-lg sm:text-2xl font-black truncate ${outOfStock > 0 ? 'text-red-400' : 'text-green-400'}`}>
                 {outOfStock} Ruptures
               </h2>
             </div>
-            <AlertTriangle className={`w-8 h-8 absolute right-4 group-hover:scale-110 transition-all duration-500 ${outOfStock > 0 ? 'text-red-500/20' : 'text-green-500/5'}`} />
+            <AlertTriangle className={`w-6 h-6 sm:w-8 sm:h-8 absolute right-3 top-3 sm:top-auto sm:right-4 group-hover:scale-110 transition-all duration-500 ${outOfStock > 0 ? 'text-red-500/20' : 'text-green-500/5'}`} />
           </div>
         </div>
 

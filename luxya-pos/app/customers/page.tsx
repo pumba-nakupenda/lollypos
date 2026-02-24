@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import {
-    Users, Plus, Search, Mail, Phone, MapPin, Trash2, X, UserPlus, Loader2, Store
+    Users, Plus, Search, Mail, Phone, MapPin, Trash2, X, UserPlus, Loader2, Store, Edit2, Save, FileText
 } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
@@ -19,14 +19,21 @@ export default function CustomersPage() {
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
+    const [updating, setUpdating] = useState(false)
 
-    // Shop selection logic for creation
+    // Shop selection logic for creation/edit
     const isGlobalView = !activeShop || activeShop.id === 0
     const [selectedShopId, setSelectedShopId] = useState<number>(1)
 
     const [newCustomer, setNewCustomer] = useState({
         name: '', phone: '', email: '', address: '', ninea: '', rc: ''
+    })
+
+    const [editingCustomer, setEditingCustomer] = useState<any>(null)
+    const [editData, setEditData] = useState({
+        name: '', phone: '', email: '', address: '', ninea: '', rc: '', shop_id: 1
     })
 
     useEffect(() => {
@@ -41,7 +48,6 @@ export default function CustomersPage() {
             setLoading(true)
             let query = supabase.from('customers').select('*').order('name')
             
-            // Filter by shop if not in global view
             if (activeShop && activeShop.id !== 0) {
                 query = query.eq('shop_id', activeShop.id)
             }
@@ -79,6 +85,42 @@ export default function CustomersPage() {
         }
     }
 
+    const openEditModal = (customer: any) => {
+        setEditingCustomer(customer)
+        setEditData({
+            name: customer.name || '',
+            phone: customer.phone || '',
+            email: customer.email || '',
+            address: customer.address || '',
+            ninea: customer.ninea || '',
+            rc: customer.rc || '',
+            shop_id: customer.shop_id || 1
+        })
+        setIsEditModalOpen(true)
+    }
+
+    const handleUpdateCustomer = async (e: React.FormEvent) => {
+        e.preventDefault()
+        try {
+            setUpdating(true)
+            const { error } = await supabase
+                .from('customers')
+                .update(editData)
+                .eq('id', editingCustomer.id)
+
+            if (error) throw error
+            
+            showToast("Client mis à jour !", "success")
+            setIsEditModalOpen(false)
+            fetchCustomers()
+        } catch (err: any) {
+            console.error("Update error:", err)
+            showToast(err.message || "Erreur lors de la mise à jour", "error")
+        } finally {
+            setUpdating(false)
+        }
+    }
+
     const handleDelete = async (id: string) => {
         if (!confirm("Supprimer ce client ?")) return
         try {
@@ -92,8 +134,8 @@ export default function CustomersPage() {
     }
 
     const filteredCustomers = customers.filter(c => 
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.phone?.includes(searchQuery)
+        (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.phone || '').includes(searchQuery)
     )
 
     return (
@@ -126,18 +168,18 @@ export default function CustomersPage() {
             <main className="max-w-7xl mx-auto w-full px-8 py-8 space-y-8 animate-in fade-in duration-500">
                 <div className="relative group max-w-xl">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-shop transition-colors" />
-                    <input type="text" placeholder="Rechercher dans cette boutique..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 backdrop-blur-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                    <input type="text" placeholder="Rechercher un client..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 backdrop-blur-sm text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 </div>
 
                 {loading ? (
                     <div className="flex flex-col items-center justify-center py-20 opacity-30">
                         <Loader2 className="w-12 h-12 animate-spin text-shop mb-4" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">Chargement...</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white">Chargement...</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredCustomers.map((customer) => (
-                            <div key={customer.id} className="glass-panel p-6 rounded-[32px] border-white/5 space-y-6 hover:border-shop/30 transition-all group relative">
+                            <div key={customer.id} className="glass-panel p-6 rounded-[32px] border-white/5 space-y-6 hover:border-shop/30 transition-all group relative overflow-hidden">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center space-x-4">
                                         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-shop/20 to-shop/5 border border-shop/20 flex items-center justify-center font-black text-shop text-2xl shadow-inner uppercase">{customer.name.charAt(0)}</div>
@@ -146,7 +188,10 @@ export default function CustomersPage() {
                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{customer.email || "Pas d'email"}</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => handleDelete(customer.id)} className="p-2 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4"/></button>
+                                    <div className="flex items-center space-x-1">
+                                        <button onClick={() => openEditModal(customer)} className="p-2 text-muted-foreground hover:text-shop opacity-0 group-hover:opacity-100 transition-all"><Edit2 className="w-4 h-4"/></button>
+                                        <button onClick={() => handleDelete(customer.id)} className="p-2 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-4 h-4"/></button>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-3">
@@ -170,19 +215,19 @@ export default function CustomersPage() {
                                 )}
                             </div>
                         ))}
-                        {filteredCustomers.length === 0 && <div className="col-span-full py-20 text-center opacity-20 font-black uppercase text-xs">Aucun client trouvé</div>}
+                        {filteredCustomers.length === 0 && <div className="col-span-full py-20 text-center opacity-20 font-black uppercase text-xs text-white">Aucun client trouvé</div>}
                     </div>
                 )}
             </main>
 
             {/* Create Modal */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/40">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-in fade-in duration-200">
                     <div className="relative glass-card w-full max-w-lg p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
                         <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full text-muted-foreground"><X className="w-6 h-6"/></button>
                         <div className="flex items-center space-x-4 mb-8">
                             <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center text-shop"><UserPlus className="w-6 h-6"/></div>
-                            <div><h2 className="text-xl font-black uppercase tracking-tight">Nouveau Client</h2><p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">Ajout au répertoire</p></div>
+                            <div><h2 className="text-xl font-black uppercase tracking-tight text-white">Nouveau Client</h2><p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">Ajout au répertoire</p></div>
                         </div>
 
                         <form onSubmit={handleCreateCustomer} className="space-y-6">
@@ -190,7 +235,7 @@ export default function CustomersPage() {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Boutique de destination</label>
                                     <CustomDropdown 
-                                        options={shops.map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5"/> }))}
+                                        options={shops.filter(s => s.id !== 0).map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5"/> }))}
                                         value={selectedShopId}
                                         onChange={setSelectedShopId}
                                     />
@@ -199,22 +244,101 @@ export default function CustomersPage() {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nom Complet / Entreprise</label>
-                                <input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} />
+                                <input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} placeholder="Ex: Jean Dupont" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Téléphone</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} />
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} placeholder="+221 ..." />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Email</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} />
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} placeholder="client@email.com" />
                                 </div>
                             </div>
 
-                            <button type="submit" disabled={creating} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Adresse</label>
+                                <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.address} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} placeholder="Dakar, Sénégal" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">NINEA</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.ninea} onChange={e => setNewCustomer({...newCustomer, ninea: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">RC</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.rc} onChange={e => setNewCustomer({...newCustomer, rc: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <button type="submit" disabled={creating} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl disabled:opacity-50">
                                 {creating ? 'Enregistrement...' : 'Sauvegarder Client'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/40 animate-in fade-in duration-200">
+                    <div className="relative glass-card w-full max-w-lg p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsEditModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full text-muted-foreground"><X className="w-6 h-6"/></button>
+                        <div className="flex items-center space-x-4 mb-8">
+                            <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center text-shop"><Edit2 className="w-6 h-6"/></div>
+                            <div><h2 className="text-xl font-black uppercase tracking-tight text-white">Modifier Client</h2><p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">Mise à jour répertoire</p></div>
+                        </div>
+
+                        <form onSubmit={handleUpdateCustomer} className="space-y-6">
+                            {isGlobalView && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Boutique assignée</label>
+                                    <CustomDropdown 
+                                        options={shops.filter(s => s.id !== 0).map(s => ({ label: s.name, value: s.id, icon: <Store className="w-3.5 h-3.5"/> }))}
+                                        value={editData.shop_id}
+                                        onChange={val => setEditData({...editData, shop_id: val})}
+                                    />
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nom Complet / Entreprise</label>
+                                <input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Téléphone</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Email</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Adresse</label>
+                                <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.address} onChange={e => setEditData({...editData, address: e.target.value})} />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">NINEA</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.ninea} onChange={e => setEditData({...editData, ninea: e.target.value})} />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">RC</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.rc} onChange={e => setEditData({...editData, rc: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <button type="submit" disabled={updating} className="w-full py-5 bg-shop text-white font-black uppercase tracking-widest rounded-3xl hover:scale-[1.02] transition-all shadow-xl disabled:opacity-50 flex items-center justify-center space-x-3">
+                                {updating ? <Loader2 className="animate-spin" /> : <Save />}
+                                <span>{updating ? 'Mise à jour...' : 'Sauvegarder les modifications'}</span>
                             </button>
                         </form>
                     </div>

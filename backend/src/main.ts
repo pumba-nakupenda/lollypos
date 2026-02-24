@@ -17,9 +17,10 @@ async function bootstrap() {
       ];
 
       const isVercel = origin && (origin.endsWith('.vercel.app') || origin.includes('vercel.app'));
+      const isRender = origin && (origin.endsWith('.onrender.com'));
       const isLolly = origin && (origin.includes('lolly.sn'));
 
-      if (!origin || allowedOrigins.includes(origin) || isVercel || isLolly) {
+      if (!origin || allowedOrigins.includes(origin) || isVercel || isRender || isLolly) {
         callback(null, true);
       } else {
         console.warn(`[CORS] Blocked request from origin: ${origin}`);

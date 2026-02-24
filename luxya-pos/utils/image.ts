@@ -1,4 +1,4 @@
-export async function compressImage(file: File, maxWidth = 1200, quality = 0.7): Promise<Blob> {
+export async function compressImage(file: File, maxWidth = 1200, quality = 0.8): Promise<File> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -21,15 +21,25 @@ export async function compressImage(file: File, maxWidth = 1200, quality = 0.7):
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
 
+                // Forcer l'encodage en AVIF
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
-                            resolve(blob);
+                            // Supprimer l'ancienne extension et ajouter .avif
+                            const orgName = file.name ? file.name.split('.').slice(0, -1).join('.') : 'image';
+                            const newFilename = orgName ? `${orgName}.avif` : 'image.avif';
+                            const newFile = new File([blob], newFilename, {
+                                type: 'image/avif',
+                                lastModified: Date.now(),
+                            });
+                            resolve(newFile);
                         } else {
+                            // En cas d'échec du navigateur sur l'AVIF, fallback silencieux vers WEBP possible
+                            // mais on reste sur le type avif pour forcer si ça marche
                             reject(new Error('Canvas to Blob conversion failed'));
                         }
                     },
-                    'image/jpeg',
+                    'image/avif',
                     quality
                 );
             };

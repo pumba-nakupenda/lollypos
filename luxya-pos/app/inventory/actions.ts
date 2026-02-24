@@ -30,8 +30,10 @@ export async function createProduct(formData: FormData) {
     const min_stock = Number(formData.get('minStock')) || 2
     const category = formData.get('category') as string
     const type = (formData.get('type') as string) || 'product'
-    const expiry_date = formData.get('expiry_date') as string | null
-    const video_url = formData.get('video_url') as string | null
+    const expiry_date_raw = formData.get('expiry_date') as string | null
+    const expiry_date = (expiry_date_raw && expiry_date_raw.trim() !== '') ? expiry_date_raw : undefined
+    const video_url_raw = formData.get('video_url') as string | null
+    const video_url = (video_url_raw && video_url_raw.trim() !== '') ? video_url_raw : undefined
     const show_on_pos = formData.get('show_on_pos') === 'true'
     const show_on_website = formData.get('show_on_website') === 'true'
     const variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : []
@@ -94,7 +96,7 @@ export async function createProduct(formData: FormData) {
         image: imageUrl || (galleryUrls.length > 0 ? galleryUrls[0] : ''),
         images: galleryUrls,
         type,
-        expiry_date: expiry_date || null,
+        expiry_date,
         video_url,
         show_on_pos,
         show_on_website,
@@ -105,6 +107,7 @@ export async function createProduct(formData: FormData) {
     const parsedVariants = [...variants]
     for (let i = 0; i < parsedVariants.length; i++) {
         const variant = parsedVariants[i]
+        if (!variant.id) variant.id = Date.now() + i;
         const vFile = formData.get(`variant_image_${variant.id}`) as File | null
 
         if (vFile && vFile.size > 0 && typeof vFile !== 'string') {
@@ -133,7 +136,7 @@ export async function createProduct(formData: FormData) {
             return { error: errorData.message || 'Failed to create product' }
         }
 
-        revalidatePath('/inventory')
+        // Client handles refresh
         return { success: true }
     } catch (error) {
         return { error: 'Failed to connect to backend' }
@@ -156,8 +159,10 @@ export async function updateProduct(productId: number, formData: FormData) {
     const min_stock = Number(formData.get('minStock')) || 2
     const category = formData.get('category') as string
     const type = (formData.get('type') as string) || 'product'
-    const expiry_date = formData.get('expiry_date') as string | null
-    const video_url = formData.get('video_url') as string | null
+    const expiry_date_raw = formData.get('expiry_date') as string | null
+    const expiry_date = (expiry_date_raw && expiry_date_raw.trim() !== '') ? expiry_date_raw : undefined
+    const video_url_raw = formData.get('video_url') as string | null
+    const video_url = (video_url_raw && video_url_raw.trim() !== '') ? video_url_raw : undefined
     const show_on_pos = formData.get('show_on_pos') === 'true'
     const show_on_website = formData.get('show_on_website') === 'true'
     const variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : []
@@ -226,7 +231,7 @@ export async function updateProduct(productId: number, formData: FormData) {
         image: imageUrl,
         images: galleryUrls,
         type,
-        expiry_date: expiry_date || null,
+        expiry_date,
         video_url,
         show_on_pos,
         show_on_website,
@@ -238,6 +243,7 @@ export async function updateProduct(productId: number, formData: FormData) {
     const parsedVariants = [...variants]
     for (let i = 0; i < parsedVariants.length; i++) {
         const variant = parsedVariants[i]
+        if (!variant.id) variant.id = Date.now() + i;
         const vFile = formData.get(`variant_image_${variant.id}`) as File | null
 
         if (vFile && vFile.size > 0 && typeof vFile !== 'string') {
@@ -269,7 +275,7 @@ export async function updateProduct(productId: number, formData: FormData) {
             return { error: `Erreur lors de la mise à jour (${response.status})` }
         }
 
-        revalidatePath('/inventory')
+        // Client handles refresh
         return { success: true }
     } catch (error) {
         console.error('[UPDATE_PRODUCT] Connection Error:', error);

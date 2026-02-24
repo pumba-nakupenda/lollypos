@@ -25,7 +25,8 @@ import {
     ArrowUpRight,
     ShoppingBag,
     Trash2,
-    Edit
+    Edit,
+    FolderKanban
 } from 'lucide-react'
 import Link from 'next/link'
 import { shops, Shop } from '@/types/shop'
@@ -63,7 +64,7 @@ export default function AdminDashboard() {
                 const data = await res.json()
                 setConnectionLogs(data)
             }
-        } catch (e) {}
+        } catch (e) { }
     }
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -90,24 +91,26 @@ export default function AdminDashboard() {
         if (isEdit) {
             setEditData(prev => ({
                 ...prev,
-                shopIds: prev.shopIds.includes(shopId) 
-                    ? prev.shopIds.filter(id => id !== shopId) 
+                shopIds: prev.shopIds.includes(shopId)
+                    ? prev.shopIds.filter(id => id !== shopId)
                     : [...prev.shopIds, shopId]
             }))
         } else {
             setNewUserData(prev => ({
                 ...prev,
-                shopIds: prev.shopIds.includes(shopId) 
-                    ? prev.shopIds.filter(id => id !== shopId) 
+                shopIds: prev.shopIds.includes(shopId)
+                    ? prev.shopIds.filter(id => id !== shopId)
                     : [...prev.shopIds, shopId]
             }))
         }
     }
 
     const roleOptions = [
-        { label: 'Administrateur', value: 'admin', icon: <Shield className="w-3.5 h-3.5" /> },
-        { label: 'Manager Boutique', value: 'manager', icon: <Store className="w-3.5 h-3.5" /> },
-        { label: 'Caissier / POS', value: 'cashier', icon: <ShoppingBag className="w-3.5 h-3.5" /> },
+        { label: 'Super Admin', value: 'admin', icon: <Shield className="w-3.5 h-3.5" /> },
+        { label: 'Directeur Boutique', value: 'manager', icon: <Store className="w-3.5 h-3.5" /> },
+        { label: 'Chef de Projet (Agency)', value: 'lead', icon: <FolderKanban className="w-3.5 h-3.5" /> },
+        { label: 'Gestionnaire Stock', value: 'inventory', icon: <Package className="w-3.5 h-3.5" /> },
+        { label: 'Vendeur / POS', value: 'cashier', icon: <ShoppingBag className="w-3.5 h-3.5" /> },
     ]
 
     const shopOptions = [
@@ -216,8 +219,16 @@ export default function AdminDashboard() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, role: newRole })
             })
-            if (res.ok) fetchUsers()
-        } catch (err) {}
+            if (res.ok) {
+                showToast("Rôle mis à jour", "success")
+                fetchUsers()
+            } else {
+                const data = await res.json()
+                showToast(data.error || "Erreur de mise à jour", "error")
+            }
+        } catch (err) {
+            showToast("Erreur de connexion", "error")
+        }
     }
 
     const updateShop = async (userId: string, shopId: number | null) => {
@@ -228,7 +239,7 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ userId, shopId })
             })
             if (res.ok) fetchUsers()
-        } catch (err) {}
+        } catch (err) { }
     }
 
     const toggleStockAccess = async (userId: string, currentStatus: boolean) => {
@@ -239,7 +250,7 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ userId, hasStockAccess: !currentStatus })
             })
             if (res.ok) fetchUsers()
-        } catch (err) {}
+        } catch (err) { }
     }
 
     if (userLoading || loading) return (
@@ -282,7 +293,7 @@ export default function AdminDashboard() {
             <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-8 py-4 sm:py-8 space-y-8 sm:space-y-12">
                 {/* Global Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-8">
-                    <Link href="/analytics" className="glass-card p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] relative overflow-hidden group hover:border-shop/50 transition-all">
+                    <Link href="/analytics" prefetch={false} className="glass-card p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] relative overflow-hidden group hover:border-shop/50 transition-all">
                         <div className="absolute top-0 right-0 p-4 sm:p-6 text-shop/5 group-hover:text-shop/10 transition-colors">
                             <BarChart3 className="w-16 h-16 sm:w-24 sm:h-24 rotate-12" />
                         </div>
@@ -347,7 +358,7 @@ export default function AdminDashboard() {
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 border-r border-white/5">
-                                            <CustomDropdown 
+                                            <CustomDropdown
                                                 options={roleOptions}
                                                 value={u.role}
                                                 onChange={(val) => updateRole(u.id, val)}
@@ -424,14 +435,14 @@ export default function AdminDashboard() {
                                 <div className="space-y-4">
                                     <div className="space-y-2">
                                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Rôle & Permissions</p>
-                                        <CustomDropdown 
+                                        <CustomDropdown
                                             options={roleOptions}
                                             value={u.role}
                                             onChange={(val) => updateRole(u.id, val)}
                                             className="w-full"
                                         />
                                     </div>
-                                    
+
                                     <div className="space-y-2">
                                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Boutiques Assignées</p>
                                         <div className="flex flex-wrap gap-2 p-4 bg-white/5 rounded-2xl border border-white/10">
@@ -460,86 +471,100 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+
+                    {/* --- ROLE ACCREDITATION GUIDE --- */}
+                    <div className="glass-panel p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border-white/5 bg-white/[0.01] overflow-hidden relative">
+                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                            <Lock className="w-32 h-32 rotate-12" />
+                        </div>
+                        <div className="relative z-10 space-y-8">
+                            <div>
+                                <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Guide des Accréditations</h3>
+                                <p className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-widest mt-1">Définition des droits d'accès Lolly Group</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                                <div className="p-5 bg-white/5 rounded-3xl border border-white/5 space-y-3">
+                                    <div className="flex items-center space-x-2 text-shop">
+                                        <Shield className="w-4 h-4" />
+                                        <h4 className="font-black uppercase text-[10px]">Super Admin</h4>
                                     </div>
-                    
-                                    {/* --- ROLE ACCREDITATION GUIDE --- */}
-                                    <div className="glass-panel p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border-white/5 bg-white/[0.01] overflow-hidden relative">
-                                        <div className="absolute top-0 right-0 p-8 opacity-5">
-                                            <Lock className="w-32 h-32 rotate-12" />
-                                        </div>
-                                        <div className="relative z-10 space-y-8">
-                                            <div>
-                                                <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight">Guide des Accréditations</h3>
-                                                <p className="text-xs sm:text-sm text-muted-foreground font-medium uppercase tracking-widest mt-1">Définition des droits d'accès Lolly Group</p>
-                                            </div>
-                    
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                                <div className="p-6 bg-white/5 rounded-3xl border border-white/5 space-y-4">
-                                                    <div className="flex items-center space-x-3 text-shop">
-                                                        <Shield className="w-5 h-5" />
-                                                        <h4 className="font-black uppercase text-sm">Administrateur</h4>
+                                    <p className="text-[9px] text-muted-foreground leading-relaxed">Accès **Total**. Gestion globale, utilisateurs, finance groupe et IA.</p>
+                                </div>
+                                <div className="p-5 bg-white/5 rounded-3xl border border-white/5 space-y-3">
+                                    <div className="flex items-center space-x-2 text-blue-400">
+                                        <Store className="w-4 h-4" />
+                                        <h4 className="font-black uppercase text-[10px]">Directeur</h4>
+                                    </div>
+                                    <p className="text-[9px] text-muted-foreground leading-relaxed">Gestion complète d'une **Boutique**. Rapports, caisse et stock local.</p>
+                                </div>
+                                <div className="p-5 bg-white/5 rounded-3xl border border-white/5 space-y-3">
+                                    <div className="flex items-center space-x-2 text-purple-400">
+                                        <FolderKanban className="w-4 h-4" />
+                                        <h4 className="font-black uppercase text-[10px]">Chef Projet</h4>
+                                    </div>
+                                    <p className="text-[9px] text-muted-foreground leading-relaxed">Spécialisé **Agency**. Gestion des projets, Mind Map et discussion client.</p>
+                                </div>
+                                <div className="p-5 bg-white/5 rounded-3xl border border-white/5 space-y-3">
+                                    <div className="flex items-center space-x-2 text-orange-400">
+                                        <Package className="w-4 h-4" />
+                                        <h4 className="font-black uppercase text-[10px]">Stockiste</h4>
+                                    </div>
+                                    <p className="text-[9px] text-muted-foreground leading-relaxed">Focus **Inventaire**. Mises à jour produits et fournisseurs uniquement.</p>
+                                </div>
+                                <div className="p-5 bg-white/5 rounded-3xl border border-white/5 space-y-3">
+                                    <div className="flex items-center space-x-2 text-green-400">
+                                        <ShoppingBag className="w-4 h-4" />
+                                        <h4 className="font-black uppercase text-[10px]">Vendeur</h4>
+                                    </div>
+                                    <p className="text-[9px] text-muted-foreground leading-relaxed">Interface **POS**. Ventes et clients. Pas d'accès aux finances/achats.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* --- CONNECTION LOGS --- */}
+                    <div className="space-y-6">
+                        <div className="px-2">
+                            <h3 className="text-2xl sm:text-3xl font-black tracking-tight uppercase leading-none">Journal des Connexions</h3>
+                            <p className="text-[10px] sm:text-sm text-muted-foreground font-medium uppercase tracking-widest mt-2">Audit des accès en temps réel</p>
+                        </div>
+
+                        <div className="glass-panel rounded-[32px] sm:rounded-[40px] overflow-hidden border-white/5 bg-white/[0.01]">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-white/5 border-b border-white/5">
+                                        <tr>
+                                            <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground">Utilisateur</th>
+                                            <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground">Appareil / IP</th>
+                                            <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground text-right">Date & Heure</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {connectionLogs.length > 0 ? connectionLogs.map((log, i) => (
+                                            <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                                                <td className="px-8 py-4">
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-green-500 animate-pulse' : 'bg-white/20'}`} />
+                                                        <span className="text-xs font-bold text-white">{log.email}</span>
                                                     </div>
-                                                    <p className="text-[10px] text-muted-foreground leading-relaxed">Accès **Total & Illimité**. Gestion des employés, configuration du site Web, analyse financière globale et modification de l'inventaire.</p>
-                                                </div>
-                                                <div className="p-6 bg-white/5 rounded-3xl border border-white/5 space-y-4">
-                                                    <div className="flex items-center space-x-3 text-shop-secondary">
-                                                        <Store className="w-5 h-5" />
-                                                        <h4 className="font-black uppercase text-sm">Manager</h4>
-                                                    </div>
-                                                    <p className="text-[10px] text-muted-foreground leading-relaxed">Accès **ERP & Stock**. Peut modifier les produits, voir l'historique des ventes et enregistrer les dépenses de sa boutique assignée.</p>
-                                                </div>
-                                                <div className="p-6 bg-white/5 rounded-3xl border border-white/5 space-y-4">
-                                                    <div className="flex items-center space-x-3 text-green-400">
-                                                        <ShoppingBag className="w-5 h-5" />
-                                                        <h4 className="font-black uppercase text-sm">Caissier</h4>
-                                                    </div>
-                                                    <p className="text-[10px] text-muted-foreground leading-relaxed">Accès **Vente Uniquement**. Limité au terminal de vente (POS). Ne peut pas voir les rapports financiers ni modifier le catalogue.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                    
-                                    {/* --- CONNECTION LOGS --- */}
-                                    <div className="space-y-6">
-                                        <div className="px-2">
-                                            <h3 className="text-2xl sm:text-3xl font-black tracking-tight uppercase leading-none">Journal des Connexions</h3>
-                                            <p className="text-[10px] sm:text-sm text-muted-foreground font-medium uppercase tracking-widest mt-2">Audit des accès en temps réel</p>
-                                        </div>
-                    
-                                    <div className="glass-panel rounded-[32px] sm:rounded-[40px] overflow-hidden border-white/5 bg-white/[0.01]">
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left">
-                                                <thead className="bg-white/5 border-b border-white/5">
-                                                    <tr>
-                                                        <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground">Utilisateur</th>
-                                                        <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground">Appareil / IP</th>
-                                                        <th className="px-8 py-4 text-[10px] font-black uppercase text-muted-foreground text-right">Date & Heure</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-white/5">
-                                                    {connectionLogs.length > 0 ? connectionLogs.map((log, i) => (
-                                                        <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                                                            <td className="px-8 py-4">
-                                                                <div className="flex items-center space-x-3">
-                                                                    <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-green-500 animate-pulse' : 'bg-white/20'}`} />
-                                                                    <span className="text-xs font-bold text-white">{log.email}</span>
-                                                                </div>
-                                                            </td>
-                                                            <td className="px-8 py-4 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{log.device} • {log.ip_address}</td>
-                                                            <td className="px-8 py-4 text-right text-[10px] font-black text-white/60">
-                                                                {new Date(log.created_at).toLocaleString('fr-FR')}
-                                                            </td>
-                                                        </tr>
-                                                    )) : (
-                                                        <tr><td colSpan={3} className="p-12 text-center opacity-30 font-black uppercase text-[10px]">Aucun log récent</td></tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                    </div>
-                    
-                                    {/* Invite Instructions Card */}                    <div className="glass-card p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border-dashed border-white/10 bg-white/[0.01]">
+                                                </td>
+                                                <td className="px-8 py-4 text-[10px] text-muted-foreground font-medium uppercase tracking-widest">{log.device} • {log.ip_address}</td>
+                                                <td className="px-8 py-4 text-right text-[10px] font-black text-white/60">
+                                                    {new Date(log.created_at).toLocaleString('fr-FR')}
+                                                </td>
+                                            </tr>
+                                        )) : (
+                                            <tr><td colSpan={3} className="p-12 text-center opacity-30 font-black uppercase text-[10px]">Aucun log récent</td></tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Invite Instructions Card */}                    <div className="glass-card p-6 sm:p-10 rounded-[32px] sm:rounded-[40px] border-dashed border-white/10 bg-white/[0.01]">
                         <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-6 lg:space-y-0 lg:space-x-10">
                             <div className="flex-1 space-y-4 text-center lg:text-left">
                                 <div className="inline-flex items-center px-4 py-2 rounded-full bg-shop/10 border border-shop/20 text-shop text-[10px] font-black uppercase tracking-[0.2em]">
@@ -604,8 +629,10 @@ export default function AdminDashboard() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Rôle</label>
                                     <CustomDropdown
                                         options={[
-                                            { label: 'Caissier', value: 'cashier', icon: <Users className="w-4 h-4" /> },
-                                            { label: 'Manager', value: 'manager', icon: <Shield className="w-4 h-4" /> },
+                                            { label: 'Vendeur', value: 'cashier', icon: <ShoppingBag className="w-4 h-4" /> },
+                                            { label: 'Stockiste', value: 'inventory', icon: <Package className="w-4 h-4" /> },
+                                            { label: 'Chef Projet', value: 'lead', icon: <FolderKanban className="w-4 h-4" /> },
+                                            { label: 'Directeur', value: 'manager', icon: <Store className="w-4 h-4" /> },
                                             { label: 'Admin', value: 'admin', icon: <Shield className="w-4 h-4" /> },
                                         ]}
                                         value={newUserData.role}
@@ -623,11 +650,10 @@ export default function AdminDashboard() {
                                             key={s.id}
                                             type="button"
                                             onClick={() => toggleShopSelection(s.id)}
-                                            className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase border transition-all ${
-                                                newUserData.shopIds.includes(s.id)
-                                                ? 'bg-shop border-shop text-white shadow-lg'
-                                                : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
-                                            }`}
+                                            className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase border transition-all ${newUserData.shopIds.includes(s.id)
+                                                    ? 'bg-shop border-shop text-white shadow-lg'
+                                                    : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
+                                                }`}
                                         >
                                             {s.name}
                                         </button>
@@ -677,8 +703,10 @@ export default function AdminDashboard() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Rôle</label>
                                     <CustomDropdown
                                         options={[
-                                            { label: 'Caissier', value: 'cashier', icon: <Users className="w-4 h-4" /> },
-                                            { label: 'Manager', value: 'manager', icon: <Shield className="w-4 h-4" /> },
+                                            { label: 'Vendeur', value: 'cashier', icon: <ShoppingBag className="w-4 h-4" /> },
+                                            { label: 'Stockiste', value: 'inventory', icon: <Package className="w-4 h-4" /> },
+                                            { label: 'Chef Projet', value: 'lead', icon: <FolderKanban className="w-4 h-4" /> },
+                                            { label: 'Directeur', value: 'manager', icon: <Store className="w-4 h-4" /> },
                                             { label: 'Admin', value: 'admin', icon: <Shield className="w-4 h-4" /> },
                                         ]}
                                         value={editData.role}
@@ -696,11 +724,10 @@ export default function AdminDashboard() {
                                             key={s.id}
                                             type="button"
                                             onClick={() => toggleShopSelection(s.id, true)}
-                                            className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase border transition-all ${
-                                                editData.shopIds.includes(s.id)
-                                                ? 'bg-shop border-shop text-white shadow-lg'
-                                                : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
-                                            }`}
+                                            className={`py-3 px-4 rounded-xl text-[10px] font-black uppercase border transition-all ${editData.shopIds.includes(s.id)
+                                                    ? 'bg-shop border-shop text-white shadow-lg'
+                                                    : 'bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10'
+                                                }`}
                                         >
                                             {s.name}
                                         </button>

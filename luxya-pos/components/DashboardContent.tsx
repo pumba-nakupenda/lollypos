@@ -40,6 +40,33 @@ import AiInsights from './AiInsights'
 import { API_URL, authFetch } from '@/utils/api'
 import { ProfitabilityIndicator, ProfitabilityHistory } from './ProfitabilityComponents'
 
+function SecondaryMiniCard({ title, value, color }: { title: string, value: number, color: string }) {
+    const colorStyles: any = {
+        "blue-400": "text-blue-400 bg-blue-400/10 border-blue-400/20",
+        "orange-400": "text-orange-400 bg-orange-400/10 border-orange-400/20"
+    }
+    return (
+        <div className="glass-card p-5 rounded-[24px] border-white/5 flex items-center justify-between group">
+            <div>
+                <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">{title}</p>
+                <h4 className="text-lg font-black text-white italic">{value?.toLocaleString()} <span className="text-[10px] opacity-30">CFA</span></h4>
+            </div>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorStyles[color] || 'bg-white/10'}`}>
+                <ArrowUpRight className="w-5 h-5" />
+            </div>
+        </div>
+    )
+}
+
+function Legend({ badge, label }: { badge: string, label: string }) {
+    return (
+        <div className="flex items-center space-x-2 bg-white/5 px-3 py-1.5 rounded-xl border border-white/5">
+            <div className={`w-2 h-2 rounded-full ${badge}`} />
+            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{label}</span>
+        </div>
+    )
+}
+
 export default function DashboardContent({ user }: { user: any }) {
     const { profile, loading: userLoading, error: profileError } = useUser()
     const { activeShop } = useShop()
@@ -228,108 +255,116 @@ export default function DashboardContent({ user }: { user: any }) {
                 {/* 0. AI GROWTH INSIGHTS - Only for Global View */}
                 {(!activeShop || activeShop.id === 0) && <AiInsights />}
 
-                {/* 1. KEY METRICS */}
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 sm:gap-4">
-                    <MetricMiniCard title="Revenus TTC" value={metrics.totalSales} icon={<DollarSign className="w-4 h-4" />} color="shop" trend="Global" />
-                    <MetricMiniCard title="Encaissé Réel" value={metrics.actualCash || 0} icon={<Banknote className="w-4 h-4" />} color="emerald-400" trend="Cash" />
-                    {(profile?.is_super_admin || profile?.role === 'admin' || profile?.role === 'manager') && (
-                        <>
-                            <MetricMiniCard title="CA HT" value={metrics.totalSalesHT} icon={<TrendingUp className="w-4 h-4" />} color="blue-400" trend="Net" />
-                            <MetricMiniCard title="Marge Net" value={metrics.margeNet} icon={<PieChart className="w-4 h-4" />} color="green-400" trend="Profit" />
-                            <MetricMiniCard title="Dépenses" value={metrics.totalExpenses} icon={<TrendingDown className="w-4 h-4" />} color="red-400" trend="Total" />
-                            <MetricMiniCard title="TVA (Estimée)" value={metrics.tva} icon={<Receipt className="w-4 h-4" />} color="orange-400" trend="Taxe" />
-                            <MetricMiniCard title="Résultat" value={metrics.profit} icon={<TrendingUp className="w-4 h-4" />} color="green-400" trend="Final" />
-                        </>
-                    )}
-                </div>
-
-                {/* Mobile Filters (Only visible on small screens) */}
-                <div className="grid grid-cols-2 gap-3 lg:hidden">
-                    <CustomDropdown options={monthOptions} value={selectedMonth} onChange={setSelectedMonth} className="w-full" />
-                    <CustomDropdown options={categoryOptions} value={selectedCategory} onChange={setSelectedCategory} className="w-full" />
-                </div>
-
-                {/* 2. CASH FLOW CHART */}
-                <div className="glass-panel rounded-[32px] sm:rounded-[40px] p-4 sm:p-8 border-white/5 bg-white/[0.01]">
-                    <div className="flex flex-col sm:flex-row justify-between sm:items-end mb-6 sm:mb-8 space-y-4 sm:space-y-0">
-                        <div>
-                            <h3 className="text-lg sm:text-xl font-black uppercase tracking-tight">Flux de Trésorerie</h3>
-                            <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Comparaison 7 derniers jours</p>
+                {/* 1. KEY METRICS & FINANCIAL HEALTH */}
+                <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 sm:gap-8 items-start">
+                    {/* Main Stats Cluster */}
+                    <div className="xl:col-span-3 space-y-6 sm:space-y-8">
+                        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                            <MetricMiniCard title="Revenus TTC" value={metrics.totalSales} icon={<DollarSign />} color="shop" trend="Global" />
+                            <MetricMiniCard title="Encaissé Réel" value={metrics.actualCash || 0} icon={<Banknote />} color="green-400" trend="Cash" />
+                            <MetricMiniCard title="Profit Net" value={metrics.profit} icon={<TrendingUp />} color="purple-400" trend="Résultat" />
+                            <MetricMiniCard title="Dépenses" value={metrics.totalExpenses} icon={<TrendingDown />} color="red-400" trend="Sorties" />
                         </div>
-                        <div className="flex space-x-3">
-                            <div className="flex items-center space-x-2 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-shop" />
-                                <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-muted-foreground">Ventes</span>
+
+                        {/* Chart Area */}
+                        <div className="glass-panel rounded-[40px] p-6 sm:p-10 border-white/5 bg-white/[0.01] relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
+                                <TrendingUp className="w-64 h-64 rotate-12" />
                             </div>
-                            <div className="flex items-center space-x-2 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-                                <div className="w-1.5 h-1.5 rounded-full border border-shop border-dashed bg-transparent" />
-                                <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-shop/60">Prévisions IA</span>
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-end mb-10 space-y-6 sm:space-y-0 relative z-10">
+                                <div>
+                                    <h3 className="text-xl sm:text-3xl font-black uppercase tracking-tighter leading-none italic">Trésorerie <span className="text-shop">& Flux.</span></h3>
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] mt-2">Cycle d'exploitation des 7 derniers jours</p>
+                                </div>
+                                <div className="flex flex-wrap gap-3">
+                                    <Legend badge="bg-shop" label="Ventes" />
+                                    <Legend badge="border border-shop border-dashed bg-transparent" label="Prévisions" />
+                                    <Legend badge="bg-red-500" label="Dépenses" />
+                                </div>
                             </div>
-                            <div className="flex items-center space-x-2 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-muted-foreground">Dépenses</span>
+                            <div className="h-64 sm:h-80 flex items-end justify-between space-x-2 sm:space-x-6 px-2 relative z-10">
+                                {trend.map((day: any, i: number) => {
+                                    const maxVal = Math.max(...trend.map((d: any) => Math.max(d.income, d.outcome)), ...aiForecast) || 1
+                                    return (
+                                        <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
+                                            <div className="flex w-full justify-center items-end space-x-1 sm:space-x-1.5 h-full pb-3">
+                                                <div
+                                                    className="w-full max-w-[20px] bg-shop/20 border-t-2 border-shop/40 rounded-t-lg transition-all group-hover:bg-shop group-hover:shadow-[0_0_20px_rgba(var(--shop-primary),0.4)] animate-in slide-in-from-bottom-full duration-1000 relative"
+                                                    style={{ height: `${(day.income / maxVal) * 100}%`, animationDelay: `${i * 50}ms`, animationFillMode: 'both' }}
+                                                >
+                                                    <ChartTooltip value={day.income} label="Ventes" />
+                                                </div>
+                                                <div
+                                                    className="w-full max-w-[20px] bg-red-500/10 border-t-2 border-red-500/30 rounded-t-lg transition-all group-hover:bg-red-500/40 animate-in slide-in-from-bottom-full duration-1000 relative"
+                                                    style={{ height: `${(day.outcome / maxVal) * 100}%`, animationDelay: `${(i * 50) + 200}ms`, animationFillMode: 'both' }}
+                                                >
+                                                    <ChartTooltip value={day.outcome} label="Sorties" color="bg-red-900/90" />
+                                                </div>
+                                            </div>
+                                            <span className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase opacity-30 group-hover:opacity-100 transition-opacity">{day.date.split('-')[2]}</span>
+                                        </div>
+                                    )
+                                })}
+                                {/* IA FORECAST */}
+                                {aiForecast.map((value, i) => {
+                                    const maxVal = Math.max(...trend.map((d: any) => Math.max(d.income, d.outcome)), ...aiForecast) || 1
+                                    return (
+                                        <div key={`f-${i}`} className="flex-1 flex flex-col items-center group relative h-full justify-end opacity-40">
+                                            <div className="flex w-full justify-center items-end h-full pb-3">
+                                                <div
+                                                    className="w-full max-w-[20px] border-2 border-shop/40 border-dashed rounded-t-lg bg-shop/5 transition-all group-hover:bg-shop/20 animate-in slide-in-from-bottom-full duration-1000 relative"
+                                                    style={{ height: `${(value / maxVal) * 100}%`, animationDelay: `${(trend.length + i) * 50}ms`, animationFillMode: 'both' }}
+                                                >
+                                                    <div className="opacity-0 group-hover:opacity-100 absolute -top-14 left-1/2 -translate-x-1/2 bg-shop/90 backdrop-blur-md text-white px-4 py-2 rounded-2xl text-[10px] font-black whitespace-nowrap shadow-2xl z-50 pointer-events-none border border-white/20 transition-all scale-90 group-hover:scale-100">
+                                                        IA PRÉDIT<br /><span className="text-sm">+{Math.round(value).toLocaleString()} CFA</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <span className="text-[8px] font-black text-shop/40 uppercase">J+{i + 1}</span>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         </div>
                     </div>
-                    <div className="h-48 sm:h-56 flex items-end justify-between space-x-1.5 sm:space-x-4 px-1 sm:px-2 relative">
-                        {trend.map((day: any, i: number) => {
-                            const maxVal = Math.max(...trend.map((d: any) => Math.max(d.income, d.outcome)), ...aiForecast) || 1
-                            return (
-                                <div key={i} className="flex-1 flex flex-col items-center group relative h-full justify-end">
-                                    <div className="flex w-full justify-center items-end space-x-0.5 sm:space-x-1 h-full pb-1 sm:pb-2">
-                                        <div
-                                            className="w-full bg-shop/30 border-t border-shop/50 rounded-t-sm transition-all group-hover:bg-shop animate-in slide-in-from-bottom-full duration-1000 relative"
-                                            style={{
-                                                height: `${(day.income / maxVal) * 100}%`,
-                                                animationDelay: `${i * 50}ms`,
-                                                animationFillMode: 'both'
-                                            }}
-                                        >
-                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-md text-white px-2 py-1 rounded text-[9px] font-black whitespace-nowrap shadow-xl z-50 pointer-events-none border border-white/10 transition-all">
-                                                {day.income.toLocaleString()} CFA
-                                            </div>
-                                        </div>
-                                        <div
-                                            className="w-full bg-red-500/20 border-t border-red-500/30 rounded-t-sm transition-all group-hover:bg-red-500/50 animate-in slide-in-from-bottom-full duration-1000 relative"
-                                            style={{
-                                                height: `${(day.outcome / maxVal) * 100}%`,
-                                                animationDelay: `${(i * 50) + 200}ms`,
-                                                animationFillMode: 'both'
-                                            }}
-                                        >
-                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-red-900/90 backdrop-blur-md text-white px-2 py-1 rounded text-[9px] font-black whitespace-nowrap shadow-xl z-50 pointer-events-none border border-white/10 transition-all">
-                                                -{day.outcome.toLocaleString()} CFA
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span className="text-[6px] sm:text-[8px] font-black text-muted-foreground uppercase opacity-50 mt-1 sm:mt-2">{day.date.split('-')[2]}</span>
+
+                    {/* Secondary Metrics / Financial Health */}
+                    <div className="space-y-6 sm:space-y-8">
+                        <div className="glass-panel rounded-[40px] p-8 border-white/5 bg-white/[0.01] space-y-8">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-white flex items-center"><ShieldAlert className="w-4 h-4 mr-3 text-shop-secondary" /> Santé Cash</h3>
+                                <span className={`w-3 h-3 rounded-full shadow-[0_0_10px] ${metrics.totalDebts > metrics.margeNet ? 'bg-red-500 shadow-red-500/50' : 'bg-green-500 shadow-green-500/50'}`} />
+                            </div>
+                            
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground"><span>Marge Brute</span><span>{((metrics.margeBrute / (metrics.totalSales || 1)) * 100).toFixed(0)}%</span></div>
+                                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-shop shadow-[0_0_10px_rgba(var(--shop-primary),0.5)] transition-all duration-1000" style={{ width: `${(metrics.margeBrute / (metrics.totalSales || 1)) * 100}%` }} /></div>
                                 </div>
-                            )
-                        })}
-                        {/* AI FORECAST PREVIEW */}
-                        {aiForecast.map((value, i) => {
-                            const maxVal = Math.max(...trend.map((d: any) => Math.max(d.income, d.outcome)), ...aiForecast) || 1
-                            return (
-                                <div key={`f-${i}`} className="flex-1 flex flex-col items-center group relative h-full justify-end opacity-60">
-                                    <div className="flex w-full justify-center items-end h-full pb-1 sm:pb-2">
-                                        <div
-                                            className="w-full border-2 border-shop border-dashed rounded-t-lg bg-shop/5 animate-in slide-in-from-bottom-full duration-1000 relative"
-                                            style={{
-                                                height: `${(value / maxVal) * 100}%`,
-                                                animationDelay: `${(trend.length + i) * 50}ms`,
-                                                animationFillMode: 'both'
-                                            }}
-                                        >
-                                            <div className="opacity-0 group-hover:opacity-100 absolute -top-12 left-1/2 -translate-x-1/2 bg-shop/90 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap shadow-2xl z-50 pointer-events-none border border-white/20 transition-all">
-                                                IA PRÉDIT<br />
-                                                <span className="text-sm">+{Math.round(value).toLocaleString()} CFA</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <span className="text-[7px] font-black text-shop/40 uppercase mt-1 sm:mt-2">J+{i + 1}</span>
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground"><span>Dépenses / CA</span><span>{((metrics.totalExpenses / (metrics.totalSales || 1)) * 100).toFixed(0)}%</span></div>
+                                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-red-500 transition-all duration-1000" style={{ width: `${(metrics.totalExpenses / (metrics.totalSales || 1)) * 100}%` }} /></div>
                                 </div>
-                            )
-                        })}
+                                <div className="space-y-2">
+                                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground"><span>Dettes Clients</span><span>{metrics.totalDebts?.toLocaleString()}</span></div>
+                                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-orange-500 transition-all duration-1000" style={{ width: `${Math.min(100, (metrics.totalDebts / (metrics.margeNet || 1)) * 100)}%` }} /></div>
+                                </div>
+                            </div>
+
+                            <div className={`p-5 rounded-[24px] border ${metrics.totalDebts > metrics.margeNet ? 'bg-red-500/5 border-red-500/20' : 'bg-shop/5 border-shop/20'}`}>
+                                <p className="text-[9px] font-bold text-white leading-relaxed uppercase italic">
+                                    {metrics.totalDebts > metrics.margeNet
+                                        ? "Risque de trésorerie : les dettes dépassent vos profits nets."
+                                        : "Trésorerie saine : vos dettes sont inférieures à votre rentabilité."}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Small Secondary Metrics */}
+                        <div className="grid grid-cols-1 gap-4">
+                            <SecondaryMiniCard title="CA Hors Taxes" value={metrics.totalSalesHT} color="blue-400" />
+                            <SecondaryMiniCard title="TVA Estimée" value={metrics.tva} color="orange-400" />
+                        </div>
                     </div>
                 </div>
 
@@ -592,37 +627,68 @@ function FinancialProgressBar({ label, value, total, color, subLabel }: any) {
     );
 }
 
+function ChartTooltip({ value, label, color = "bg-black/80" }: { value: number, label: string, color?: string }) {
+    return (
+        <div className={`opacity-0 group-hover:opacity-100 absolute -top-12 left-1/2 -translate-x-1/2 ${color} backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-[10px] font-black whitespace-nowrap shadow-2xl z-50 pointer-events-none border border-white/10 transition-all scale-90 group-hover:scale-100`}>
+            {label}<br /><span className="text-xs">{value.toLocaleString()} CFA</span>
+        </div>
+    )
+}
+
 function MetricMiniCard({ title, value, icon, color, trend }: any) {
     const displayValue = (value || 0).toLocaleString()
+    
+    // Safety mapping for icons and colors
+    const colorStyles: any = {
+        "shop": "text-shop shadow-[0_0_15px_rgba(var(--shop-primary),0.3)]",
+        "green-400": "text-green-400 shadow-[0_0_15px_rgba(74,222,128,0.3)]",
+        "purple-400": "text-purple-400 shadow-[0_0_15px_rgba(192,132,252,0.3)]",
+        "red-400": "text-red-400 shadow-[0_0_15px_rgba(248,113,113,0.3)]",
+    }
+
     return (
-        <div className="glass-card p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] border-white/5 flex items-center justify-between group relative overflow-hidden h-full">
-            <div className="relative z-10 min-w-0">
-                <p className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 truncate">{title}</p>
-                <div className="flex items-baseline space-x-1 sm:space-x-2 overflow-hidden">
-                    <h4 className="text-lg sm:text-2xl font-black truncate">{displayValue}</h4>
-                    <span className="text-[7px] sm:text-[8px] font-bold opacity-50 shrink-0">CFA</span>
+        <div className="glass-card p-5 sm:p-8 rounded-[32px] sm:rounded-[40px] border-white/5 flex flex-col justify-between group relative overflow-hidden transition-all hover:scale-[1.02] hover:border-white/10">
+            <div className="flex justify-between items-start mb-4">
+                <div className={`w-10 h-10 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center ${colorStyles[color] || 'text-white'} transition-transform group-hover:scale-110`}>
+                    {React.cloneElement(icon as React.ReactElement<any>, { className: "w-5 h-5 sm:w-7 sm:h-7" })}
                 </div>
-                <div className="mt-1 sm:mt-2 flex items-center text-[7px] sm:text-[8px] font-black uppercase text-green-400">
-                    <ArrowUpRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" /> {trend}
+                <div className="text-right">
+                    <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity">{trend}</span>
                 </div>
             </div>
-            <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-${color} shrink-0 ml-2`}>
-                {React.cloneElement(icon as React.ReactElement<any>, { className: "w-4 h-4 sm:w-6 sm:h-6" })}
+            
+            <div className="relative z-10 space-y-1">
+                <p className="text-[9px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
+                <div className="flex items-baseline space-x-2">
+                    <h4 className="text-xl sm:text-3xl font-black tracking-tighter italic">{displayValue}</h4>
+                    <span className="text-[8px] sm:text-[10px] font-bold opacity-30">CFA</span>
+                </div>
             </div>
+            
+            <div className={`absolute -right-6 -bottom-6 w-24 h-24 bg-${color === 'shop' ? 'shop' : color}/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-1000`} />
         </div>
     )
 }
 
 function QuickLink({ href, title, icon, color }: any) {
+    const colorClasses: any = {
+        "shop": "text-shop bg-shop/10 border-shop/20",
+        "shop-secondary": "text-shop-secondary bg-shop-secondary/10 border-shop-secondary/20"
+    }
+
     return (
-        <Link href={href} className="group flex items-center justify-between p-5 glass-card rounded-[24px] border-white/5 hover:border-shop/30 transition-all active:scale-[0.98]">
-            <div className="flex items-center space-x-4">
-                <div className={`w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-${color} group-hover:bg-shop group-hover:text-white transition-all`}>
-                    {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-5 h-5' })}
+        <Link href={href} className="group flex items-center justify-between p-6 glass-card rounded-[32px] border-white/5 hover:border-white/20 transition-all active:scale-[0.98] relative overflow-hidden">
+            <div className="flex items-center space-x-5 relative z-10">
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center transition-all group-hover:scale-110 ${colorClasses[color] || 'bg-white/10 border-white/5'}`}>
+                    {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-6 h-6 sm:w-7 sm:h-7' })}
                 </div>
-                <span className="text-xs font-black uppercase tracking-widest">{title}</span>
+                <div>
+                    <span className="text-xs sm:text-sm font-black uppercase tracking-[0.3em] text-white">{title}</span>
+                    <p className="text-[8px] font-bold text-muted-foreground uppercase mt-1">Accès instantané</p>
+                </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-shop group-hover:translate-x-1 transition-all" />
+            <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-white group-hover:translate-x-2 transition-all relative z-10" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
         </Link>
     )
 }

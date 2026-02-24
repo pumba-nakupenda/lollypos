@@ -36,28 +36,28 @@ const navGroups = [
     {
         title: "Pilotage",
         items: [
-            { name: 'Tableau de bord', href: '/', icon: LayoutDashboard },
+            { name: 'Tableau de bord', href: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier', 'inventory', 'lead'] },
             { name: 'Lolly AI', href: '/ai', icon: Sparkles, superAdminOnly: true },
         ]
     },
     {
         title: "Opérations",
         items: [
-            { name: 'Caisse POS', href: '/sales', icon: ShoppingBag },
-            { name: 'Ma Caisse', href: '/cash-management', icon: LayoutDashboard, roles: ['admin', 'manager'] },
-            { name: 'Portfolio', href: '/portfolio', icon: Users, roles: ['admin', 'manager'], agencyOnly: true },
-            { name: 'Projets', href: '/projects', icon: FolderKanban, roles: ['admin', 'manager'], agencyOnly: true },
-            { name: 'Clients', href: '/customers', icon: Users, roles: ['admin', 'manager'] },
+            { name: 'Caisse POS', href: '/sales', icon: ShoppingBag, roles: ['admin', 'manager', 'cashier'] },
+            { name: 'Ma Caisse', href: '/cash-management', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier'] },
+            { name: 'Portfolio', href: '/portfolio', icon: Users, roles: ['admin', 'manager', 'lead'], agencyOnly: true },
+            { name: 'Projets', href: '/projects', icon: FolderKanban, roles: ['admin', 'manager', 'lead'], agencyOnly: true },
+            { name: 'Clients', href: '/customers', icon: Users, roles: ['admin', 'manager', 'lead'] },
             { name: 'Dettes', href: '/debts', icon: CreditCard, roles: ['admin', 'manager'] },
         ]
     },
     {
         title: "Gestion Stock",
         items: [
-            { name: 'Achats', href: '/purchase-orders', icon: FileText, roles: ['admin', 'manager'] },
-            { name: 'Inventaire', href: '/inventory', icon: Package, roles: ['admin', 'manager'] },
-            { name: 'Fournisseurs', href: '/suppliers', icon: Truck, roles: ['admin', 'manager'] },
-            { name: 'Inventaire Rapide', href: '/inventory/quick', icon: RefreshCw, roles: ['admin', 'manager'] },
+            { name: 'Achats', href: '/purchase-orders', icon: FileText, roles: ['admin', 'manager', 'inventory'] },
+            { name: 'Inventaire', href: '/inventory', icon: Package, roles: ['admin', 'manager', 'inventory'] },
+            { name: 'Fournisseurs', href: '/suppliers', icon: Truck, roles: ['admin', 'manager', 'inventory'] },
+            { name: 'Inventaire Rapide', href: '/inventory/quick', icon: RefreshCw, roles: ['admin', 'manager', 'inventory'] },
         ]
     },
     {
@@ -82,8 +82,8 @@ export default function Sidebar() {
     const { activeShop } = useShop()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
 
-    // ERP/POS Separation: No sidebar for login page OR for simple cashiers
-    if (pathname === '/login' || profile?.role === 'cashier') return null
+    // ERP/POS Separation: No sidebar for login page
+    if (pathname === '/login') return null
 
     const SidebarContent = () => (
         <div className="flex flex-col h-full">

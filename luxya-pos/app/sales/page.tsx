@@ -19,18 +19,20 @@ import { useSalesData } from '@/hooks/useSalesData';
 import { usePos } from '@/hooks/usePos';
 import { useAgency } from '@/hooks/useAgency';
 
-// Components
-import ProductGrid from './components/ProductGrid';
-import CartSidebar from './components/CartSidebar';
-import AgencyForm from './components/AgencyForm';
-import SalesHistoryTable from './components/SalesHistoryTable';
+import dynamic from 'next/dynamic';
+
+// Components (Lazy Loaded for faster initial POS render)
+const ProductGrid = dynamic(() => import('./components/ProductGrid'), { ssr: false });
+const CartSidebar = dynamic(() => import('./components/CartSidebar'), { ssr: false });
+const AgencyForm = dynamic(() => import('./components/AgencyForm'), { ssr: false });
+const SalesHistoryTable = dynamic(() => import('./components/SalesHistoryTable'), { ssr: false });
 
 export default function SalesTerminal() {
     const supabase = React.useMemo(() => createClient(), []);
     const { activeShop } = useShop();
     const { profile } = useUser();
     const { showToast } = useToast();
-    
+
     // Logic extracted to Hooks
     const {
         products, categories, brands, allCustomers, agencyHistory, projects,
@@ -310,14 +312,14 @@ export default function SalesTerminal() {
                     {(activeTab === 'shop' || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
                         <div className={activeTab === 'history' ? 'hidden lg:block' : ''}>
                             {!isAgency ? (
-                                <ProductGrid 
+                                <ProductGrid
                                     products={products} loading={loading} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
                                     categories={categories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
                                     brands={brands} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand}
                                     addToCart={addToCart} imageErrors={imageErrors} setImageErrors={setImageErrors}
                                 />
                             ) : (
-                                <AgencyForm 
+                                <AgencyForm
                                     docType={docType} setDocType={setDocType} linkedDocNumber={linkedDocNumber} setLinkedDocNumber={setLinkedDocNumber}
                                     customerName={customerName} setCustomerName={setCustomerName} allCustomers={allCustomers}
                                     setSelectedCustomerId={setSelectedCustomerId} productSearch={productSearch} setProductSearch={setProductSearch}
@@ -333,7 +335,7 @@ export default function SalesTerminal() {
                     {/* History Tab */}
                     {(activeTab === 'history' || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
                         <div className={`space-y-8 ${activeTab === 'shop' ? 'hidden lg:block mt-20 border-t border-white/5 pt-20' : ''}`}>
-                            <SalesHistoryTable 
+                            <SalesHistoryTable
                                 history={agencyHistory} isAgency={isAgency} docType={docType}
                                 handleTransformDocument={async (sale, type) => {
                                     const success = await handleTransformDocument(sale, type);
@@ -348,7 +350,7 @@ export default function SalesTerminal() {
 
             {/* Sidebar Cart */}
             {!isAgency && (
-                <CartSidebar 
+                <CartSidebar
                     cart={cart} setCart={setCart} addToCart={addToCart} updateCartItemPrice={updateCartItemPrice}
                     products={products} isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen}
                     paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} receivedAmount={receivedAmount}

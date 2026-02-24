@@ -13,6 +13,7 @@ import { groupCategories } from "@/lib/category-groups";
 import CollapsibleCategoryGroup from "@/components/CollapsibleCategoryGroup";
 import PriceSlider from "@/components/PriceSlider";
 import ProductStories from "@/components/ProductStories";
+import CategoryQuickBar from "@/components/CategoryQuickBar";
 
 async function getProducts(filters: {
     page?: number,
@@ -68,9 +69,9 @@ async function getProducts(filters: {
             }
         }
 
-        // Special Filter for Promos
+        // Special Filter for Promos & Featured (Stories)
         if (filters.sort === 'promo') {
-            query = query.gt('promo_price', 0);
+            query = query.or('promo_price.gt.0,is_featured.eq.true');
         }
 
         // Sort
@@ -228,76 +229,93 @@ export default async function Home(props: {
             </Suspense>
 
             {showAmazonHome && <ProductStories products={promoProducts} />}
+            {showAmazonHome && <CategoryQuickBar categories={categories} />}
 
             {showAmazonHome ? (
-                <div className="w-full bg-[#eaeded] min-h-screen">
+                <div className="w-full bg-[#eaeded] min-h-screen pb-20">
                     <section className="relative h-[300px] sm:h-[500px] lg:h-[600px] w-full overflow-hidden">
                         <HeroCarousel slides={siteSettings?.slides || []} />
                     </section>
 
-                    <main className="max-w-[1500px] mx-auto px-2 sm:px-4 lg:px-6 -mt-16 sm:-mt-32 lg:-mt-64 relative z-40 pb-20">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
-                            {categoryGroups.slice(0, 2).map((group, idx) => (
-                                <UniverseEntry
-                                    key={group.title}
-                                    title={group.title}
-                                    sub="Découvrir l'univers"
-                                    href={`/?cat=${group.categories[0]}`}
-                                    img={idx === 0 ? "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1000" : "https://images.unsplash.com/photo-1498049794561-7780e7231661?q=80&w=1000"}
-                                    hexColor={previewGroups[idx]?.color || "#0055ff"}
-                                />
-                            ))}
-                            <div className="bg-white p-6 shadow-sm border border-gray-200 rounded-sm">
-                                <h3 className="text-xl font-bold mb-4">Populaires</h3>
-                                <div className="grid grid-cols-2 gap-3">
+                    <main className="max-w-[1500px] mx-auto px-2 sm:px-4 lg:px-6 -mt-16 sm:-mt-32 lg:-mt-64 relative z-40 space-y-6 sm:space-y-10">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                            <UniverseEntry
+                                title="Univers Luxya"
+                                sub="BEAUTÉ & BIEN-ÊTRE"
+                                href="/?shop=1"
+                                img="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1000"
+                                hexColor="#ef4444"
+                                tags={["Maquillage", "Parfums", "Soin Visage"]}
+                            />
+                            <UniverseEntry
+                                title="Univers Homtek"
+                                sub="TECH & INNOVATION"
+                                href="/?shop=2"
+                                img="https://images.unsplash.com/photo-1498049794561-7780e7231661?q=80&w=1000"
+                                hexColor="#3b82f6"
+                                tags={["Smartphones", "Accessoires", "Audio"]}
+                            />
+                            
+                            <div className="bg-white p-6 shadow-xl border border-gray-100 rounded-xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 text-[#FF9900]/5 group-hover:text-[#FF9900]/10 transition-colors">
+                                    <TrendingUp className="w-20 h-20 rotate-12" />
+                                </div>
+                                <h3 className="text-xl font-black italic mb-4 uppercase tracking-tighter">Populaires</h3>
+                                <div className="grid grid-cols-2 gap-3 relative z-10">
                                     {filteredProducts.slice(0, 4).map((p: any) => (
-                                        <Link key={p.id} href={`/product/${p.id}`} className="group block">
-                                            <div className="aspect-square relative mb-1 overflow-hidden bg-gray-50 rounded-lg">
-                                                {p.image ? <Image src={p.image} alt={p.name} fill className="object-contain p-2" /> : <ShoppingBag className="w-6 h-6 m-auto text-gray-200" />}
+                                        <Link key={p.id} href={`/product/${p.id}`} className="group/item block">
+                                            <div className="aspect-square relative mb-1 overflow-hidden bg-gray-50 rounded-lg border border-gray-100">
+                                                {p.image ? <Image src={p.image} alt={p.name} fill className="object-contain p-2 group-hover/item:scale-110 transition-transform" /> : <ShoppingBag className="w-6 h-6 m-auto text-gray-200" />}
                                             </div>
-                                            <p className="text-[10px] text-gray-600 truncate">{p.name}</p>
+                                            <p className="text-[9px] font-bold text-gray-600 truncate uppercase">{p.name}</p>
                                         </Link>
                                     ))}
                                 </div>
+                                <Link href="/?sort=best" className="mt-4 block text-[10px] font-black text-[#007185] uppercase tracking-widest hover:underline">Tout voir</Link>
                             </div>
-                            <div className="bg-white p-6 shadow-sm border border-gray-200 rounded-sm">
-                                <h3 className="text-xl font-bold mb-4 text-lolly">{event.title}</h3>
-                                                                  <div className="aspect-square relative mb-4 overflow-hidden rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center">
-                                                                      {event.miniImage || event.image ? (
-                                                                          <Image
-                                                                              src={event.miniImage || event.image}
-                                                                              alt="Event"
-                                                                              fill
-                                                                              className="object-contain p-2"
-                                                                          />
-                                                                      ) : (
-                                                                          <Sparkles className="w-10 h-10 text-gray-200" />
-                                                                      )}
-                                                                  </div>
-                                <Link href={event.link || "#"} className="text-sm text-[#0055ff] hover:underline block font-black uppercase tracking-widest text-center">Découvrir</Link>
+
+                            <div className="bg-white p-6 shadow-xl border border-gray-100 rounded-xl flex flex-col h-full bg-gradient-to-br from-white to-yellow-50/30">
+                                <h3 className="text-xl font-black italic mb-4 uppercase tracking-tighter text-lolly">{event.title}</h3>
+                                <div className="flex-1 aspect-square relative mb-4 overflow-hidden rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center shadow-inner group">
+                                    {event.miniImage || event.image ? (
+                                        <Image
+                                            src={event.miniImage || event.image}
+                                            alt="Event"
+                                            fill
+                                            className="object-contain p-4 group-hover:scale-110 transition-transform duration-700"
+                                        />
+                                    ) : (
+                                        <Sparkles className="w-10 h-10 text-gray-200" />
+                                    )}
+                                </div>
+                                <Link href={event.link || "#"} className="py-3 bg-[#fde700] text-black text-[10px] font-black uppercase tracking-[0.2em] rounded-xl text-center shadow-lg hover:bg-black hover:text-white transition-all">DÉCOUVRIR</Link>
                             </div>
                         </div>
 
                         <div className="space-y-10">
                             {previewGroups.map((group, idx) => (
-                                <div key={group.title} className="space-y-10">
+                                <div key={group.title} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: `${idx * 150}ms` }}>
                                     <UniverseSection
                                         title={group.title}
-                                        subtitle="SÉLECTION SPÉCIALE"
+                                        subtitle="SÉLECTION PREMIUM"
                                         href={`/?cat=${group.categories[0]}`}
                                         products={group.products}
                                         hexColor={group.color}
                                     />
-                                                                          {idx === 0 && (
-                                                                              <div className="py-4">
-                                                                                  <Link href={event.link || "/?sort=best"} className="block relative w-full h-48 sm:h-64 md:h-80 overflow-hidden rounded-[32px] shadow-2xl group border-4 border-white bg-gray-100">
-                                                                                      {event.image ? (
-                                                                                          <Image src={event.image} alt="Event" fill className="object-cover group-hover:scale-105 transition-transform duration-[3000ms]" />
-                                                                                      ) : null}
-                                                                                      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/20 to-transparent flex flex-col justify-center px-6 sm:px-12 md:px-16 text-white">
-                                                    <h3 className="text-2xl sm:text-5xl md:text-7xl font-black uppercase italic leading-none tracking-tighter drop-shadow-2xl">{event.title}</h3>
-                                                    <p className="text-xs sm:text-xl md:text-2xl font-bold mt-2 sm:mt-4 max-w-xs sm:max-w-xl leading-tight line-clamp-2">{event.description}</p>
-                                                    <div className="mt-4 sm:mt-8 bg-[#0055ff] text-white px-6 py-2.5 sm:px-10 sm:py-4 rounded-full w-fit font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] shadow-2xl">En profiter</div>
+                                    {idx === 0 && (
+                                        <div className="py-2">
+                                            <Link href={event.link || "/?sort=best"} className="block relative w-full h-48 sm:h-64 md:h-96 overflow-hidden rounded-[40px] shadow-2xl group border-4 border-white bg-black">
+                                                {event.image ? (
+                                                    <Image src={event.image} alt="Event" fill className="object-cover opacity-80 group-hover:scale-105 transition-transform duration-[5000ms]" />
+                                                ) : null}
+                                                <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent flex flex-col justify-center px-8 sm:px-16 md:px-24 text-white">
+                                                    <div className="inline-flex items-center space-x-2 bg-lolly text-black px-3 py-1 rounded-full w-fit mb-4 sm:mb-6">
+                                                        <Zap className="w-3 h-3 sm:w-4 h-4 fill-current" />
+                                                        <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest">Événement Flash</span>
+                                                    </div>
+                                                    <h3 className="text-3xl sm:text-6xl md:text-8xl font-black uppercase italic leading-none tracking-tighter drop-shadow-2xl">{event.title}</h3>
+                                                    <p className="text-sm sm:text-2xl md:text-3xl font-bold mt-2 sm:mt-4 max-w-xs sm:max-w-2xl leading-tight line-clamp-2 opacity-90">{event.description}</p>
+                                                    <div className="mt-6 sm:mt-10 bg-white text-black px-8 py-3.5 sm:px-12 sm:py-5 rounded-full w-fit font-black text-[10px] sm:text-sm uppercase tracking-[0.3em] shadow-2xl hover:bg-lolly transition-colors">Profiter de l'offre</div>
                                                 </div>
                                             </Link>
                                         </div>
@@ -435,17 +453,36 @@ export default async function Home(props: {
     );
 }
 
-function UniverseEntry({ title, sub, href, img, hexColor }: any) {
+function UniverseEntry({ title, sub, href, img, hexColor, tags }: any) {
     return (
-        <div className="bg-white p-6 shadow-sm border border-gray-200 flex flex-col h-full relative overflow-hidden group rounded-xl hover:shadow-2xl transition-all duration-500" style={{ borderTop: `6px solid ${hexColor}` }}>
-            <h3 className="text-xl font-black italic mb-1 uppercase tracking-tighter">{title}</h3>
-            <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4" style={{ color: hexColor }}>{sub}</p>
-            <div className="flex-1 relative mb-4 overflow-hidden rounded-2xl min-h-[200px] bg-gray-50">
-                <Image src={img} alt={title} fill className="object-cover hover:scale-105 transition-transform duration-700" />
+        <div className="bg-white flex flex-col h-full relative overflow-hidden group rounded-[32px] border border-gray-100 hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] transition-all duration-700" style={{ borderTop: `8px solid ${hexColor}` }}>
+            <div className="p-6 sm:p-8 flex-1 flex flex-col">
+                <h3 className="text-2xl sm:text-3xl font-black italic mb-1 uppercase tracking-tighter leading-none">{title}</h3>
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-6" style={{ color: hexColor }}>{sub}</p>
+                
+                <div className="relative flex-1 mb-6 overflow-hidden rounded-[24px] min-h-[220px] bg-gray-50 shadow-inner">
+                    <Image src={img} alt={title} fill className="object-cover group-hover:scale-110 transition-transform duration-[2000ms]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-6">
+                    {tags?.map((tag: string) => (
+                        <Link 
+                            key={tag} 
+                            href={`${href}&cat=${tag}`}
+                            className="px-3 py-1.5 bg-gray-50 hover:bg-white border border-gray-100 hover:border-gray-200 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-all"
+                        >
+                            {tag}
+                        </Link>
+                    ))}
+                </div>
+
+                <Link href={href} className="mt-auto w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] flex items-center justify-center transition-all bg-gray-900 text-white group-hover:shadow-2xl hover:scale-[1.02] active:scale-95" style={{ backgroundColor: hexColor }}>
+                    EXPLORER <ArrowRight className="w-4 h-4 ml-3 group-hover:translate-x-2 transition-transform" />
+                </Link>
             </div>
-            <Link href={href} className="text-xs font-black uppercase tracking-widest flex items-center group-hover:translate-x-2 transition-transform" style={{ color: hexColor }}>
-                Acheter maintenant <ArrowRight className="w-3 h-3 ml-2" />
-            </Link>
+            
+            <div className="absolute -right-20 -bottom-20 w-64 h-64 opacity-0 group-hover:opacity-10 transition-opacity duration-700 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: hexColor }} />
         </div>
     );
 }

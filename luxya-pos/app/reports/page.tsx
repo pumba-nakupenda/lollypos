@@ -10,13 +10,23 @@ import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
 import { createClient } from '@/utils/supabase/client'
 import * as XLSX from 'xlsx'
+import { redirect } from 'next/navigation'
+import { useUser } from '@/context/UserContext'
 
 type ReportPeriod = 'day' | 'month' | 'year'
 
 export default function ReportsPage() {
     const { activeShop } = useShop()
+    const { profile, loading: profileLoading } = useUser()
     const { showToast } = useToast()
     const supabase = createClient()
+
+    // 🔐 Security Check: Only Admin and Manager can see reports
+    useEffect(() => {
+        if (!profileLoading && profile?.role !== 'admin' && profile?.role !== 'manager') {
+            redirect('/sales?error=unauthorized_reports')
+        }
+    }, [profile, profileLoading])
 
     const [period, setPeriod] = useState<ReportPeriod>('month')
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])

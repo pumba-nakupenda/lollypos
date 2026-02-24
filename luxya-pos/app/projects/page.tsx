@@ -13,6 +13,8 @@ import { useToast } from '@/context/ToastContext'
 import { useShop } from '@/context/ShopContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useUser } from '@/context/UserContext'
+import { redirect } from 'next/navigation'
 
 type Profile = { id: string; full_name: string | null; email: string | null }
 
@@ -32,6 +34,7 @@ type Project = {
     _task_count?: number
     _done_count?: number
     _assignees?: Profile[]
+    _stages?: { id: string, name: string, position: number, _is_done: boolean, _is_current: boolean }[]
 }
 
 type Customer = { id: string; name: string }
@@ -56,6 +59,14 @@ export default function ProjectsPage() {
     const supabase = createClient()
     const { showToast } = useToast()
     const { activeShop } = useShop()
+    const { profile, loading: profileLoading } = useUser()
+
+    // 🔐 Access Control
+    useEffect(() => {
+        if (!profileLoading && profile?.role !== 'admin' && profile?.role !== 'manager' && profile?.role !== 'lead') {
+            redirect('/sales?error=unauthorized_projects')
+        }
+    }, [profile, profileLoading])
 
     const [projects, setProjects] = useState<Project[]>([])
     const [customers, setCustomers] = useState<Customer[]>([])
@@ -99,7 +110,7 @@ export default function ProjectsPage() {
         setLoading(true)
         try {
             const [{ data: proj }, { data: cust }, { data: profs }] = await Promise.all([
-                supabase.from('agency_projects').select('*, customers(name)').order('created_at', { ascending: false }),
+                supabase.from('agency_projects').select('*, customers(name)').eq('is_archived', false).order('created_at', { ascending: false }),
                 supabase.from('customers').select('id, name').order('name'),
                 supabase.from('profiles').select('id, full_name, email')
             ])
@@ -114,24 +125,37 @@ export default function ProjectsPage() {
             const projectIds = proj.map(p => p.id)
 
             // Fetch all stages for these projects
-            const { data: stages } = await supabase.from('agency_stages').select('id, project_id').in('project_id', projectIds)
+            const { data: stages } = await supabase.from('agency_stages').select('id, project_id, name, position').in('project_id', projectIds).order('position')
             
             let allTasks: any[] = []
             if (stages && stages.length > 0) {
-                // If there are many stages, we might need to be careful with .in(), but for typical usage it's fine.
-                // However, fetching all tasks for the agency without filtering is safe since RLS handles scoping to shop.
                 const { data: tasks } = await supabase.from('agency_tasks').select('id, stage_id, status, assignee_id')
                 allTasks = tasks || []
             }
 
             // Map data to projects
             const projectsWithCounts = proj.map((p: any) => {
-                const pStages = (stages || []).filter(s => s.project_id === p.id).map(s => s.id)
-                const pTasks = allTasks.filter(t => pStages.includes(t.stage_id))
+                const pStagesData = (stages || []).filter(s => s.project_id === p.id)
+                const pStageIds = pStagesData.map(s => s.id)
+                const pTasks = allTasks.filter(t => pStageIds.includes(t.stage_id))
                 
                 const total = pTasks.length
                 const done = pTasks.filter(t => t.status === 'done').length
                 
+                // Process stages for roadmap
+                const processedStages = pStagesData.map(s => {
+                    const sTasks = pTasks.filter(t => t.stage_id === s.id)
+                    const sIsDone = sTasks.length > 0 && sTasks.every(t => t.status === 'done')
+                    return { ...s, _is_done: sIsDone }
+                })
+
+                // Identify current stage (first one not done)
+                const currentStageIdx = processedStages.findIndex(s => !s._is_done)
+                const finalStages = processedStages.map((s, idx) => ({
+                    ...s,
+                    _is_current: idx === currentStageIdx
+                }))
+
                 // Get unique assignees
                 const assigneeIds = Array.from(new Set(pTasks.map(t => t.assignee_id).filter(Boolean)))
                 const projectAssignees = (profs || []).filter(prof => assigneeIds.includes(prof.id))
@@ -140,7 +164,8 @@ export default function ProjectsPage() {
                     ...p, 
                     _task_count: total, 
                     _done_count: done,
-                    _assignees: projectAssignees 
+                    _assignees: projectAssignees,
+                    _stages: finalStages
                 } as Project
             })
 
@@ -430,23 +455,33 @@ export default function ProjectsPage() {
                                                             )}
                                                         </div>
 
-                                                        {/* Progress */}
-                                                        {project._task_count! > 0 && (
-                                                            <div className="space-y-1.5">
-                                                                <div className="flex justify-between text-[9px] font-black uppercase text-muted-foreground">
-                                                                    <span>Progression</span>
+                                                        {/* Roadmap Visualizer */}
+                                                        {project._stages && project._stages.length > 0 && (
+                                                            <div className="space-y-3">
+                                                                <div className="flex justify-between items-center text-[9px] font-black uppercase text-muted-foreground tracking-widest">
+                                                                    <span>Flux du Projet</span>
                                                                     <span className="text-shop">{progress}%</span>
                                                                 </div>
-                                                                <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                                                                    <div
-                                                                        className="h-full bg-shop rounded-full transition-all duration-500"
-                                                                        style={{ width: `${progress}%` }}
-                                                                    />
+                                                                <div className="flex items-center justify-between relative px-1">
+                                                                    <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-white/5 -translate-y-1/2 z-0" />
+                                                                    
+                                                                    {project._stages.map((stage, idx) => (
+                                                                        <div key={stage.id} className="relative z-10 group/stage" title={stage.name}>
+                                                                            <div className={`w-3.5 h-3.5 rounded-full border-2 border-[#121215] transition-all duration-500 
+                                                                                ${stage._is_done ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : stage._is_current ? 'bg-shop shadow-[0_0_8px_rgba(0,85,255,0.4)]' : 'bg-slate-800'}`} 
+                                                                            />
+                                                                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/stage:opacity-100 transition-opacity pointer-events-none z-50">
+                                                                                <div className="bg-black border border-white/10 rounded-md px-2 py-1 whitespace-nowrap shadow-xl">
+                                                                                    <p className="text-[7px] font-black uppercase text-white">{stage.name}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
                                                                 </div>
                                                                 <div className="flex items-center justify-between">
-                                                                    <p className="text-[9px] text-muted-foreground">{project._done_count}/{project._task_count} tâches</p>
+                                                                    <p className="text-[9px] text-muted-foreground font-bold tracking-tighter uppercase">{project._done_count}/{project._task_count} tâches accomplies</p>
                                                                     
-                                                                    {/* Assignees Avatars */}
+                                                                    {/* Assignees */}
                                                                     {project._assignees && project._assignees.length > 0 && (
                                                                         <div className="flex -space-x-1.5">
                                                                             {project._assignees.slice(0, 3).map(assignee => (
@@ -458,11 +493,6 @@ export default function ProjectsPage() {
                                                                                     {assignee.full_name ? assignee.full_name.charAt(0) : assignee.email?.charAt(0)}
                                                                                 </div>
                                                                             ))}
-                                                                            {project._assignees.length > 3 && (
-                                                                                <div className="w-5 h-5 rounded-full bg-white/5 text-muted-foreground border border-white/10 flex items-center justify-center text-[7px] font-black uppercase shadow-md">
-                                                                                    +{project._assignees.length - 3}
-                                                                                </div>
-                                                                            )}
                                                                         </div>
                                                                     )}
                                                                 </div>

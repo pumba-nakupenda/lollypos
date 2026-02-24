@@ -96,9 +96,8 @@ export class AnalyticsService {
         const saleToShopMap = new Map();
         sales.forEach((s: any) => saleToShopMap.set(s.id, Number(s.shop_id)));
         const totalCOGS = saleItems.reduce((acc: number, item: any) => {
-            const itemShopId = saleToShopMap.get(item.sale_id) || numericShopId || null;
-            if (itemShopId === 3) return acc;
-            return acc + (item.quantity * Number(item.products?.cost_price || 0));
+            const cost = Number(item.products?.cost_price || 0);
+            return acc + (item.quantity * cost);
         }, 0);
 
         // 3. Expenses refinement
@@ -124,9 +123,12 @@ export class AnalyticsService {
             const isPersonalCategory = e.shop_id === 3 && personalCategoryNames.includes(catName);
             const isPerso = catName === 'perso' || isPersonalCategory;
             if (e.shop_id !== 3 && isPerso) return;
-            const existing = uniqueRecurringTemplates.get(e.description);
+            
+            // Key by shop and description to avoid deduplicating same-named expenses across shops
+            const key = `${e.shop_id}-${e.description}`;
+            const existing = uniqueRecurringTemplates.get(key);
             if (!existing || new Date(e.date) > new Date(existing.date)) {
-                uniqueRecurringTemplates.set(e.description, e);
+                uniqueRecurringTemplates.set(key, e);
             }
         });
 
@@ -147,13 +149,13 @@ export class AnalyticsService {
             .filter(([id]) => id !== '3')
             .reduce((sum, [, amt]) => sum + (amt as number), 0) * timescale;
 
-        const seuilRentabilite = fixedCostsAgency + (fixedCostsOthers / 0.40);
         const fixedCosts = fixedCostsAgency + fixedCostsOthers;
-        const realMcv = totalSalesHT - totalVariableCosts;
-        const realMcvRatio = totalSalesHT > 0 ? (realMcv / totalSalesHT) : 0;
-        const isAgencyShop = shopId === '3';
-        const mcvRatio = isAgencyShop ? 1.0
-            : (isGlobal ? (totalSalesHT > 0 ? (totalSalesHT - totalCOGS) / totalSalesHT : 0.40) : 0.40);
+        const seuilRentabilite = fixedCostsAgency + (fixedCostsOthers / 0.40);
+        
+        const mcvRatio = isGlobal 
+            ? (seuilRentabilite > 0 ? fixedCosts / seuilRentabilite : 0.40)
+            : (isAgency ? 1.0 : 0.40);
+        const realMcvRatio = totalSalesHT > 0 ? ((totalSalesHT - totalVariableCosts) / totalSalesHT) : 0;
         const margeBrute = totalSalesHT - totalCOGS;
         const margeNet = totalSalesHT - totalExpenses - totalCOGS;
 
@@ -308,9 +310,9 @@ export class AnalyticsService {
                 const d = new Date(e.date);
                 if (!((d.getMonth() + 1) === m && d.getFullYear().toString() === currentYear)) return false;
                 const catName = (e.category || '').toLowerCase();
-                const isPersonalCategory = e.shop_id === 3 && personalCategoryNames.includes(catName);
+                const isPersonalCategory = Number(e.shop_id) === 3 && personalCategoryNames.includes(catName);
                 const isPerso = catName === 'perso' || isPersonalCategory;
-                if (!isAgency && isPerso) return false;
+                if (Number(e.shop_id) !== 3 && isPerso) return false;
                 return true;
             });
 
@@ -320,9 +322,8 @@ export class AnalyticsService {
             let totalSalesHT = 0, totalActualCash = 0;
             monthlySales.forEach((s: any) => {
                 const amount = Number(s.total_amount) || 0;
-                const withTva = s.with_tva !== false;
                 totalActualCash += Number(s.paid_amount) || 0;
-                if (withTva) {
+                if (s.with_tva !== false) {
                     totalSalesHT += amount / (1 + tvaRate);
                 } else {
                     totalSalesHT += amount;
@@ -338,31 +339,40 @@ export class AnalyticsService {
 
             const totalExpenses = monthlyExpenses.reduce((acc: number, e: any) => acc + Number(e.amount), 0);
 
+            // Per-shop threshold calculation for true consolidated sum
             const uniqueRecurringTemplates = new Map();
             allExpensesData.forEach((e: any) => {
                 if (e.is_recurring !== true) return;
                 const catName = (e.category || '').toLowerCase();
-                const isPersonalCategory = e.shop_id === 3 && personalCategoryNames.includes(catName);
+                const isPersonalCategory = Number(e.shop_id) === 3 && personalCategoryNames.includes(catName);
                 const isPerso = catName === 'perso' || isPersonalCategory;
-                if (e.shop_id !== 3 && isPerso) return;
-                const existing = uniqueRecurringTemplates.get(e.description);
+                if (Number(e.shop_id) !== 3 && isPerso) return;
+                const key = `${e.shop_id}-${e.description}`;
+                const existing = uniqueRecurringTemplates.get(key);
                 if (!existing || new Date(e.date) > new Date(existing.date)) {
-                    uniqueRecurringTemplates.set(e.description, e);
+                    uniqueRecurringTemplates.set(key, e);
                 }
             });
 
-            const fixedCosts = Array.from(uniqueRecurringTemplates.values()).reduce((acc: number, e: any) => {
-                let monthlyAmount = Number(e.amount) || 0;
-                if (e.frequency === 'daily') monthlyAmount *= 30;
-                else if (e.frequency === 'weekly') monthlyAmount *= 4;
-                else if (e.frequency === 'yearly') monthlyAmount /= 12;
-                return acc + monthlyAmount;
-            }, 0);
+            const recurringByShop = Array.from(uniqueRecurringTemplates.values()).reduce((acc: any, e: any) => {
+                const sid = String(e.shop_id);
+                if (!acc[sid]) acc[sid] = 0;
+                let amt = Number(e.amount) || 0;
+                if (e.frequency === 'daily') amt *= 30;
+                else if (e.frequency === 'weekly') amt *= 4;
+                else if (e.frequency === 'yearly') amt /= 12;
+                acc[sid] += amt;
+                return acc;
+            }, {});
 
-            const mcvRatio = 0.40;
+            const fixedAgency = recurringByShop['3'] || 0;
+            const fixedOthers = Object.entries(recurringByShop)
+                .filter(([id]) => id !== '3')
+                .reduce((sum, [, amt]) => sum + (amt as number), 0);
+
+            const seuilRentabilite = fixedAgency + (fixedOthers / 0.40);
             const totalVariableCosts = totalCOGS + operationalVariableCosts;
             const realMcvRatio = totalSalesHT > 0 ? ((totalSalesHT - totalVariableCosts) / totalSalesHT) : 0;
-            const seuilRentabilite = fixedCosts / mcvRatio;
 
             return {
                 month: m,

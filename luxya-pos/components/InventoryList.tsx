@@ -6,13 +6,17 @@ import * as XLSX from 'xlsx'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import EditProductModal from './EditProductModal'
-import ExcelImportModal from './ExcelImportModal'
+import dynamic from 'next/dynamic'
 import CustomDropdown from './CustomDropdown'
 import ExpiryBadge from './ExpiryBadge'
-import ManageCategoriesModal from './ManageCategoriesModal'
-import ManageBrandsModal from './ManageBrandsModal'
-import ImageLightbox from './ImageLightbox'
+
+// Lazy load heavy modals
+const EditProductModal = dynamic(() => import('./EditProductModal'), { ssr: false })
+const ExcelImportModal = dynamic(() => import('./ExcelImportModal'), { ssr: false })
+const ManageCategoriesModal = dynamic(() => import('./ManageCategoriesModal'), { ssr: false })
+const ManageBrandsModal = dynamic(() => import('./ManageBrandsModal'), { ssr: false })
+const ImageLightbox = dynamic(() => import('./ImageLightbox'), { ssr: false })
+
 import { SITE_URL, API_URL, authFetch } from '@/utils/api'
 import { createClient } from '@/utils/supabase/client'
 import { useShop } from '@/context/ShopContext'
@@ -205,7 +209,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
             setIsQuickModalOpen(false);
             setNewProduct({ name: '', price: '', cost_price: '', stock: '1', category: 'Général', brand: '', expiry_date: '', image: '' });
             setVariants([]);
-            window.location.reload();
+            router.refresh();
         } catch (err) { showToast("Erreur de création", "error"); } finally { setIsCreating(false); }
     };
 
@@ -219,6 +223,16 @@ export default function InventoryList({ products, allCategories = [], allBrands 
     // Debounce search and filters URL update
     useEffect(() => {
         const timer = setTimeout(() => {
+            const currentQ = searchParams.get('q') || '';
+            const currentCat = searchParams.get('category') || 'Toutes';
+            const currentStatus = searchParams.get('status') || 'all';
+
+            // If the local state exactly matches the URL params, this effect was 
+            // triggered by pagination or initial load. Do not reset page=1!
+            if (currentQ === searchQuery && currentCat === selectedCategory && currentStatus === stockStatus) {
+                return;
+            }
+
             const params = new URLSearchParams(searchParams.toString());
 
             if (searchQuery) params.set('q', searchQuery);
@@ -230,7 +244,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
             if (stockStatus !== 'all') params.set('status', stockStatus);
             else params.delete('status');
 
-            params.set('page', '1'); // Reset to page 1 on new filter
+            params.set('page', '1'); // Reset to page 1 only on new filter
 
             // Only push if something actually changed to avoid infinite loops
             const newSearch = `?${params.toString()}`;
@@ -445,82 +459,84 @@ export default function InventoryList({ products, allCategories = [], allBrands 
 
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-4 sm:space-y-8">
             {/* Filter Bar */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-500">
-                <div className="md:col-span-2 space-y-2">
-                    <div className="flex justify-between items-center px-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 items-end animate-in fade-in slide-in-from-top-4 duration-500">
+                <div className="sm:col-span-2 space-y-2">
+                    <div className="flex justify-between items-center px-1 sm:px-2">
                         <div className="flex items-center space-x-2">
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Recherche Globale</p>
-                            <span className="text-[8px] font-black text-shop/60 px-1.5 py-0.5 bg-shop/5 rounded-full border border-shop/10 uppercase">v1.5 - GLOBAL REFINED</span>
+                            <p className="text-[8px] sm:text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em]">Recherche Globale</p>
                         </div>
                         <button
                             onClick={() => setStockStatus(stockStatus === 'out_of_stock' ? 'all' : 'out_of_stock')}
-                            className={`flex items-center px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest transition-all ${stockStatus === 'out_of_stock'
+                            className={`flex items-center px-2 sm:px-3 py-1 rounded-full text-[7px] sm:text-[8px] font-black uppercase tracking-widest transition-all ${stockStatus === 'out_of_stock'
                                 ? 'bg-red-500 text-white shadow-lg'
                                 : 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
                                 }`}
                         >
-                            <X className="w-3 h-3 mr-1" /> Voir Ruptures
+                            <X className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" /> Ruptures
                         </button>
                     </div>
                     <div className="relative group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-shop transition-colors" />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground group-focus-within:text-shop transition-colors" />
                         <input
                             type="text"
-                            placeholder="Rechercher dans tout l'inventaire..."
+                            placeholder="Rechercher un produit..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl py-2.5 sm:py-3.5 pl-10 sm:pl-12 pr-4 text-xs sm:text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
                         />
                     </div>
                 </div>
 
-                <CustomDropdown
-                    label="Catégorie"
-                    options={categoryOptions}
-                    value={selectedCategory}
-                    onChange={setSelectedCategory}
-                />
+                <div className="grid grid-cols-2 gap-3 lg:contents">
+                    <CustomDropdown
+                        label="Catégorie"
+                        options={categoryOptions}
+                        value={selectedCategory}
+                        onChange={setSelectedCategory}
+                    />
 
-                <CustomDropdown
-                    label="État du Stock"
-                    options={statusOptions}
-                    value={stockStatus}
-                    onChange={setStockStatus}
-                />
+                    <CustomDropdown
+                        label="État Stock"
+                        options={statusOptions}
+                        value={stockStatus}
+                        onChange={setStockStatus}
+                    />
+                </div>
 
-                <div className="flex flex-col gap-2">
-                    <button
-                        onClick={() => setIsQuickModalOpen(true)}
-                        className="flex items-center justify-center px-6 py-3.5 bg-shop text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-shop/20"
-                    >
-                        <PlusCircle className="w-4 h-4 mr-2" /> Ajout Rapide
-                    </button>
-                    <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-2 sm:col-span-2 lg:col-span-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex gap-2 flex-1">
+                        <button
+                            onClick={() => setIsQuickModalOpen(true)}
+                            className="flex-1 lg:flex-none flex items-center justify-center px-4 sm:px-6 py-3 sm:py-3.5 bg-shop text-white rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-shop/20"
+                        >
+                            <PlusCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" /> Ajout Rapide
+                        </button>
+                        <button
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="flex-1 lg:flex-none px-4 py-3 sm:py-3.5 bg-shop/10 text-shop border border-shop/20 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-shop/20 transition-all flex items-center justify-center"
+                        >
+                            <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2" />
+                            Import
+                        </button>
+                    </div>
+                    <div className="flex gap-2">
                         <button
                             onClick={() => setIsBrandModalOpen(true)}
-                            className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center"
+                            className="flex-1 lg:flex-none px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center whitespace-nowrap"
                         >
                             <TrendingUp className="w-3.5 h-3.5 mr-2 text-shop" />
                             Marques
                         </button>
                         <button
                             onClick={handleExport}
-                            className="px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 transition-all flex items-center justify-center"
+                            className="flex-1 lg:flex-none px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 transition-all flex items-center justify-center whitespace-nowrap"
                         >
                             <Download className="w-3.5 h-3.5 mr-2" />
-                            Modèle Inventaire
+                            Export
                         </button>
                     </div>
-
-                    <button
-                        onClick={() => setIsImportModalOpen(true)}
-                        className="px-4 py-2 bg-shop/10 text-shop border border-shop/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-shop/20 transition-all flex items-center justify-center"
-                    >
-                        <FileSpreadsheet className="w-3.5 h-3.5 mr-2" />
-                        Import / Mise à jour
-                    </button>
                 </div>
             </div>
 
@@ -536,11 +552,11 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                         <div
                             key={product.id}
                             onClick={() => handleEdit(product)}
-                            className="glass-card group p-4 sm:p-5 rounded-[24px] sm:rounded-[28px] hover:border-shop/30 flex flex-col lg:flex-row lg:items-center justify-between transition-all active:scale-[0.98] cursor-pointer gap-4 sm:gap-6"
+                            className="glass-card group p-3 sm:p-5 rounded-[20px] sm:rounded-[28px] hover:border-shop/30 flex flex-col lg:flex-row lg:items-center justify-between transition-all active:scale-[0.99] cursor-pointer gap-3 sm:gap-6 overflow-hidden"
                         >
-                            <div className="flex items-center space-x-4 sm:space-x-8">
+                            <div className="flex items-center space-x-3 sm:space-x-8 min-w-0 flex-1">
                                 <div
-                                    className="h-20 w-20 sm:h-24 sm:w-24 glass-panel rounded-2xl sm:rounded-3xl flex items-center justify-center relative overflow-hidden bg-white/5 shrink-0 group/img-preview"
+                                    className="h-16 w-16 sm:h-24 sm:w-24 glass-panel rounded-xl sm:rounded-3xl flex items-center justify-center relative overflow-hidden bg-white/5 shrink-0 group/img-preview"
                                     onClick={(e) => {
                                         if (product.image) {
                                             e.stopPropagation();
@@ -636,20 +652,20 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                 </div>
                             </div>
 
-                            <div className="flex items-center justify-between lg:justify-end lg:space-x-16 border-t lg:border-t-0 border-white/5 pt-4 lg:pt-0">
+                            <div className="flex items-center justify-between lg:justify-end lg:space-x-8 xl:space-x-12 border-t lg:border-t-0 border-white/5 pt-3 sm:pt-4 lg:pt-0 shrink-0">
                                 <div className="text-left lg:text-right">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1.5 opacity-60">Prix Public</p>
+                                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 opacity-60">Prix Public</p>
                                     {product.promo_price && product.promo_price > 0 && product.promo_price < product.price ? (
                                         <div className="flex flex-col items-start lg:items-end">
                                             <span className="text-[10px] sm:text-xs text-muted-foreground/50 line-through font-black italic">{product.price.toLocaleString()}</span>
-                                            <p className="text-xl sm:text-3xl font-black text-[#0055ff] tracking-tighter drop-shadow-sm">{product.promo_price.toLocaleString()} <span className="text-[10px] sm:text-xs uppercase ml-1">CFA</span></p>
+                                            <p className="text-lg sm:text-3xl font-black text-[#0055ff] tracking-tighter drop-shadow-sm">{product.promo_price.toLocaleString()} <span className="text-[9px] sm:text-xs uppercase ml-0.5 sm:ml-1">CFA</span></p>
                                         </div>
                                     ) : (
-                                        <p className="text-xl sm:text-3xl font-black text-shop tracking-tighter drop-shadow-sm">{product.price.toLocaleString()} <span className="text-[10px] sm:text-xs uppercase ml-1">CFA</span></p>
+                                        <p className="text-lg sm:text-3xl font-black text-shop tracking-tighter drop-shadow-sm">{product.price.toLocaleString()} <span className="text-[9px] sm:text-xs uppercase ml-0.5 sm:ml-1">CFA</span></p>
                                     )}
 
-                                    {/* NEW: Margin Display */}
-                                    {product.type !== 'service' && (
+                                    {/* Margin Display (Restricted) */}
+                                    {product.type !== 'service' && (profile?.is_super_admin || profile?.role === 'inventory') && (
                                         <div className="flex flex-col items-end mt-1">
                                             {(() => {
                                                 const isAgency = activeShop?.id === 3
@@ -675,18 +691,18 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                     )}
                                 </div>
 
-                                <div className="text-right lg:min-w-[140px] flex flex-col items-end">
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1.5 opacity-60">Stock / État</p>
+                                <div className="text-right lg:min-w-[130px] xl:min-w-[140px] flex flex-col items-end">
+                                    <p className="text-[8px] sm:text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 opacity-60">Stock</p>
 
                                     {product.type !== 'service' ? (
                                         <div
                                             onClick={(e) => e.stopPropagation()}
-                                            className={`flex items-center space-x-2 bg-white/5 border border-white/10 rounded-2xl p-1 group/stock ${(product.variants && product.variants.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            className={`flex items-center space-x-1 sm:space-x-2 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl p-0.5 sm:p-1 group/stock ${(product.variants && product.variants.length > 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         >
                                             <button
                                                 onClick={(e) => handleUpdateStock(e, product.id, Math.max(0, product.stock - 1))}
                                                 disabled={updatingStockId === product.id || (product.variants && product.variants.length > 0)}
-                                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50"
+                                                className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg sm:rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all disabled:opacity-50 text-xs sm:text-sm"
                                             >
                                                 -
                                             </button>
@@ -701,7 +717,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                                         setLocalProducts(prev => prev.map(p => p.id === product.id ? { ...p, stock: val } : p))
                                                     }}
                                                     onBlur={(e) => handleUpdateStock(e, product.id, parseInt(e.target.value) || 0)}
-                                                    className={`w-12 bg-transparent text-center text-sm font-black outline-none focus:text-shop transition-colors ${product.stock > (product.min_stock || 2) ? 'text-green-400' :
+                                                    className={`w-8 sm:w-12 bg-transparent text-center text-xs sm:text-sm font-black outline-none focus:text-shop transition-colors ${product.stock > (product.min_stock || 2) ? 'text-green-400' :
                                                         product.stock > 0 ? 'text-orange-400' : 'text-red-400'
                                                         } ${(product.variants && product.variants.length > 0) ? 'cursor-not-allowed' : ''}`}
                                                 />
@@ -715,19 +731,19 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                             <button
                                                 onClick={(e) => handleUpdateStock(e, product.id, product.stock + 1)}
                                                 disabled={updatingStockId === product.id || (product.variants && product.variants.length > 0)}
-                                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white transition-all disabled:opacity-50"
+                                                className="w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center rounded-lg sm:rounded-xl bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white transition-all disabled:opacity-50 text-xs sm:text-sm"
                                             >
                                                 +
                                             </button>
                                         </div>
                                     ) : (
-                                        <div className="px-4 py-2 rounded-2xl text-[9px] sm:text-[11px] font-black uppercase tracking-widest inline-block border bg-blue-500/10 border-blue-500/20 text-blue-400">
+                                        <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl text-[8px] sm:text-[11px] font-black uppercase tracking-widest inline-block border bg-blue-500/10 border-blue-500/20 text-blue-400">
                                             Prestation
                                         </div>
                                     )}
 
                                     {product.type !== 'service' && (
-                                        <div className="text-right mt-1.5 flex flex-col items-end">
+                                        <div className="text-right mt-1 sm:mt-1.5 flex flex-col items-end">
                                             {(() => {
                                                 const hasVariants = product.variants && product.variants.length > 0;
                                                 const outOfStockVariants = hasVariants ? product.variants.filter((v: any) => parseInt(v.stock || 0) <= 0) : [];
@@ -735,15 +751,15 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                                 const partiallyOut = hasVariants && outOfStockVariants.length > 0 && outOfStockVariants.length < product.variants.length;
 
                                                 if (allOut || product.stock <= 0) {
-                                                    return <span className="text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full border border-red-500/20">Rupture Totale</span>;
+                                                    return <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-full border border-red-500/20">Rupture Totale</span>;
                                                 }
                                                 if (partiallyOut) {
-                                                    return <span className="text-[8px] font-black uppercase tracking-widest text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full border border-orange-400/20">Rupture Partielle ({outOfStockVariants.length})</span>;
+                                                    return <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded-full border border-orange-400/20">Rupture Partielle ({outOfStockVariants.length})</span>;
                                                 }
                                                 if (product.stock <= (product.min_stock || 2)) {
-                                                    return <span className="text-[8px] font-black uppercase tracking-widest text-orange-400">Stock Critique</span>;
+                                                    return <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-orange-400">Stock Critique</span>;
                                                 }
-                                                return <span className="text-[8px] font-black uppercase tracking-widest text-green-400 opacity-60">Niveau Optimal</span>;
+                                                return <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-green-400 opacity-60">Optimal</span>;
                                             })()}
                                         </div>
                                     )}
@@ -757,15 +773,15 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                 </div>
                             </div>
 
-                            {/* Mobile Action Buttons (visible only on small screens) */}
-                            <div className="flex lg:hidden items-center justify-between gap-2 border-t border-white/5 pt-4">
-                                <div className="flex gap-2">
-                                    <Link href={`/sales?shopId=${product.shop_id}&q=${encodeURIComponent(product.name)}`} onClick={(e) => e.stopPropagation()} className="p-3 bg-white/5 border border-white/10 rounded-xl text-muted-foreground"><ShoppingCart className="w-4 h-4" /></Link>
-                                    {(product.shop_id === 1 || product.shop_id === 2) && (<a href={`${SITE_URL}/?q=${encodeURIComponent(product.name)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-3 bg-white/5 border border-white/10 rounded-xl text-muted-foreground"><ExternalLink className="w-4 h-4" /></a>)}
+                            {/* Mobile Action Buttons */}
+                            <div className="flex lg:hidden items-center justify-between gap-2 border-t border-white/5 pt-3 mt-1">
+                                <div className="flex flex-wrap gap-1.5">
+                                    <Link href={`/sales?shopId=${product.shop_id}&q=${encodeURIComponent(product.name)}`} onClick={(e) => e.stopPropagation()} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-muted-foreground active:bg-white/10"><ShoppingCart className="w-3.5 h-3.5" /></Link>
+                                    {(product.shop_id === 1 || product.shop_id === 2) && (<a href={`${SITE_URL}/?q=${encodeURIComponent(product.name)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-muted-foreground active:bg-white/10"><ExternalLink className="w-3.5 h-3.5" /></a>)}
                                 </div>
-                                <div className="flex gap-2">
-                                    <div className="p-3 bg-shop/10 border border-shop/20 rounded-xl text-shop" onClick={(e) => { e.stopPropagation(); handleEdit(product); }}><Edit2 className="w-4 h-4" /></div>
-                                    <div onClick={(e) => { e.stopPropagation(); handleDelete(e, product.id); }} className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400"><Trash2 className="w-4 h-4" /></div>
+                                <div className="flex flex-wrap gap-1.5">
+                                    <div className="p-2.5 bg-shop/10 border border-shop/20 rounded-xl text-shop active:bg-shop/20" onClick={(e) => { e.stopPropagation(); handleEdit(product); }}><Edit2 className="w-3.5 h-3.5" /></div>
+                                    <div onClick={(e) => { e.stopPropagation(); handleDelete(e, product.id); }} className="p-2.5 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 active:bg-red-500/20"><Trash2 className="w-3.5 h-3.5" /></div>
                                 </div>
                             </div>
                         </div>
@@ -990,7 +1006,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                 onClose={() => setIsCatModalOpen(false)}
                 categories={categories}
                 shopId={activeShop?.id}
-                onRefresh={() => window.location.reload()}
+                onRefresh={() => router.refresh()}
             />
             <ManageBrandsModal
                 isOpen={isBrandModalOpen}

@@ -39,7 +39,7 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
     const [loading, setLoading] = useState(true)
 
     // Fencing Logic: Determine available shops for this user
-    const isAdmin = React.useMemo(() => profile?.role === 'admin', [profile?.role])
+    const isSuperAdmin = React.useMemo(() => profile?.is_super_admin === true, [profile?.is_super_admin])
     
     const authorizedShops = React.useMemo(() => {
         if (!profile) return []
@@ -47,22 +47,22 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
             ? shops.filter(s => profile.shop_ids?.includes(s.id)) 
             : (profile.shop_id ? shops.filter(s => s.id === profile.shop_id) : [])
         
-        // If admin and no specific shops assigned, they see EVERYTHING
-        if (profile.role === 'admin' && restricted.length === 0) return shops
+        // If super admin and no specific shops assigned, they see EVERYTHING
+        if (isSuperAdmin && restricted.length === 0) return shops
         return restricted
-    }, [profile])
+    }, [profile, isSuperAdmin])
 
     // NEW: If user has multiple shops, add a local "Global View" for them
     const availableShops = React.useMemo(() => {
         const list = [...authorizedShops]
-        // Show Global View ONLY for admins or if they have more than 2 shops
-        if (isAdmin || authorizedShops.length > 2) {
+        // Show Global View ONLY for super admins
+        if (isSuperAdmin && list.length > 1) {
             list.unshift(globalShop)
         }
         return list
-    }, [isAdmin, authorizedShops])
+    }, [isSuperAdmin, authorizedShops])
 
-    const isRestricted = React.useMemo(() => !isAdmin && authorizedShops.length > 0, [isAdmin, authorizedShops])
+    const isRestricted = React.useMemo(() => !isSuperAdmin && authorizedShops.length > 0, [isSuperAdmin, authorizedShops])
 
     // Inject CSS variables
     useEffect(() => {

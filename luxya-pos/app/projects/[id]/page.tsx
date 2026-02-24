@@ -1,22 +1,28 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, use } from 'react'
 import {
     ArrowLeft, Plus, Loader2, X, CheckCircle2, Circle, Clock,
     AlertTriangle, Trash2, Edit2, Save, Users, Calendar, Flag,
     Link2, Link2Off, ChevronDown, GripVertical, CheckSquare, Square,
     MessageSquare, Send, DollarSign, ArrowUpRight, ArrowDownRight, FolderKanban, Archive,
-    User, LayoutDashboard, Building2, PauseCircle, XCircle
+    User, LayoutDashboard, Building2, PauseCircle, XCircle, FileText, Download, Printer, Truck, Sparkles, Globe, RefreshCcw, Lock, Play
 } from 'lucide-react'
 import CustomDropdown from '@/components/CustomDropdown'
 import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useShop } from '@/context/ShopContext'
 import { useRouter } from 'next/navigation'
+import TaskMindMap from '../components/TaskMindMap'
+import TaskTimeline from '../components/TaskTimeline'
+import { useTimeTracker } from '@/context/TimeTrackerContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Profile = { id: string; full_name: string | null; email: string | null; shop_id?: number | null; shop_ids?: number[] | null }
+
+type TaskCategory = { id: string; name: string; icon: string; color: string }
+type TaskBadge = { id: string; name: string; color: string }
 
 type TaskComment = {
     id: string; task_id: string; user_id: string; content: string; created_at: string;
@@ -27,11 +33,11 @@ type Project = {
     id: string; name: string; type: 'client' | 'agence'; status: string
     budget: number | null; description: string | null
     start_date: string | null; end_date: string | null
-    client_id: string | null; // Added client_id
-    customers?: { name: string } | null
+    client_id: string | null;
+    access_token?: string;
+    customers?: { name: string; email?: string; phone?: string } | null
 }
 
-// Form state for editing project, where budget is string for input field
 type EditProjectFormState = Omit<Project, 'budget'> & { budget: string }
 
 type Stage = {
@@ -43,7 +49,8 @@ type Task = {
     id: string; stage_id: string; title: string; description: string | null
     status: 'todo' | 'in_progress' | 'done'; priority: 'basse' | 'normale' | 'haute' | 'urgente'
     assignee_id: string | null; deadline: string | null; position: number
-    // Resolved dependency info
+    category?: string;
+    tags?: string[];
     _blocked?: boolean
     _dependencies?: string[]
     _blocking?: string[]
@@ -51,6 +58,11 @@ type Task = {
 }
 
 type TaskLink = { from_task_id: string; to_task_id: string }
+
+type ProjectComment = {
+    id: string; project_id: string; user_id: string; content: string; created_at: string; is_public?: boolean;
+    profiles?: { full_name: string | null; email: string | null } | null
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -70,11 +82,12 @@ const STATUS_CONFIG = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id: projectId } = use(params)
     const router = useRouter()
     const supabase = createClient()
     const { showToast } = useToast()
     const { activeShop } = useShop()
-    const [projectId, setProjectId] = useState<string | null>(null)
+    const { activeEntry, startTimer, stopTimer } = useTimeTracker()
 
     const [project, setProject] = useState<Project | null>(null)
     const [stages, setStages] = useState<Stage[]>([])
@@ -83,70 +96,117 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
     const [profiles, setProfiles] = useState<Profile[]>([])
     const [loading, setLoading] = useState(true)
 
-    // Tabs
-    const [activeTab, setActiveTab] = useState<'kanban' | 'finances'>('kanban')
+    // Manageable Lists
+    const [taskCategories, setTaskCategories] = useState<TaskCategory[]>([])
+    const [taskBadges, setTaskBadges] = useState<TaskBadge[]>([])
+
+    const [activeTab, setActiveTab] = useState<'kanban' | 'timeline' | 'finances' | 'chat'>('kanban')
     const [finances, setFinances] = useState<{expenses: any[], sales: any[]}>({ expenses: [], sales: [] })
+    const [timeStats, setTimeStats] = useState({ totalSeconds: 0, byCategory: {} as Record<string, number> })
     const [loadingFinances, setLoadingFinances] = useState(false)
 
-    // Task modal state
+    // Project Chat
+    const [projectComments, setProjectComments] = useState<ProjectComment[]>([])
+    const [loadingProjectComments, setLoadingProjectComments] = useState(false)
+    const [postingProjectComment, setPostingProjectComment] = useState(false)
+    const [newProjectCommentText, setNewProjectCommentText] = useState('')
+    const [commentIsPublic, setCommentIsPublic] = useState(false)
+
     const [selectedTask, setSelectedTask] = useState<Task | null>(null)
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
     const [taskForm, setTaskForm] = useState({
         title: '', description: '', status: 'todo' as Task['status'],
-        priority: 'normale' as Task['priority'], deadline: '', assignee_id: ''
+        priority: 'normale' as Task['priority'], deadline: '', assignee_id: '',
+        category: 'Général',
+        tags: [] as string[]
     })
     const [savingTask, setSavingTask] = useState(false)
 
-    // Comments
     const [taskComments, setTaskComments] = useState<TaskComment[]>([])
     const [loadingComments, setLoadingComments] = useState(false)
     const [newCommentText, setNewCommentText] = useState('')
     const [postingComment, setPostingComment] = useState(false)
 
-    // Stage editing
     const [editingStageId, setEditingStageId] = useState<string | null>(null)
     const [editingStageValue, setEditingStageValue] = useState('')
     const [addingStage, setAddingStage] = useState(false)
     const [newStageName, setNewStageName] = useState('')
 
-    // Dependency manager
     const [showDepsFor, setShowDepsFor] = useState<string | null>(null)
-
-    // Drag and Drop
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null)
     const [dragOverStageId, setDragOverStageId] = useState<string | null>(null)
 
-    // Project Editing
     const [isEditProjectModalOpen, setIsEditProjectModalOpen] = useState(false)
     const [editingProjectForm, setEditingProjectForm] = useState<EditProjectFormState | null>(null)
     const [customers, setCustomers] = useState<any[]>([])
     const [savingProject, setSavingProject] = useState(false)
 
-    // Resolve params
-    useEffect(() => {
-        params.then(p => setProjectId(p.id))
-    }, [params])
+    // Invoice
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
+    const [generatingInvoice, setGeneratingInvoice] = useState(false)
 
-    useEffect(() => {
-        if (projectId && activeShop?.id) fetchAll()
-    }, [projectId, activeShop])
+    // Share
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+
+    const handleCopyLink = () => {
+        const url = `${window.location.origin}/projects/share/${project?.access_token}`;
+        navigator.clipboard.writeText(url);
+        showToast("Lien copié dans le presse-papiers !", "success");
+    }
+
+    const handleRegenerateToken = async () => {
+        if (!confirm("Voulez-vous invalider le lien actuel et en générer un nouveau ? L'ancien lien ne fonctionnera plus.")) return;
+        try {
+            const newToken = self.crypto.randomUUID();
+            const { error } = await supabase.from('agency_projects').update({ access_token: newToken }).eq('id', projectId);
+            if (error) throw error;
+            showToast("Nouveau lien généré !", "success");
+            fetchAll();
+        } catch (e) {
+            showToast("Erreur lors de la régénération", "error");
+        }
+    }
+
+    const handleArchiveProject = async () => {
+        if (!confirm("Voulez-vous archiver ce projet ? Il ne sera plus visible dans la liste active.")) return;
+        try {
+            const { error } = await supabase.from('agency_projects').update({ is_archived: true }).eq('id', projectId);
+            if (error) throw error;
+            showToast("Projet archivé avec succès", "success");
+            router.push('/projects');
+        } catch (e) {
+            showToast("Erreur lors de l'archivage", "error");
+        }
+    }
 
     const fetchAll = useCallback(async () => {
         if (!projectId || !activeShop?.id) return
         setLoading(true)
         try {
-            const [{ data: proj }, { data: stageData }, { data: links }, { data: profs }, { data: custData }] = await Promise.all([
-                supabase.from('agency_projects').select('*, customers(name)').eq('id', projectId).single(),
+            const [
+                { data: proj }, 
+                { data: stageData }, 
+                { data: links }, 
+                { data: profs }, 
+                { data: custData },
+                { data: cats },
+                { data: bdgs }
+            ] = await Promise.all([
+                supabase.from('agency_projects').select('*, customers(*)').eq('id', projectId).single(),
                 supabase.from('agency_stages').select('*').eq('project_id', projectId).order('position'),
                 supabase.from('agency_task_links').select('*'),
                 supabase.from('profiles').select('id, full_name, email, shop_id, shop_ids, role'),
-                supabase.from('customers').select('id, name').order('name')
+                supabase.from('customers').select('id, name').order('name'),
+                supabase.from('agency_task_categories').select('*').order('name'),
+                supabase.from('agency_task_badges').select('*').order('name')
             ])
 
             if (!proj) { router.push('/projects'); return }
             setProject(proj)
             setTaskLinks(links || [])
             setCustomers(custData || [])
+            setTaskCategories(cats || [])
+            setTaskBadges(bdgs || [])
             
             const filteredProfiles = (profs || []).filter((p: any) => 
                 p.role === 'admin' ||
@@ -155,21 +215,14 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             ).filter((p: any) => p.role !== 'client')
             setProfiles(filteredProfiles)
 
-            // Fetch tasks for each stage
             const stageIds = (stageData || []).map((s: Stage) => s.id)
             let tasks: Task[] = []
             if (stageIds.length > 0) {
-                const { data: taskData } = await supabase
-                    .from('agency_tasks')
-                    .select('*')
-                    .in('stage_id', stageIds)
-                    .order('position')
+                const { data: taskData } = await supabase.from('agency_tasks').select('*').in('stage_id', stageIds).order('position')
                 tasks = taskData || []
             }
-
             setAllTasks(tasks)
 
-            // Build stages with resolved blocked state and sort by dependency chain
             const enriched = (stageData || []).map((stage: Stage) => {
                 const stageTasks = tasks
                     .filter((t: Task) => t.stage_id === stage.id)
@@ -183,189 +236,133 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         const assignee = t.assignee_id ? filteredProfiles.find((p: Profile) => p.id === t.assignee_id) : null
                         return { ...t, _blocked: blocked, _dependencies: deps, _blocking: blocking, _assignee: assignee }
                     })
-
-                const statusOrder = { 'in_progress': 1, 'todo': 2, 'done': 3 }
-                
-                stageTasks.sort((a, b) => {
-                    if (a._blocked && !b._blocked) return 1;
-                    if (!a._blocked && b._blocked) return -1;
-                    
-                    const aBlocks = a._blocking?.length || 0;
-                    const bBlocks = b._blocking?.length || 0;
-                    if (aBlocks > 0 && bBlocks === 0) return -1;
-                    if (bBlocks > 0 && aBlocks === 0) return 1;
-                    
-                    if (statusOrder[a.status] !== statusOrder[b.status]) {
-                         return statusOrder[a.status] - statusOrder[b.status];
-                    }
-
-                    return a.position - b.position;
-                })
-
                 return { ...stage, tasks: stageTasks }
             })
             setStages(enriched)
-        } catch {
-            showToast('Erreur de chargement', 'error')
-        } finally {
-            setLoading(false)
-        }
-    }, [projectId, activeShop])
+        } catch { showToast('Erreur de chargement', 'error') } finally { setLoading(false) }
+    }, [projectId, activeShop?.id, supabase, router, showToast])
+
+    useEffect(() => { fetchAll() }, [fetchAll])
 
     const fetchFinances = async () => {
         if (!projectId) return
         setLoadingFinances(true)
         try {
-            const [{ data: ex }, { data: sa }] = await Promise.all([
+            const [{ data: ex }, { data: sa }, { data: timeData }] = await Promise.all([
                 supabase.from('expenses').select('*').eq('project_id', projectId).order('date', { ascending: false }),
-                supabase.from('sales').select('*').eq('project_id', projectId).order('created_at', { ascending: false })
+                supabase.from('sales').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
+                supabase.from('agency_task_time_entries')
+                    .select('duration_seconds, agency_tasks(category)')
+                    .eq('agency_tasks.stage_id', stages[0]?.id) // Simplified filter
             ])
+
+            // Since stages[0].id is too simple, we fetch by task IDs belonging to project stages
+            const taskIds = allTasks.map(t => t.id);
+            const { data: realTimeData } = await supabase
+                .from('agency_task_time_entries')
+                .select('duration_seconds, task_id')
+                .in('task_id', taskIds);
+
+            const totalSeconds = (realTimeData || []).reduce((acc, curr) => acc + (curr.duration_seconds || 0), 0);
+            
             setFinances({ expenses: ex || [], sales: sa || [] })
-        } catch {
-            showToast('Erreur lors du chargement des finances', 'error')
-        } finally {
-            setLoadingFinances(false)
-        }
+            setTimeStats({ totalSeconds, byCategory: {} })
+        } catch { showToast('Erreur lors du chargement des finances', 'error') } finally { setLoadingFinances(false) }
     }
 
-    useEffect(() => {
-        if (activeTab === 'finances' && projectId) fetchFinances()
-    }, [activeTab, projectId])
+    useEffect(() => { if (activeTab === 'finances' && projectId) fetchFinances() }, [activeTab, projectId])
 
-    // ── Project CRUD ──────────────────────────────────────────────────────────
-
-    const openEditProjectModal = (project: Project) => {
-        setEditingProjectForm({
-            ...project,
-            start_date: project.start_date ? new Date(project.start_date).toISOString().split('T')[0] : '',
-            end_date: project.end_date ? new Date(project.end_date).toISOString().split('T')[0] : '',
-            budget: project.budget !== null ? project.budget.toString() : '',
-            client_id: project.client_id || '',
-        } as EditProjectFormState);
-        setIsEditProjectModalOpen(true);
-    };
-
-    const handleUpdateProject = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!editingProjectForm || !projectId) return;
-        setSavingProject(true);
+    const fetchProjectComments = useCallback(async () => {
+        if (!projectId) return
+        setLoadingProjectComments(true)
         try {
-            const updatedPayload = {
-                name: editingProjectForm.name,
-                type: editingProjectForm.type,
-                status: editingProjectForm.status,
-                budget: editingProjectForm.budget ? parseFloat(editingProjectForm.budget as string) : null,
-                description: editingProjectForm.description || null,
-                start_date: editingProjectForm.start_date || null,
-                end_date: editingProjectForm.end_date || null,
-                client_id: editingProjectForm.client_id || null,
-            };
-            const { error } = await supabase.from('agency_projects').update(updatedPayload).eq('id', projectId);
-            if (error) throw error;
+            // 1. Fetch general project comments
+            const { data: pComments, error: pError } = await supabase
+                .from('agency_project_comments')
+                .select('*, profiles(full_name, email)')
+                .eq('project_id', projectId)
 
-            showToast('Projet mis à jour !', 'success');
-            setIsEditProjectModalOpen(false);
-            fetchAll();
-        } catch (err: any) {
-            showToast(`Erreur lors de la mise à jour: ${err.message}`, 'error');
+            if (pError) throw pError
+
+            // 2. Fetch task comments for all tasks in this project
+            const taskIds = allTasks.map(t => t.id)
+            let tComments: any[] = []
+            
+            if (taskIds.length > 0) {
+                const { data: taskCommData, error: tError } = await supabase
+                    .from('agency_task_comments')
+                    .select('*, profiles(full_name, email), agency_tasks(title)')
+                    .in('task_id', taskIds)
+                
+                if (tError) throw tError
+                tComments = taskCommData || []
+            }
+
+            // 3. Merge and Sort
+            const combined = [
+                ...(pComments || []).map(c => ({ ...c, type: 'project' })),
+                ...tComments.map(c => ({ 
+                    ...c, 
+                    type: 'task', 
+                    taskTitle: c.agency_tasks?.title
+                }))
+            ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+            setProjectComments(combined)
+        } catch (e) {
+            console.error('Erreur chat unifié:', e)
         } finally {
-            setSavingProject(false);
+            setLoadingProjectComments(false)
         }
-    };
+    }, [projectId, supabase, allTasks])
 
-    const handleDeleteProject = async () => {
-        if (!projectId) return;
-        if (confirm("Êtes-vous sûr de vouloir supprimer ce projet ?\n\nToutes les étapes, tâches et commentaires associés seront définitivement perdus. Cette action est irréversible.")) {
-            try {
-                const { error } = await supabase.from('agency_projects').delete().eq('id', projectId);
-                if (error) throw error;
-                showToast('Projet supprimé avec succès.', 'success');
-                router.push('/projects');
-            } catch (err: any) {
-                showToast(`Erreur lors de la suppression: ${err.message}`, 'error');
-            }
-        }
-    };
+    useEffect(() => {
+        if (activeTab === 'chat' && projectId) fetchProjectComments()
+    }, [activeTab, projectId, fetchProjectComments])
 
-    const handleArchiveProject = async () => {
-        if (!projectId) return;
-        if (confirm("Êtes-vous sûr de vouloir archiver ce projet ?")) {
-            try {
-                const { error } = await supabase.from('agency_projects').update({ status: 'annule' }).eq('id', projectId);
-                if (error) throw error;
-                showToast('Projet archivé avec succès.', 'success');
-                router.push('/projects');
-            } catch (err: any) {
-                showToast(`Erreur lors de l'archivage: ${err.message}`, 'error');
-            }
-        }
-    };
-
-    // ── Stage CRUD ────────────────────────────────────────────────────────────
+    const postProjectComment = async () => {
+        if (!newProjectCommentText.trim() || !projectId) return
+        setPostingProjectComment(true)
+        try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('Non connecté')
+            const { error } = await supabase.from('agency_project_comments').insert([{ 
+                project_id: projectId, 
+                user_id: user.id, 
+                content: newProjectCommentText.trim(),
+                is_public: commentIsPublic
+            }])
+            if (error) throw error
+            setNewProjectCommentText(''); fetchProjectComments()
+        } catch { showToast('Erreur lors de l\'envoi', 'error') } finally { setPostingProjectComment(false) }
+    }
 
     const addStage = async () => {
         if (!newStageName.trim() || !projectId) return
         const maxPos = stages.length > 0 ? Math.max(...stages.map(s => s.position)) + 1 : 0
-        const { error } = await supabase.from('agency_stages').insert([{
-            project_id: projectId, name: newStageName.trim(), position: maxPos
-        }])
+        const { error } = await supabase.from('agency_stages').insert([{ project_id: projectId, name: newStageName.trim(), position: maxPos }])
         if (error) { showToast('Erreur', 'error'); return }
-        setNewStageName(''); setAddingStage(false)
-        fetchAll()
+        setNewStageName(''); setAddingStage(false); fetchAll()
     }
 
     const renameStage = async (stageId: string) => {
         if (!editingStageValue.trim()) return
         await supabase.from('agency_stages').update({ name: editingStageValue.trim() }).eq('id', stageId)
-        setEditingStageId(null)
-        fetchAll()
+        setEditingStageId(null); fetchAll()
     }
 
     const deleteStage = async (stageId: string) => {
         if (!confirm('Supprimer cette étape et toutes ses tâches ?')) return
-        await supabase.from('agency_stages').delete().eq('id', stageId)
-        fetchAll()
+        await supabase.from('agency_stages').delete().eq('id', stageId); fetchAll()
     }
-
-    // ── Task CRUD ─────────────────────────────────────────────────────────────
 
     const fetchComments = async (taskId: string) => {
         setLoadingComments(true)
         try {
-            const { data, error } = await supabase
-                .from('agency_task_comments')
-                .select('*, profiles(full_name, email)')
-                .eq('task_id', taskId)
-                .order('created_at', { ascending: true })
-            
+            const { data, error } = await supabase.from('agency_task_comments').select('*, profiles(full_name, email)').eq('task_id', taskId).order('created_at', { ascending: true })
             if (error) throw error
             setTaskComments(data || [])
-        } catch (e) {
-            console.error('Erreur commentaires:', e)
-        } finally {
-            setLoadingComments(false)
-        }
-    }
-
-    const openNewTask = (stageId: string) => {
-        setSelectedTask({ id: '', stage_id: stageId, title: '', description: null, status: 'todo', priority: 'normale', assignee_id: null, deadline: null, position: 0 })
-        setTaskForm({ title: '', description: '', status: 'todo', priority: 'normale', deadline: '', assignee_id: '' })
-        setTaskComments([])
-        setIsTaskModalOpen(true)
-    }
-
-    const openEditTask = (task: Task) => {
-        setSelectedTask(task)
-        setTaskForm({
-            title: task.title,
-            description: task.description || '',
-            status: task.status,
-            priority: task.priority,
-            deadline: task.deadline || '',
-            assignee_id: task.assignee_id || '',
-        })
-        fetchComments(task.id)
-        setIsTaskModalOpen(true)
+        } catch (e) { console.error('Erreur commentaires:', e) } finally { setLoadingComments(false) }
     }
 
     const postComment = async () => {
@@ -373,800 +370,808 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         setPostingComment(true)
         try {
             const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error('Not authenticated')
-
-            const { error } = await supabase.from('agency_task_comments').insert([{
-                task_id: selectedTask.id,
-                user_id: user.id,
-                content: newCommentText.trim()
-            }])
-
+            if (!user) throw new Error('Non connecté')
+            const { error } = await supabase.from('agency_task_comments').insert([{ task_id: selectedTask.id, user_id: user.id, content: newCommentText.trim() }])
             if (error) throw error
-            setNewCommentText('')
-            fetchComments(selectedTask.id) // Rafraichir les commentaires
-        } catch (e) {
-            showToast('Erreur lors de l\'envoi du commentaire', 'error')
-        } finally {
-            setPostingComment(false)
-        }
+            setNewCommentText(''); fetchComments(selectedTask.id)
+        } catch { showToast('Erreur lors de l\'envoi', 'error') } finally { setPostingComment(false) }
+    }
+
+    const openNewTask = (stageId: string) => {
+        setSelectedTask({ id: '', stage_id: stageId, title: '', description: null, status: 'todo', priority: 'normale', assignee_id: null, deadline: null, position: 0 })
+        setTaskForm({ title: '', description: '', status: 'todo', priority: 'normale', deadline: '', assignee_id: '', category: 'Général', tags: [] })
+        setTaskComments([]); setIsTaskModalOpen(true)
+    }
+
+    const openEditTask = (task: Task) => {
+        setSelectedTask(task)
+        setTaskForm({ 
+            title: task.title, 
+            description: task.description || '', 
+            status: task.status, 
+            priority: task.priority, 
+            deadline: task.deadline || '', 
+            assignee_id: task.assignee_id || '',
+            category: task.category || 'Général',
+            tags: task.tags || []
+        })
+        fetchComments(task.id); setIsTaskModalOpen(true)
     }
 
     const saveTask = async () => {
         if (!taskForm.title.trim() || !selectedTask) return
         setSavingTask(true)
         try {
-            const payload = {
-                title: taskForm.title.trim(),
-                description: taskForm.description || null,
-                status: taskForm.status,
-                priority: taskForm.priority,
-                deadline: taskForm.deadline || null,
+            const payload = { 
+                title: taskForm.title.trim(), 
+                description: taskForm.description || null, 
+                status: taskForm.status, 
+                priority: taskForm.priority, 
+                deadline: taskForm.deadline || null, 
                 assignee_id: taskForm.assignee_id || null,
+                category: taskForm.category,
+                tags: taskForm.tags
             }
-            if (selectedTask.id) {
-                await supabase.from('agency_tasks').update(payload).eq('id', selectedTask.id)
-            } else {
+            if (selectedTask.id) await supabase.from('agency_tasks').update(payload).eq('id', selectedTask.id)
+            else {
                 const maxPos = stages.find(s => s.id === selectedTask.stage_id)?.tasks?.length || 0
                 await supabase.from('agency_tasks').insert([{ ...payload, stage_id: selectedTask.stage_id, position: maxPos }])
             }
-            showToast('Tâche sauvegardée !', 'success')
-            setIsTaskModalOpen(false)
-            fetchAll()
-        } catch {
-            showToast('Erreur', 'error')
-        } finally {
-            setSavingTask(false)
-        }
-    }
-
-    const deleteTask = async (taskId: string) => {
-        if (!confirm('Supprimer cette tâche ?')) return
-        await supabase.from('agency_tasks').delete().eq('id', taskId)
-        fetchAll()
+            showToast('Tâche sauvegardée !', 'success'); setIsTaskModalOpen(false); fetchAll()
+        } catch { showToast('Erreur', 'error') } finally { setSavingTask(false) }
     }
 
     const cycleStatus = async (task: Task) => {
         const next: Record<string, Task['status']> = { todo: 'in_progress', in_progress: 'done', done: 'todo' }
         const newStatus = next[task.status]
-        
-        if (newStatus === 'done' && task._blocked) {
-            showToast('Action impossible : cette tâche dépend de tâches non terminées.', 'error')
-            return
-        }
-        
-        await supabase.from('agency_tasks').update({ status: newStatus }).eq('id', task.id)
-        fetchAll()
+        if (newStatus === 'done' && task._blocked) { showToast('Action impossible : cette tâche dépend de tâches non terminées.', 'error'); return }
+        await supabase.from('agency_tasks').update({ status: newStatus }).eq('id', task.id); fetchAll()
     }
-
-    // ── Task Links (dependencies) ─────────────────────────────────────────────
 
     const toggleDep = async (fromId: string, toId: string) => {
-        const exists = taskLinks.find(l => l.from_task_id === fromId && l.to_task_id === toId)
-        if (exists) {
-            await supabase.from('agency_task_links').delete()
-                .eq('from_task_id', fromId).eq('to_task_id', toId)
-        } else {
-            await supabase.from('agency_task_links').insert([{ from_task_id: fromId, to_task_id: toId }])
-        }
+        const exists = taskLinks.some(l => l.from_task_id === fromId && l.to_task_id === toId)
+        if (exists) await supabase.from('agency_task_links').delete().match({ from_task_id: fromId, to_task_id: toId })
+        else await supabase.from('agency_task_links').insert([{ from_task_id: fromId, to_task_id: toId }])
         fetchAll()
     }
 
-    // ── Drag & Drop ───────────────────────────────────────────────────────────
-
-    const handleDragStart = (e: React.DragEvent, taskId: string) => {
-        e.dataTransfer.setData('taskId', taskId)
-        setDraggingTaskId(taskId)
+    const deleteDep = async (fromId: string, toId: string) => {
+        await supabase.from('agency_task_links').delete().match({ from_task_id: fromId, to_task_id: toId })
+        fetchAll()
     }
 
-    const handleDragOver = (e: React.DragEvent, stageId: string) => {
-        e.preventDefault()
-        if (dragOverStageId !== stageId) setDragOverStageId(stageId)
+    const deleteTask = async (taskId: string) => {
+        if (!confirm('Supprimer cette tâche ?')) return
+        await supabase.from('agency_tasks').delete().eq('id', taskId); fetchAll()
     }
 
-    const handleDragLeave = () => {
-        setDragOverStageId(null)
+    const handleUpdateProject = async (e: React.FormEvent) => {
+        e.preventDefault(); if (!editingProjectForm || !projectId) return
+        setSavingProject(true)
+        try {
+            const oldStatus = project?.status;
+            const newStatus = editingProjectForm.status;
+
+            const payload = { name: editingProjectForm.name, type: editingProjectForm.type, status: newStatus, budget: editingProjectForm.budget ? parseFloat(editingProjectForm.budget) : null, description: editingProjectForm.description || null, start_date: editingProjectForm.start_date || null, end_date: editingProjectForm.end_date || null, client_id: editingProjectForm.client_id || null }
+            const { error } = await supabase.from('agency_projects').update(payload).eq('id', projectId)
+            if (error) throw error
+
+            // 🚀 n8n Automation: Trigger only when project becomes 'termine'
+            if (newStatus === 'termine' && oldStatus !== 'termine') {
+                triggerN8nAutomation();
+            }
+
+            showToast('Projet mis à jour !', 'success'); setIsEditProjectModalOpen(false); fetchAll()
+        } catch { showToast('Erreur lors de la mise à jour', 'error') } finally { setSavingProject(false) }
     }
 
-    const handleDrop = async (e: React.DragEvent, targetStageId: string) => {
-        e.preventDefault()
-        setDragOverStageId(null)
-        setDraggingTaskId(null)
+    const triggerN8nAutomation = async () => {
+        const N8N_WEBHOOK_URL = "https://n8n.srv812544.hstgr.cloud/webhook/42498e23-0479-486a-8530-d1e768662b57";
         
+        const reportData = {
+            project: project,
+            stages: stages,
+            finances: finances,
+            chat_history: projectComments.map(c => ({
+                sender: c.user_id === null ? 'Client' : (c.profiles?.full_name || 'Équipe'),
+                content: c.content,
+                date: c.created_at,
+                is_public: c.is_public,
+                type: c.type // 'project' or 'task'
+            })),
+            stats: {
+                total_tasks: allTasks.length,
+                done_tasks: allTasks.filter(t => t.status === 'done').length,
+                progress: progress
+            },
+            portal_url: `${window.location.origin}/projects/share/${project?.access_token}`,
+            timestamp: new Date().toISOString()
+        };
+
+        try {
+            await fetch(N8N_WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reportData)
+            });
+            showToast('Rapport client envoyé à n8n !', 'success');
+        } catch (e) {
+            console.error('Erreur automation n8n:', e);
+            showToast('L\'automation n8n a échoué, mais le projet est terminé.', 'error');
+        }
+    }
+
+    const handleCreateInvoice = async () => {
+        if (!project || !projectId) return
+        setGeneratingInvoice(true)
+        try {
+            const doneStages = stages.filter(s => (s.tasks || []).length > 0 && (s.tasks || []).every(t => t.status === 'done'))
+            const totalAmount = project.budget || 0
+            
+            // Create a sale record
+            const { data: sale, error } = await supabase.from('sales').insert([{
+                project_id: projectId,
+                shop_id: activeShop?.id,
+                total_amount: totalAmount,
+                payment_method: 'virement',
+                customer_id: project.client_id,
+                status: 'completed'
+            }]).select().single()
+
+            if (error) throw error
+            
+            showToast('Facture générée avec succès !', 'success')
+            setIsInvoiceModalOpen(false)
+            fetchFinances()
+        } catch (e) {
+            showToast('Erreur lors de la génération', 'error')
+        } finally {
+            setGeneratingInvoice(false)
+        }
+    }
+
+    const handleDragStart = (e: React.DragEvent, taskId: string) => { e.dataTransfer.setData('taskId', taskId); setDraggingTaskId(taskId) }
+    const handleDragOver = (e: React.DragEvent, stageId: string) => { e.preventDefault(); if (dragOverStageId !== stageId) setDragOverStageId(stageId) }
+    const handleDragLeave = () => setDragOverStageId(null)
+    const handleDrop = async (e: React.DragEvent, targetStageId: string) => {
+        e.preventDefault(); setDragOverStageId(null); setDraggingTaskId(null)
         const taskId = e.dataTransfer.getData('taskId')
         if (!taskId) return
-
-        const task = allTasks.find(t => t.id === taskId)
-        if (!task || task.stage_id === targetStageId) return
-
-        // Optimistic update
-        setStages(prev => prev.map(stage => {
-            if (stage.id === task.stage_id) {
-                return { ...stage, tasks: stage.tasks?.filter(t => t.id !== taskId) }
-            }
-            if (stage.id === targetStageId) {
-                const updatedTask = { ...task, stage_id: targetStageId }
-                return { ...stage, tasks: [...(stage.tasks || []), updatedTask] }
-            }
-            return stage
-        }))
-
-        await supabase.from('agency_tasks').update({ stage_id: targetStageId }).eq('id', taskId)
-        fetchAll()
+        await supabase.from('agency_tasks').update({ stage_id: targetStageId }).eq('id', taskId); fetchAll()
     }
-
-    // ── Stats ─────────────────────────────────────────────────────────────────
 
     const totalTasks = allTasks.length
     const doneTasks = allTasks.filter(t => t.status === 'done').length
     const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0
 
-    // ─────────────────────────────────────────────────────────────────────────
-
-    if (loading) return (
-        <div className="flex items-center justify-center min-h-screen opacity-30">
-            <Loader2 className="w-12 h-12 animate-spin text-shop" />
-        </div>
-    )
-
+    if (loading) return <div className="flex items-center justify-center min-h-screen opacity-30"><Loader2 className="w-12 h-12 animate-spin text-shop" /></div>
     if (!project) return null
 
     return (
         <div className="min-h-screen flex flex-col">
-            {/* Header */}
             <header className="glass-panel sticky top-0 z-50 m-4 rounded-[24px] shadow-xl">
                 <div className="max-w-full px-6 py-4 flex items-center gap-4">
-                    <button onClick={() => router.push('/projects')}
-                        className="p-2 hover:bg-white/5 rounded-xl text-muted-foreground hover:text-white transition-colors">
-                        <ArrowLeft className="w-5 h-5" />
-                    </button>
+                    <button onClick={() => router.push('/projects')} className="p-2 hover:bg-white/5 rounded-xl text-muted-foreground hover:text-white transition-colors"><ArrowLeft className="w-5 h-5" /></button>
                     <div className="flex-1 min-w-0">
-                        <h1 className="text-lg font-black shop-gradient-text uppercase tracking-tighter leading-none truncate">{project.name}</h1>
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-lg font-black shop-gradient-text uppercase tracking-tighter leading-none truncate">{project.name}</h1>
+                            <button onClick={() => { setEditingProjectForm({ ...project, budget: project.budget?.toString() || '' }); setIsEditProjectModalOpen(true) }} className="p-1.5 hover:bg-white/5 rounded-lg text-muted-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                            <button onClick={() => setIsShareModalOpen(true)} className="p-1.5 bg-shop/10 text-shop rounded-lg hover:bg-shop/20 transition-all border border-shop/20 shadow-sm" title="Partager au client"><Globe className="w-3.5 h-3.5" /></button>
+                            <button onClick={handleArchiveProject} className="p-1.5 bg-white/5 text-muted-foreground rounded-lg hover:bg-red-500/10 hover:text-red-400 transition-all border border-white/5" title="Archiver le projet"><Archive className="w-3.5 h-3.5" /></button>
+                        </div>
                         <div className="flex items-center gap-3 mt-1">
-                            {project.customers?.name && (
-                                <span className="text-[9px] font-bold text-muted-foreground flex items-center gap-1">
-                                    <Users className="w-3 h-3" />{project.customers.name}
-                                </span>
-                            )}
-                            {project.end_date && (
-                                <span className="text-[9px] font-bold text-muted-foreground flex items-center gap-1">
-                                    <Calendar className="w-3 h-3" />{new Date(project.end_date).toLocaleDateString('fr-FR')}
-                                </span>
-                            )}
+                            {project.customers?.name && <span className="text-[9px] font-bold text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" />{project.customers.name}</span>}
+                            {project.end_date && <span className="text-[9px] font-bold text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(project.end_date).toLocaleDateString('fr-FR')}</span>}
                         </div>
                     </div>
-
                     <div className="flex bg-black/40 p-1 rounded-2xl">
-                        {(['kanban', 'finances'] as const).map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === tab ? 'bg-white/10 text-white shadow-sm' : 'text-muted-foreground hover:text-white hover:bg-white/5'}`}
-                            >
-                                {tab === 'kanban' ? <span className="flex items-center gap-2"><FolderKanban className="w-3.5 h-3.5" />Tâches</span> : <span className="flex items-center gap-2"><DollarSign className="w-3.5 h-3.5" />Finances</span>}
+                        {(['kanban', 'timeline', 'finances', 'chat'] as const).map(tab => (
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === tab ? 'bg-white/10 text-white shadow-sm' : 'text-muted-foreground hover:text-white'}`}>
+                                {tab === 'kanban' ? <span className="flex items-center gap-2"><FolderKanban className="w-3.5 h-3.5" />Tâches</span> : 
+                                 tab === 'timeline' ? <span className="flex items-center gap-2"><Calendar className="w-3.5 h-3.5" />Gantt</span> :
+                                 tab === 'chat' ? <span className="flex items-center gap-2"><MessageSquare className="w-3.5 h-3.5" />Chat</span> :
+                                 <span className="flex items-center gap-2"><DollarSign className="w-3.5 h-3.5" />Finances</span>}
                             </button>
                         ))}
                     </div>
 
+                    {/* 🚀 Manual Report Trigger (n8n) */}
                     <button 
-                        onClick={() => openEditProjectModal(project)}
-                        className="p-2 hover:bg-white/5 rounded-xl text-muted-foreground hover:text-shop transition-colors"
-                        title="Modifier le projet"
+                        onClick={() => triggerN8nAutomation()}
+                        disabled={progress < 100}
+                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl
+                            ${progress < 100 
+                                ? 'bg-white/5 text-muted-foreground cursor-not-allowed border border-white/5 opacity-50' 
+                                : 'bg-shop text-white hover:scale-105 active:scale-95 border border-shop/20 animate-pulse hover:animate-none'}`}
                     >
-                        <Edit2 className="w-5 h-5" />
+                        <FileText className="w-4 h-4" />
+                        {progress < 100 ? `Production: ${progress}%` : "Générer Rapport"}
                     </button>
 
-                    {/* Progress */}
                     <div className="hidden md:flex items-center gap-4">
                         <div className="text-right">
                             <p className="text-[9px] font-black uppercase text-muted-foreground">Avancement</p>
                             <p className="text-2xl font-black shop-gradient-text">{progress}%</p>
                         </div>
-                        <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-shop rounded-full transition-all" style={{ width: `${progress}%` }} />
-                        </div>
-                        <div className="text-[9px] font-black text-muted-foreground">{doneTasks}/{totalTasks} tâches</div>
+                        <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-shop rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
                     </div>
                 </div>
             </header>
 
-            {/* Board or Finances */}
             <main className="flex-1 px-4 py-4 overflow-x-auto">
                 {activeTab === 'kanban' ? (
-                    <div className="flex gap-4 min-w-max pb-6">
-                        {stages.map(stage => (
-                            <div 
-                                key={stage.id} 
-                                className={`w-72 flex-shrink-0 flex flex-col gap-3 rounded-[24px] transition-colors duration-300 ${dragOverStageId === stage.id ? 'bg-shop/5 border border-dashed border-shop/40' : 'bg-transparent border border-transparent'}`}
-                                onDragOver={(e) => handleDragOver(e, stage.id)}
-                                onDragLeave={handleDragLeave}
-                                onDrop={(e) => handleDrop(e, stage.id)}
-                            >
-                            {/* Stage Header */}
-                            <div className="glass-panel rounded-[20px] px-4 py-3 border-white/5 flex items-center gap-2">
-                                {editingStageId === stage.id ? (
-                                    <div className="flex-1 flex gap-2">
-                                        <input
-                                            autoFocus
-                                            className="flex-1 bg-white/10 rounded-xl px-3 py-1 text-xs font-black outline-none focus:ring-1 ring-shop"
-                                            value={editingStageValue}
-                                            onChange={e => setEditingStageValue(e.target.value)}
-                                            onKeyDown={e => { if (e.key === 'Enter') renameStage(stage.id); if (e.key === 'Escape') setEditingStageId(null) }}
-                                        />
-                                        <button onClick={() => renameStage(stage.id)} className="p-1 text-shop"><Save className="w-3.5 h-3.5" /></button>
+                    <div className="flex flex-col gap-10">
+                        <div className="flex gap-4 min-w-max pb-6 px-4">
+                            {stages.map(stage => (
+                                <div key={stage.id} id={stage.id} className={`w-72 flex-shrink-0 flex flex-col gap-3 rounded-[24px] transition-colors duration-300 ${dragOverStageId === stage.id ? 'bg-shop/5 border border-dashed border-shop/40' : 'bg-transparent'}`} onDragOver={(e) => handleDragOver(e, stage.id)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, stage.id)}>
+                                    <div className="glass-panel rounded-[20px] px-4 py-3 border-white/5 flex items-center gap-2">
+                                        {editingStageId === stage.id ? (
+                                            <div className="flex-1 flex gap-2">
+                                                <input autoFocus className="flex-1 bg-white/10 rounded-xl px-3 py-1 text-xs font-black outline-none" value={editingStageValue} onChange={e => setEditingStageValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') renameStage(stage.id); if (e.key === 'Escape') setEditingStageId(null) }} />
+                                                <button onClick={() => renameStage(stage.id)} className="p-1 text-shop"><Save className="w-3.5 h-3.5" /></button>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white truncate">{stage.name}</span>
+                                                <button onClick={() => { setEditingStageId(stage.id); setEditingStageValue(stage.name) }} className="p-1 text-muted-foreground hover:text-shop"><Edit2 className="w-3 h-3" /></button>
+                                                <button onClick={() => deleteStage(stage.id)} className="p-1 text-muted-foreground hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col gap-2 flex-1">
+                                        {(stage.tasks || []).map(task => {
+                                            const sCfg = STATUS_CONFIG[task.status]
+                                            const StatusIcon = sCfg.icon
+                                            const isWaiting = task.status === 'todo' && task._blocked
+                                            const isTracking = activeEntry?.task_id === task.id
+                                            
+                                            return (
+                                                <div 
+                                                    key={task.id} 
+                                                    draggable 
+                                                    onDragStart={(e) => handleDragStart(e, task.id)} 
+                                                    className={`glass-panel rounded-[20px] p-4 border transition-all group cursor-pointer border-l-4 ${PRIORITY_CONFIG[task.priority].border} 
+                                                        ${task.status === 'done' ? 'opacity-40 grayscale-[0.5]' : ''}
+                                                        ${isTracking ? 'border-shop shadow-[0_0_20px_rgba(0,85,255,0.2)] scale-[1.02] bg-shop/5' : ''}
+                                                        ${isWaiting ? 'opacity-20 grayscale border-dashed border-white/5 cursor-not-allowed' : 'hover:border-white/20'}`} 
+                                                    onClick={() => openEditTask(task)}
+                                                >
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div className="flex items-center gap-2">
+                                                            {task._blocked && <AlertTriangle className={`w-3 h-3 ${isWaiting ? 'text-muted-foreground' : 'text-red-400'}`} />}
+                                                            {isWaiting && <span className="text-[7px] font-black uppercase text-muted-foreground tracking-widest">En attente</span>}
+                                                            {isTracking && <div className="flex items-center gap-1.5 bg-shop/20 px-2 py-0.5 rounded-full animate-pulse"><Clock className="w-2.5 h-2.5 text-shop" /><span className="text-[7px] font-black uppercase text-shop">Chrono en cours</span></div>}
+                                                        </div>
+                                                        <GripVertical className="w-3 h-3 text-white/10" />
+                                                    </div>
+                                                    <div className="flex items-start gap-2">
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); if(!isWaiting) cycleStatus(task); }} 
+                                                            className={`mt-0.5 flex-shrink-0 ${isWaiting ? 'text-muted-foreground/30' : sCfg.color} hover:scale-110 transition-transform`}
+                                                            disabled={isWaiting}
+                                                        >
+                                                            <StatusIcon className="w-4 h-4" />
+                                                        </button>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className={`text-xs font-bold leading-tight ${task.status === 'done' ? 'line-through' : isWaiting ? 'text-muted-foreground' : 'text-white'}`}>{task.title}</p>
+                                                            
+                                                            {/* Categories & Badges Preview */}
+                                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                                {task.category && task.category !== 'Général' && (
+                                                                    <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black uppercase text-muted-foreground">{task.category}</span>
+                                                                )}
+                                                                {task.tags?.map(tag => (
+                                                                    <span key={tag} className="px-1.5 py-0.5 bg-shop/5 border border-shop/10 rounded text-[7px] font-black uppercase text-shop">{tag}</span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Time Tracker Mini Toggle */}
+                                                        {!isWaiting && task.status !== 'done' && (
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); isTracking ? stopTimer() : startTimer(task.id, task.title); }}
+                                                                className={`p-2 rounded-xl transition-all shadow-lg ${isTracking ? 'bg-red-500 text-white animate-pulse' : 'bg-white/5 text-muted-foreground hover:bg-shop hover:text-white opacity-0 group-hover:opacity-100'}`}
+                                                            >
+                                                                {isTracking ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full ${PRIORITY_CONFIG[task.priority].bg} ${PRIORITY_CONFIG[task.priority].color}`}>{task.priority}</span>
+                                                            {task._assignee && <div className="w-4 h-4 rounded-full bg-shop/20 text-shop flex items-center justify-center text-[7px] font-black uppercase">{task._assignee.full_name?.charAt(0)}</div>}
+                                                        </div>
+                                                        <div className="flex items-center gap-1">
+                                                            {task.deadline && <span className="text-[8px] text-muted-foreground flex items-center gap-0.5"><Calendar className="w-2.5 h-2.5" />{new Date(task.deadline).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>}
+                                                            <button 
+                                                                onClick={(e) => { e.stopPropagation(); setShowDepsFor(showDepsFor === task.id ? null : task.id); }}
+                                                                className={`p-1 rounded-lg transition-all ${showDepsFor === task.id ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground hover:text-shop hover:bg-shop/10 opacity-0 group-hover:opacity-100'}`}
+                                                                title="Lier des tâches"
+                                                            >
+                                                                <Link2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="p-1 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Inline dependency picker */}
+                                                    {showDepsFor === task.id && (
+                                                        <div className="mt-3 pt-3 border-t border-white/10 space-y-1 animate-in slide-in-from-top-2 duration-200" onClick={e => e.stopPropagation()}>
+                                                            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-2">Dépend de :</p>
+                                                            <div className="max-h-32 overflow-y-auto custom-scrollbar space-y-1 pr-1">
+                                                                {allTasks.filter(t => t.id !== task.id).map(otherTask => {
+                                                                    const linked = taskLinks.some(l => l.from_task_id === otherTask.id && l.to_task_id === task.id)
+                                                                    return (
+                                                                        <button
+                                                                            key={otherTask.id}
+                                                                            onClick={() => toggleDep(otherTask.id, task.id)}
+                                                                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-[9px] font-bold transition-all ${linked ? 'bg-shop/10 text-shop border border-shop/20' : 'bg-white/5 text-muted-foreground hover:bg-white/10'}`}
+                                                                        >
+                                                                            {linked ? <Link2 className="w-3 h-3 flex-shrink-0" /> : <Link2Off className="w-3 h-3 flex-shrink-0" />}
+                                                                            <span className="truncate">{otherTask.title}</span>
+                                                                        </button>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )
+                                        })}
+                                        <button onClick={() => openNewTask(stage.id)} className="w-full h-12 glass-panel rounded-[20px] border border-dashed border-white/10 text-[9px] font-black uppercase text-muted-foreground hover:text-shop flex items-center justify-center gap-2 transition-all"><Plus className="w-3.5 h-3.5" /> Ajouter</button>
+                                    </div>
+                                </div>
+                            ))}
+                            <div className="w-72 flex-shrink-0">
+                                {addingStage ? (
+                                    <div className="glass-panel rounded-[24px] p-4 space-y-3">
+                                        <input autoFocus className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none focus:border-shop/50" value={newStageName} onChange={e => setNewStageName(e.target.value)} placeholder="Nom étape..." onKeyDown={e => e.key === 'Enter' && addStage()} />
+                                        <div className="flex gap-2"><button onClick={addStage} className="flex-1 py-2 bg-shop text-white text-[10px] font-black uppercase rounded-xl">Ajouter</button><button onClick={() => setAddingStage(false)} className="px-3 py-2 bg-white/5 text-muted-foreground rounded-xl"><X className="w-3.5 h-3.5" /></button></div>
                                     </div>
                                 ) : (
-                                    <>
-                                        <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white truncate">{stage.name}</span>
-                                        <span className="text-[9px] text-muted-foreground font-bold">{stage.tasks?.length || 0}</span>
-                                        <button onClick={() => { setEditingStageId(stage.id); setEditingStageValue(stage.name) }}
-                                            className="p-1 text-muted-foreground hover:text-shop transition-colors"><Edit2 className="w-3 h-3" /></button>
-                                        <button onClick={() => deleteStage(stage.id)}
-                                            className="p-1 text-muted-foreground hover:text-red-400 transition-colors"><Trash2 className="w-3 h-3" /></button>
-                                    </>
+                                    <button onClick={() => setAddingStage(true)} className="w-full h-16 glass-panel rounded-[24px] border border-dashed border-white/10 text-[10px] font-black uppercase text-muted-foreground hover:text-shop flex items-center justify-center gap-2 transition-all"><Plus className="w-4 h-4" /> Nouvelle Étape</button>
                                 )}
                             </div>
+                        </div>
 
-                            {/* Task cards */}
-                            <div className="flex flex-col gap-2 flex-1">
-                                {(stage.tasks || []).map(task => {
-                                    const pCfg = PRIORITY_CONFIG[task.priority]
-                                    const sCfg = STATUS_CONFIG[task.status]
-                                    const StatusIcon = sCfg.icon
-                                    const isBlocked = task._blocked && task.status !== 'done'
-                                    const isOverdue = task.deadline && new Date(task.deadline) < new Date() && task.status !== 'done'
+                        <TaskMindMap 
+                            stages={stages} 
+                            taskLinks={taskLinks} 
+                            onTaskClick={openEditTask} 
+                            onLinkCreate={toggleDep}
+                            onLinkDelete={deleteDep}
+                            onTaskMove={async (taskId, targetStageId) => {
+                                await supabase.from('agency_tasks').update({ stage_id: targetStageId }).eq('id', taskId);
+                                fetchAll();
+                            }}
+                        />
+                    </div>
+                ) : activeTab === 'timeline' ? (
+                    <div className="max-w-5xl mx-auto w-full px-4">
+                        <TaskTimeline stages={stages} projectStart={project.start_date} projectEnd={project.end_date} />
+                    </div>
+                ) : activeTab === 'chat' ? (
+                    <div className="max-w-4xl mx-auto w-full flex flex-col h-[calc(100vh-250px)] glass-panel rounded-[40px] border-white/5 bg-black/20 overflow-hidden animate-in fade-in duration-500">
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-shop/20 rounded-2xl flex items-center justify-center text-shop"><MessageSquare className="w-5 h-5" /></div>
+                                <div><h3 className="text-sm font-black uppercase tracking-widest text-white leading-none">Discussion de Projet</h3><p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">Espace collaboratif pour l'équipe</p></div>
+                            </div>
+                        </div>
 
-                                    let cardStyle = 'border-white/5 bg-white/[0.02] hover:border-white/20'
-                                    if (isOverdue) cardStyle = 'border-red-500/50 bg-red-500/10 shadow-lg shadow-red-500/10'
-                                    else if (task.status === 'done') cardStyle = 'border-green-500/20 bg-green-500/5 opacity-60'
-                                    else if (task.status === 'in_progress') cardStyle = 'border-amber-500/30 bg-amber-500/10 shadow-lg shadow-amber-500/5'
-                                    else if (isBlocked) cardStyle = 'border-white/10 bg-white/5 opacity-50 cursor-not-allowed'
+                        <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
+                            {loadingProjectComments ? (
+                                <div className="flex flex-col items-center justify-center h-full opacity-30"><Loader2 className="w-10 h-10 animate-spin text-shop" /></div>
+                            ) : projectComments.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-20">
+                                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center"><MessageSquare className="w-10 h-10" /></div>
+                                    <div><p className="text-sm font-black uppercase tracking-widest">Aucun message ici.</p><p className="text-[10px] font-bold mt-1 uppercase">Lancez la discussion !</p></div>
+                                </div>
+                            ) : projectComments.map((msg: any) => {
+                                const isMe = profiles.find(p => p.email === msg.profiles?.email)?.id === msg.user_id;
+                                const isClient = msg.user_id === null;
+                                
+                                return (
+                                    <div key={`${msg.type}-${msg.id}`} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'} space-y-2 animate-in slide-in-from-bottom-2 duration-300`}>
+                                        {/* Header Info */}
+                                        <div className={`flex items-center gap-3 px-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}>
+                                            <span className="text-[10px] font-black text-white uppercase tracking-tight">
+                                                {isClient ? 'Client (Portail)' : (msg.profiles?.full_name || 'Équipe')}
+                                            </span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase opacity-40">
+                                                {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                            </span>
+                                            {msg.is_public && <Globe className="w-3 h-3 text-green-500" title="Visible par le client" />}
+                                            {!msg.is_public && !isClient && <Lock className="w-3 h-3 text-muted-foreground/30" title="Message interne" />}
+                                        </div>
 
-                                    return (
-                                        <div
-                                            key={task.id}
-                                            draggable
-                                            onDragStart={(e) => handleDragStart(e, task.id)}
-                                            className={`glass-panel rounded-[20px] p-4 border transition-all group cursor-pointer border-l-4 ${pCfg.border}
-                                                ${draggingTaskId === task.id ? 'opacity-40 scale-95 border-shop shadow-lg shadow-shop/20' : cardStyle}`}
+                                        {/* Message Bubble */}
+                                        <div className={`group relative max-w-[80%] p-5 rounded-[28px] border shadow-xl transition-all
+                                            ${isMe 
+                                                ? 'bg-shop text-white border-shop/20 rounded-tr-none shadow-shop/10' 
+                                                : isClient 
+                                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-100 rounded-tl-none' 
+                                                : 'bg-white/[0.03] border-white/10 text-muted-foreground rounded-tl-none'
+                                            }`}
                                         >
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    {/* Blocked indicator */}
-                                                    {isBlocked ? (
-                                                        <div className="flex items-center gap-1.5 text-muted-foreground group relative">
-                                                            <AlertTriangle className="w-3.5 h-3.5" />
-                                                            <span className="text-[9px] font-black uppercase tracking-wider">Bloquée</span>
-                                                            
-                                                            {/* Tooltip for dependencies */}
-                                                            {task._dependencies && task._dependencies.length > 0 && (
-                                                                <div className="absolute left-0 top-full mt-2 w-48 bg-[#1a1a1f] border border-white/10 rounded-xl p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl pointer-events-none">
-                                                                    <p className="text-[8px] font-black uppercase text-muted-foreground mb-1.5">En attente de :</p>
-                                                                    <ul className="space-y-1">
-                                                                        {task._dependencies.map(depId => {
-                                                                            const depTask = allTasks.find(t => t.id === depId)
-                                                                            return depTask && depTask.status !== 'done' ? (
-                                                                                <li key={depId} className="text-[9px] text-white/80 flex items-center gap-1.5 truncate">
-                                                                                    <div className="w-1 h-1 bg-red-400 rounded-full" />
-                                                                                    {depTask.title}
-                                                                                </li>
-                                                                            ) : null
-                                                                        })}
-                                                                    </ul>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ) : null}
-
-                                                    {/* Blocking others indicator */}
-                                                    {task.status !== 'done' && task._blocking && task._blocking.length > 0 && (
-                                                        <div className="flex items-center gap-1.5 text-orange-400 group relative">
-                                                            <Link2 className="w-3.5 h-3.5" />
-                                                            <span className="text-[9px] font-black uppercase tracking-wider">Bloque {task._blocking.length} tâche(s)</span>
-                                                            
-                                                            <div className="absolute left-0 top-full mt-2 w-48 bg-[#1a1a1f] border border-white/10 rounded-xl p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-xl pointer-events-none">
-                                                                <p className="text-[8px] font-black uppercase text-muted-foreground mb-1.5">Bloque les tâches suivantes :</p>
-                                                                <ul className="space-y-1">
-                                                                    {task._blocking.map(blockingId => {
-                                                                        const blockedTask = allTasks.find(t => t.id === blockingId)
-                                                                        return blockedTask ? (
-                                                                            <li key={blockingId} className="text-[9px] text-white/80 flex items-center gap-1.5 truncate">
-                                                                                <div className="w-1 h-1 bg-orange-400 rounded-full" />
-                                                                                {blockedTask.title}
-                                                                            </li>
-                                                                        ) : null
-                                                                    })}
-                                                                </ul>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                            {/* Context Badge (if task comment) */}
+                                            {msg.type === 'task' && (
+                                                <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-white/5">
+                                                    <span className="text-[7px] font-black uppercase bg-white/10 px-1.5 py-0.5 rounded text-white/50">Tâche :</span>
+                                                    <span className="text-[7px] font-bold uppercase truncate max-w-[150px]">{msg.taskTitle}</span>
                                                 </div>
-                                                <GripVertical className="w-3.5 h-3.5 text-muted-foreground/30 hover:text-white cursor-grab active:cursor-grabbing" />
-                                            </div>
+                                            )}
 
-                                            {/* Title + Status toggle */}
-                                            <div className="flex items-start gap-2">
-                                                <button
-                                                    onClick={() => cycleStatus(task)}
-                                                    className={`mt-0.5 flex-shrink-0 ${sCfg.color} hover:scale-110 transition-transform`}
-                                                    title={`Statut: ${sCfg.label}`}
-                                                >
-                                                    <StatusIcon className="w-4 h-4" />
-                                                </button>
-                                                <span
-                                                    onClick={() => openEditTask(task)}
-                                                    className={`flex-1 text-xs font-bold leading-snug cursor-pointer hover:text-shop transition-colors ${task.status === 'done' ? 'line-through text-muted-foreground' : 'text-white'}`}
-                                                >
-                                                    {task.title}
-                                                </span>
-                                            </div>
-
-                                            {/* Footer */}
-                                            <div className="flex flex-wrap items-center justify-between gap-y-2 mt-3 pt-3 border-t border-white/5">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-black uppercase ${pCfg.bg} ${pCfg.color}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${pCfg.dot}`} />
-                                                        {pCfg.label}
-                                                    </div>
-                                                    {task._assignee && (
-                                                        <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-white/5 border border-white/5 hover:bg-white/10 transition-colors" title={task._assignee.full_name || task._assignee.email || ''}>
-                                                            <div className="w-3.5 h-3.5 rounded-full bg-shop/20 text-shop flex items-center justify-center text-[7px] font-black uppercase">
-                                                                {task._assignee.full_name ? task._assignee.full_name.charAt(0) : task._assignee.email?.charAt(0)}
-                                                            </div>
-                                                            <span className="text-[8px] font-bold text-muted-foreground truncate max-w-[50px]">
-                                                                {task._assignee.full_name?.split(' ')[0] || task._assignee.email?.split('@')[0]}
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    {task.deadline && (
-                                                        <span className="text-[8px] text-muted-foreground flex items-center gap-0.5">
-                                                            <Calendar className="w-2.5 h-2.5" />
-                                                            {new Date(task.deadline).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}
-                                                        </span>
-                                                    )}
-                                                    {(task._dependencies?.length || 0) > 0 && (
-                                                        <span className="text-[8px] text-muted-foreground flex items-center gap-0.5">
-                                                            <Link2 className="w-2.5 h-2.5" />
-                                                            {task._dependencies?.length}
-                                                        </span>
-                                                    )}
-                                                    {/* Dependency manager button */}
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); setShowDepsFor(showDepsFor === task.id ? null : task.id) }}
-                                                        className="p-1 text-muted-foreground hover:text-shop opacity-0 group-hover:opacity-100 transition-all"
-                                                        title="Gérer les dépendances"
-                                                    >
-                                                        <Link2 className="w-3 h-3" />
-                                                    </button>
-                                                    <button onClick={() => deleteTask(task.id)}
-                                                        className="p-1 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
-                                                        <Trash2 className="w-3 h-3" />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Inline dependency picker */}
-                                            {showDepsFor === task.id && (
-                                                <div className="mt-3 pt-3 border-t border-white/10 space-y-1">
-                                                    <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-2">Cette tâche est bloquée par :</p>
-                                                    {allTasks.filter(t => t.id !== task.id).map(otherTask => {
-                                                        const linked = taskLinks.some(l => l.from_task_id === otherTask.id && l.to_task_id === task.id)
-                                                        const otherStage = stages.find(s => s.id === otherTask.stage_id)
-                                                        return (
-                                                            <button
-                                                                key={otherTask.id}
-                                                                onClick={() => toggleDep(otherTask.id, task.id)}
-                                                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-[9px] font-bold transition-all ${linked ? 'bg-shop/10 text-shop border border-shop/20' : 'bg-white/5 text-muted-foreground hover:bg-white/10'}`}
-                                                            >
-                                                                {linked ? <Link2 className="w-3 h-3 flex-shrink-0" /> : <Link2Off className="w-3 h-3 flex-shrink-0" />}
-                                                                <span className="truncate">{otherTask.title}</span>
-                                                                <span className="ml-auto text-[8px] opacity-50 flex-shrink-0">{otherStage?.name}</span>
-                                                            </button>
-                                                        )
-                                                    })}
-                                                    {allTasks.filter(t => t.id !== task.id).length === 0 && (
-                                                        <p className="text-[8px] text-muted-foreground/40 text-center py-2">Aucune autre tâche disponible</p>
-                                                    )}
+                                            <p className="text-[12px] leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                                            
+                                            {/* Public/Private Visual Indicator Badge */}
+                                            {msg.is_public && (
+                                                <div className={`absolute -bottom-2 ${isMe ? 'right-4' : 'left-4'} px-2 py-0.5 bg-green-500 text-[7px] font-black uppercase rounded-full text-white shadow-lg`}>
+                                                    Public
                                                 </div>
                                             )}
                                         </div>
-                                    )
-                                })}
+                                    </div>
+                                );
+                            })}
+                        </div>
 
-                                {/* Add task button */}
-                                <button
-                                    onClick={() => openNewTask(stage.id)}
-                                    className="w-full glass-panel rounded-[20px] p-3 border border-dashed border-white/10 text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:border-shop/40 hover:text-shop transition-all flex items-center justify-center gap-2"
-                                >
-                                    <Plus className="w-3.5 h-3.5" /> Ajouter une tâche
-                                </button>
+                        <div className="p-6 bg-black/40 border-t border-white/5">
+                            <div className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between px-2">
+                                    <div className="flex items-center gap-3">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setCommentIsPublic(!commentIsPublic)}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${commentIsPublic ? 'bg-green-500/10 border-green-500/30 text-green-400 shadow-[0_0_15px_rgba(34,197,94,0.2)]' : 'bg-white/5 border-white/10 text-muted-foreground opacity-50'}`}
+                                        >
+                                            {commentIsPublic ? <Globe className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                                            <span className="text-[9px] font-black uppercase tracking-widest">{commentIsPublic ? 'Visible par le client' : 'Interne (Équipe uniquement)'}</span>
+                                        </button>
+                                    </div>
+                                    <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Appuyez sur Entrée pour envoyer</p>
+                                </div>
+
+                                <div className="relative group">
+                                    <textarea 
+                                        rows={1}
+                                        placeholder={commentIsPublic ? "Écrire au client..." : "Écrire un message interne..."}
+                                        className={`w-full bg-white/5 border rounded-[24px] py-4 pl-6 pr-16 text-sm text-white placeholder:text-muted-foreground/30 outline-none transition-all resize-none max-h-32 shadow-inner ${commentIsPublic ? 'border-green-500/30 focus:border-green-500/50' : 'border-white/10 focus:border-shop/50'}`}
+                                        value={newProjectCommentText}
+                                        onChange={e => setNewProjectCommentText(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                e.preventDefault();
+                                                postProjectComment();
+                                            }
+                                        }}
+                                    />
+                                    <button 
+                                        onClick={() => postProjectComment()}
+                                        disabled={postingProjectComment || !newProjectCommentText.trim()}
+                                        className={`absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center hover:scale-110 disabled:opacity-50 disabled:hover:scale-100 transition-all shadow-xl ${commentIsPublic ? 'bg-green-500 shadow-green-500/20' : 'bg-shop shadow-shop/20'}`}
+                                    >
+                                        {postingProjectComment ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 text-white" />}
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    ))}
-
-                    {/* Add stage column */}
-                    <div className="w-72 flex-shrink-0">
-                        {addingStage ? (
-                            <div className="glass-panel rounded-[20px] p-4 border-white/5 space-y-3">
-                                <input
-                                    autoFocus
-                                    placeholder="Nom de l'étape..."
-                                    className="w-full bg-white/10 rounded-xl px-4 py-3 text-xs font-black outline-none focus:ring-1 ring-shop"
-                                    value={newStageName}
-                                    onChange={e => setNewStageName(e.target.value)}
-                                    onKeyDown={e => { if (e.key === 'Enter') addStage(); if (e.key === 'Escape') setAddingStage(false) }}
-                                />
-                                <div className="flex gap-2">
-                                    <button onClick={addStage} className="flex-1 py-2 bg-shop text-white text-[10px] font-black uppercase rounded-xl hover:bg-shop/80 transition-colors">Ajouter</button>
-                                    <button onClick={() => setAddingStage(false)} className="px-3 py-2 bg-white/5 text-muted-foreground text-[10px] rounded-xl hover:bg-white/10 transition-colors"><X className="w-3.5 h-3.5" /></button>
-                                </div>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={() => setAddingStage(true)}
-                                className="w-full h-16 glass-panel rounded-[20px] border border-dashed border-white/10 text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:border-shop/40 hover:text-shop transition-all flex items-center justify-center gap-2"
-                            >
-                                <Plus className="w-4 h-4" /> Nouvelle Étape
-                            </button>
-                        )}
                     </div>
-                </div>
                 ) : (
-                    // Finances View
-                    <div className="max-w-5xl mx-auto w-full animate-in fade-in duration-300">
-                        {loadingFinances ? (
-                            <div className="flex justify-center items-center py-20"><Loader2 className="w-10 h-10 animate-spin text-shop" /></div>
-                        ) : (
-                            <div className="space-y-10">
-                                {/* Metrics */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 text-center">
-                                    <div className="glass-panel p-6 rounded-[32px] border-white/5">
-                                        <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Budget</p>
-                                        <p className="text-3xl font-black text-white mt-2">{(project?.budget || 0).toLocaleString('fr-FR')} <span className="text-xl">CFA</span></p>
-                                    </div>
-                                    <div className="glass-panel p-6 rounded-[32px] border-green-400/20 bg-green-400/5">
-                                        <p className="text-[10px] font-black uppercase text-green-400 tracking-widest">Revenus</p>
-                                        <p className="text-3xl font-black text-green-400 mt-2">{finances.sales.reduce((sum: any, s: any) => sum + s.total_amount, 0).toLocaleString('fr-FR')} <span className="text-xl">CFA</span></p>
-                                    </div>
-                                    <div className="glass-panel p-6 rounded-[32px] border-red-400/20 bg-red-400/5">
-                                        <p className="text-[10px] font-black uppercase text-red-400 tracking-widest">Dépenses</p>
-                                        <p className="text-3xl font-black text-red-400 mt-2">{finances.expenses.reduce((sum: any, e: any) => sum + e.amount, 0).toLocaleString('fr-FR')} <span className="text-xl">CFA</span></p>
-                                    </div>
-                                    <div className="glass-panel p-6 rounded-[32px] border-shop/20 bg-shop/5">
-                                        <p className="text-[10px] font-black uppercase text-shop tracking-widest">Marge Nette</p>
-                                        <p className={`text-3xl font-black mt-2 ${ (finances.sales.reduce((s: any,c: any)=>s+c.total_amount,0) - finances.expenses.reduce((s: any,c: any)=>s+c.amount,0)) >= 0 ? 'text-shop' : 'text-red-400'}`}>
-                                            {(finances.sales.reduce((s: any,c: any)=>s+c.total_amount,0) - finances.expenses.reduce((s: any,c: any)=>s+c.amount,0)).toLocaleString('fr-FR')} <span className="text-xl">CFA</span>
-                                        </p>
-                                    </div>
+                    <div className="max-w-5xl mx-auto w-full space-y-10 animate-in fade-in duration-500">
+                        {loadingFinances ? <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-shop" /></div> : (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
+                                    <div className="glass-panel p-6 rounded-[32px] border-white/5"><p className="text-[10px] font-black uppercase text-muted-foreground">Revenus</p><p className="text-2xl font-black text-green-400 mt-2">{finances.sales.reduce((s,c)=>s+c.total_amount,0).toLocaleString()} CFA</p></div>
+                                    <div className="glass-panel p-6 rounded-[32px] border-white/5"><p className="text-[10px] font-black uppercase text-muted-foreground">Dépenses</p><p className="text-2xl font-black text-red-400 mt-2">{finances.expenses.reduce((s,c)=>s+c.amount,0).toLocaleString()} CFA</p></div>
+                                    <div className="glass-panel p-6 rounded-[32px] border-shop/20 bg-shop/5"><p className="text-[10px] font-black uppercase text-shop">Temps Passé</p><p className="text-2xl font-black text-white mt-2">{Math.floor(timeStats.totalSeconds / 3600)}h {Math.floor((timeStats.totalSeconds % 3600) / 60)}m</p></div>
+                                    <div className="glass-panel p-6 rounded-[32px] border-amber-500/20 bg-amber-500/5"><p className="text-[10px] font-black uppercase text-amber-500">Rentabilité</p><p className="text-2xl font-black text-white mt-2">{(finances.sales.reduce((s,c)=>s+c.total_amount,0) - finances.expenses.reduce((s,c)=>s+c.amount,0) - (Math.floor(timeStats.totalSeconds / 3600) * 15000)).toLocaleString()} CFA</p></div>
                                 </div>
 
-                                {/* Lists */}
-                                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                                    <div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest text-white mb-4 flex items-center gap-2"><ArrowUpRight className="w-4 h-4 text-green-400"/>Ventes / Factures</h3>
-                                        <div className="glass-panel rounded-[32px] border-white/5 p-4 space-y-2">
-                                            {finances.sales.length > 0 ? finances.sales.map((sale: any) => (
-                                                <div key={`sale-${sale.id}`} className="flex items-center justify-between p-3 bg-white/[0.03] rounded-2xl">
-                                                    <div className="text-xs">
-                                                        <p className="font-bold text-white">Vente #{sale.id}</p>
-                                                        <p className="text-muted-foreground text-[10px]">{new Date(sale.created_at).toLocaleDateString('fr-FR')}</p>
-                                                    </div>
-                                                    <p className="font-black text-green-400 text-sm">+{sale.total_amount.toLocaleString('fr-FR')} CFA</p>
-                                                </div>
-                                            )) : <p className="text-center text-xs text-muted-foreground/50 py-8">Aucune vente liée.</p>}
+                                <div className="flex justify-end px-4">
+                                    <button 
+                                        onClick={() => setIsInvoiceModalOpen(true)}
+                                        className="flex items-center gap-2 px-6 py-3 bg-shop text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
+                                    >
+                                        <FileText className="w-4 h-4" /> Générer Facture Automatique
+                                    </button>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><ArrowUpRight className="text-green-400 w-4 h-4"/>Ventes</h3>
+                                        <div className="glass-panel p-4 rounded-[32px] space-y-2">
+                                            {finances.sales.map(s => <div key={s.id} className="flex justify-between p-3 bg-white/5 rounded-2xl"><span className="text-xs font-bold text-white">#{s.id}</span><span className="text-xs font-black text-green-400">+{s.total_amount.toLocaleString()}</span></div>)}
                                         </div>
                                     </div>
-                                    <div>
-                                        <h3 className="text-sm font-black uppercase tracking-widest text-white mb-4 flex items-center gap-2"><ArrowDownRight className="w-4 h-4 text-red-400"/>Dépenses</h3>
-                                        <div className="glass-panel rounded-[32px] border-white/5 p-4 space-y-2">
-                                            {finances.expenses.length > 0 ? finances.expenses.map((expense: any) => (
-                                                <div key={`exp-${expense.id}`} className="flex items-center justify-between p-3 bg-white/[0.03] rounded-2xl">
-                                                    <div className="text-xs">
-                                                        <p className="font-bold text-white">{expense.description}</p>
-                                                        <p className="text-muted-foreground text-[10px]">{new Date(expense.date).toLocaleDateString('fr-FR')}</p>
-                                                    </div>
-                                                    <p className="font-black text-red-400 text-sm">-{expense.amount.toLocaleString('fr-FR')} CFA</p>
-                                                </div>
-                                            )) : <p className="text-center text-xs text-muted-foreground/50 py-8">Aucune dépense liée.</p>}
+                                    <div className="space-y-4">
+                                        <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><ArrowDownRight className="text-red-400 w-4 h-4"/>Dépenses</h3>
+                                        <div className="glass-panel p-4 rounded-[32px] space-y-2">
+                                            {finances.expenses.map(e => <div key={e.id} className="flex justify-between p-3 bg-white/5 rounded-2xl"><span className="text-xs font-bold text-white">{e.description}</span><span className="text-xs font-black text-red-400">-{e.amount.toLocaleString()}</span></div>)}
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </>
                         )}
                     </div>
                 )}
             </main>
 
-            {/* Task Edit/Create Modal */}
+            {/* Invoice Generation Modal */}
+            {isInvoiceModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/40">
+                    <div className="relative glass-card w-full max-w-2xl p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsInvoiceModalOpen(false)} className="absolute top-6 right-6 p-2 text-muted-foreground hover:text-white"><X className="w-6 h-6"/></button>
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center text-shop"><FileText className="w-6 h-6" /></div>
+                            <div>
+                                <h2 className="text-xl font-black uppercase tracking-tight">Générer Facture</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">Basé sur le budget et l'avancement</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div className="glass-panel p-6 rounded-3xl border-white/5 bg-white/[0.02]">
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-xs font-bold text-muted-foreground">Client</span>
+                                    <span className="text-xs font-black text-white">{project.customers?.name || 'Inconnu'}</span>
+                                </div>
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-xs font-bold text-muted-foreground">Projet</span>
+                                    <span className="text-xs font-black text-white">{project.name}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-4 border-t border-white/5">
+                                    <span className="text-sm font-black text-white uppercase">Montant Total</span>
+                                    <span className="text-xl font-black text-shop">{(project.budget || 0).toLocaleString()} CFA</span>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                <p className="text-[10px] font-black uppercase text-muted-foreground ml-2">Éléments inclus</p>
+                                <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-2">
+                                    {stages.map(s => (
+                                        <div key={s.id} className="flex items-center justify-between p-3 bg-white/5 rounded-2xl">
+                                            <span className="text-xs font-bold text-white">{s.name}</span>
+                                            { (s.tasks || []).every(t => t.status === 'done') && (s.tasks || []).length > 0 ? 
+                                                <span className="text-[8px] font-black bg-green-500/20 text-green-400 px-2 py-1 rounded-full uppercase">Terminé</span> :
+                                                <span className="text-[8px] font-black bg-white/5 text-muted-foreground px-2 py-1 rounded-full uppercase">En cours</span>
+                                            }
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button 
+                                    onClick={handleCreateInvoice}
+                                    disabled={generatingInvoice}
+                                    className="flex-1 py-5 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl flex items-center justify-center gap-2"
+                                >
+                                    {generatingInvoice ? <Loader2 className="w-4 h-4 animate-spin" /> : <Printer className="w-4 h-4" />}
+                                    Confirmer & Créer
+                                </button>
+                                <button 
+                                    onClick={() => setIsInvoiceModalOpen(false)}
+                                    className="px-8 py-5 bg-white/5 text-muted-foreground font-black uppercase tracking-widest rounded-3xl hover:bg-white/10 transition-all"
+                                >
+                                    Annuler
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Task Modal */}
             {isTaskModalOpen && selectedTask && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/40">
                     <div className="relative glass-card w-full max-w-4xl p-0 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200 flex flex-col md:flex-row max-h-[90vh] overflow-hidden">
                         <button onClick={() => setIsTaskModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full text-muted-foreground z-10"><X className="w-5 h-5" /></button>
-
-                        {/* Left Side: Form */}
                         <div className="flex-1 p-8 overflow-y-auto custom-scrollbar border-r border-white/5">
-                            <div className="mb-6">
-                                <h2 className="text-lg font-black uppercase tracking-tight">{selectedTask.id ? 'Modifier la tâche' : 'Nouvelle tâche'}</h2>
-                                <p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">
-                                    {stages.find(s => s.id === selectedTask.stage_id)?.name}
-                                </p>
-                            </div>
-
+                            <div className="mb-6"><h2 className="text-lg font-black uppercase tracking-tight">{selectedTask.id ? 'Modifier la tâche' : 'Nouvelle tâche'}</h2></div>
                             <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Titre *</label>
-                                    <input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:border-shop/50"
-                                        value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} />
-                                </div>
-
+                                <div className="space-y-2"><label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Titre</label><input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold text-white outline-none focus:border-shop/50" value={taskForm.title} onChange={e => setTaskForm({ ...taskForm, title: e.target.value })} /></div>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Statut</label>
-                                        <CustomDropdown
-                                            options={[
-                                                { label: 'À faire', value: 'todo', icon: <Circle className="w-4 h-4" /> },
-                                                { label: 'En cours', value: 'in_progress', icon: <Clock className="w-4 h-4" /> },
-                                                { label: 'Terminé', value: 'done', icon: <CheckCircle2 className="w-4 h-4" /> },
-                                            ]}
-                                            value={taskForm.status}
-                                            onChange={val => setTaskForm({ ...taskForm, status: val })}
-                                            searchable={false}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Priorité</label>
-                                        <CustomDropdown
-                                            options={[
-                                                { label: 'Basse', value: 'basse', icon: <Flag className="w-4 h-4 text-gray-400" /> },
-                                                { label: 'Normale', value: 'normale', icon: <Flag className="w-4 h-4 text-blue-400" /> },
-                                                { label: 'Haute', value: 'haute', icon: <Flag className="w-4 h-4 text-orange-400" /> },
-                                                { label: 'Urgente', value: 'urgente', icon: <Flag className="w-4 h-4 text-red-400" /> },
-                                            ]}
-                                            value={taskForm.priority}
-                                            onChange={val => setTaskForm({ ...taskForm, priority: val })}
-                                            searchable={false}
-                                        />
-                                    </div>
+                                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Statut</label><CustomDropdown options={[{ label: 'À faire', value: 'todo' }, { label: 'En cours', value: 'in_progress' }, { label: 'Terminé', value: 'done' }]} value={taskForm.status} onChange={v => setTaskForm({ ...taskForm, status: v })} /></div>
+                                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Priorité</label><CustomDropdown options={[{ label: 'Basse', value: 'basse' }, { label: 'Normale', value: 'normale' }, { label: 'Haute', value: 'haute' }, { label: 'Urgente', value: 'urgente' }]} value={taskForm.priority} onChange={v => setTaskForm({ ...taskForm, priority: v })} /></div>
                                 </div>
-
                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Assignation</label>
-                                        <CustomDropdown
-                                            options={[
-                                                { label: '— Non assigné —', value: '', icon: <User className="w-4 h-4" /> },
-                                                ...profiles.map(p => ({
-                                                    label: p.full_name || p.email || 'Sans nom',
-                                                    value: p.id,
-                                                    icon: <User className="w-4 h-4" />
-                                                }))
-                                            ]}
-                                            value={taskForm.assignee_id}
-                                            onChange={val => setTaskForm({ ...taskForm, assignee_id: val })}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Deadline</label>
-                                        <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:border-shop/50"
-                                            value={taskForm.deadline} onChange={e => setTaskForm({ ...taskForm, deadline: e.target.value })} />
-                                    </div>
+                                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Assignation</label><CustomDropdown options={[{ label: '— Non assigné —', value: '' }, ...profiles.map(p => ({ label: p.full_name || p.email || 'Sans nom', value: p.id }))]} value={taskForm.assignee_id} onChange={v => setTaskForm({ ...taskForm, assignee_id: v })} /></div>
+                                    <div className="space-y-2"><label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Deadline</label><input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold text-white outline-none focus:border-shop/50" value={taskForm.deadline} onChange={e => setTaskForm({ ...taskForm, deadline: e.target.value })} /></div>
                                 </div>
-
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Description</label>
-                                    <textarea rows={4} className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold outline-none focus:border-shop/50 resize-none"
-                                        value={taskForm.description} onChange={e => setTaskForm({ ...taskForm, description: e.target.value })} placeholder="Détails de la tâche..." />
-                                </div>
-
-                                <button onClick={saveTask} disabled={savingTask} className="w-full py-4 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl flex items-center justify-center gap-2">
-                                    {savingTask ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                    {savingTask ? 'Sauvegarde...' : 'Sauvegarder'}
-                                </button>
-                            </div>
+                                                                                                <div className="space-y-2">
+                                                                                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Description</label>
+                                                                                                    <textarea rows={4} className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 px-5 text-sm font-bold text-white outline-none focus:border-shop/50 resize-none" value={taskForm.description} onChange={e => setTaskForm({ ...taskForm, description: e.target.value })} />
+                                                                                                </div>
+                                                                
+                                                                                                                                {/* CATEGORIES & TAGS SECTION (DYNAMIC) */}
+                                                                                                                                <div className="p-6 bg-white/[0.03] rounded-[32px] border border-white/5 space-y-6">
+                                                                                                                                    <div className="grid grid-cols-2 gap-6">
+                                                                                                                                        {/* Category Management */}
+                                                                                                                                        <div className="space-y-2">
+                                                                                                                                            <div className="flex justify-between items-center ml-1 mb-1">
+                                                                                                                                                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Catégorie</label>
+                                                                                                                                                <button 
+                                                                                                                                                    type="button" 
+                                                                                                                                                    onClick={async () => {
+                                                                                                                                                        const name = prompt("Nouvelle catégorie ?");
+                                                                                                                                                        if (name) {
+                                                                                                                                                            await supabase.from('agency_task_categories').insert([{ name, shop_id: activeShop?.id }]);
+                                                                                                                                                            fetchAll();
+                                                                                                                                                        }
+                                                                                                                                                    }}
+                                                                                                                                                    className="text-[8px] font-black text-shop hover:underline uppercase"
+                                                                                                                                                >
+                                                                                                                                                    + Ajouter
+                                                                                                                                                </button>
+                                                                                                                                            </div>
+                                                                                                                                            <div className="relative group">
+                                                                                                                                                <CustomDropdown 
+                                                                                                                                                    options={taskCategories.map(c => ({ 
+                                                                                                                                                        label: c.name, 
+                                                                                                                                                        value: c.name, 
+                                                                                                                                                        icon: <span className="w-3 h-3 rounded-full" style={{ backgroundColor: c.color }} /> 
+                                                                                                                                                    }))}
+                                                                                                                                                    value={taskForm.category}
+                                                                                                                                                    onChange={v => setTaskForm({ ...taskForm, category: v })}
+                                                                                                                                                />
+                                                                                                                                                {taskForm.category && taskForm.category !== 'Général' && (
+                                                                                                                                                    <button 
+                                                                                                                                                        type="button"
+                                                                                                                                                        onClick={async (e) => {
+                                                                                                                                                            e.stopPropagation();
+                                                                                                                                                            if (confirm(`Supprimer la catégorie ${taskForm.category} ?`)) {
+                                                                                                                                                                await supabase.from('agency_task_categories').delete().eq('name', taskForm.category);
+                                                                                                                                                                setTaskForm({ ...taskForm, category: 'Général' });
+                                                                                                                                                                fetchAll();
+                                                                                                                                                            }
+                                                                                                                                                        }}
+                                                                                                                                                        className="absolute -right-2 -top-2 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-lg"
+                                                                                                                                                    >
+                                                                                                                                                        <X className="w-3 h-3" />
+                                                                                                                                                    </button>
+                                                                                                                                                )}
+                                                                                                                                            </div>
+                                                                                                                                        </div>
+                                                                                                
+                                                                                                                                        {/* Badge Management */}
+                                                                                                                                        <div className="space-y-2">
+                                                                                                                                            <div className="flex justify-between items-center ml-1 mb-1">
+                                                                                                                                                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Nouveau Badge</label>
+                                                                                                                                                <button 
+                                                                                                                                                    type="button"
+                                                                                                                                                    onClick={async () => {
+                                                                                                                                                        const name = prompt("Nom du nouveau badge ?");
+                                                                                                                                                        if (name) {
+                                                                                                                                                            await supabase.from('agency_task_badges').insert([{ name, shop_id: activeShop?.id }]);
+                                                                                                                                                            fetchAll();
+                                                                                                                                                        }
+                                                                                                                                                    }}
+                                                                                                                                                    className="text-[8px] font-black text-shop hover:underline uppercase"
+                                                                                                                                                >
+                                                                                                                                                    + Créer
+                                                                                                                                                </button>
+                                                                                                                                            </div>
+                                                                                                                                            <div className="flex flex-wrap gap-1.5 p-3 bg-white/5 border border-white/10 rounded-2xl max-h-32 overflow-y-auto custom-scrollbar shadow-inner">
+                                                                                                                                                {taskBadges.map(badge => {
+                                                                                                                                                    const isSelected = taskForm.tags.includes(badge.name);
+                                                                                                                                                    return (
+                                                                                                                                                        <button
+                                                                                                                                                            key={badge.id}
+                                                                                                                                                            type="button"
+                                                                                                                                                            onClick={() => {
+                                                                                                                                                                const newTags = isSelected 
+                                                                                                                                                                    ? taskForm.tags.filter(t => t !== badge.name)
+                                                                                                                                                                    : [...taskForm.tags, badge.name];
+                                                                                                                                                                setTaskForm({ ...taskForm, tags: newTags });
+                                                                                                                                                            }}
+                                                                                                                                                            onContextMenu={async (e) => {
+                                                                                                                                                                e.preventDefault();
+                                                                                                                                                                if (confirm(`Supprimer définitivement le badge ${badge.name} ?`)) {
+                                                                                                                                                                    await supabase.from('agency_task_badges').delete().eq('id', badge.id);
+                                                                                                                                                                    fetchAll();
+                                                                                                                                                                }
+                                                                                                                                                            }}
+                                                                                                                                                            className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase transition-all border ${
+                                                                                                                                                                isSelected 
+                                                                                                                                                                ? 'bg-shop border-shop text-white shadow-lg' 
+                                                                                                                                                                : 'bg-white/5 border-white/10 text-muted-foreground hover:border-white/20'
+                                                                                                                                                            }`}
+                                                                                                                                                            title="Clic droit pour supprimer de la liste"
+                                                                                                                                                        >
+                                                                                                                                                            {badge.name}
+                                                                                                                                                        </button>
+                                                                                                                                                    );
+                                                                                                                                                })}
+                                                                                                                                                {taskBadges.length === 0 && <p className="text-[8px] text-muted-foreground italic p-2">Aucun badge configuré</p>}
+                                                                                                                                            </div>
+                                                                                                                                        </div>
+                                                                                                                                    </div>
+                                                                                                                                </div>
+                                                                                                                                                                                                <button onClick={saveTask} disabled={savingTask} className="w-full py-4 bg-white text-black font-black uppercase rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl">{savingTask ? 'Sauvegarde...' : 'Sauvegarder'}</button>
+                                                                
+                                                                                                </div>
                         </div>
-
-                        {/* Right Side: Comments (Only show if editing existing task) */}
-                        {selectedTask.id ? (
+                        {selectedTask.id && (
                             <div className="w-full md:w-96 bg-black/20 flex flex-col relative h-96 md:h-auto">
-                                <div className="p-6 border-b border-white/5 flex-shrink-0">
-                                    <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                                        <MessageSquare className="w-4 h-4 text-shop" /> Discussion
-                                    </h3>
-                                </div>
-                                
-                                {/* Comments List */}
+                                <div className="p-6 border-b border-white/5 flex-shrink-0"><h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2"><MessageSquare className="w-4 h-4 text-shop" /> Discussion</h3></div>
                                 <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
-                                    {loadingComments ? (
-                                        <div className="flex items-center justify-center h-full opacity-50">
-                                            <Loader2 className="w-6 h-6 animate-spin text-shop" />
+                                    {loadingComments ? <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-shop" /></div> : taskComments.map(c => (
+                                        <div key={c.id} className="flex gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-shop/20 text-shop border border-shop/30 flex items-center justify-center text-[10px] font-black uppercase">{c.profiles?.full_name?.charAt(0) || '?'}</div>
+                                            <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex-1"><p className="text-xs text-muted-foreground">{c.content}</p></div>
                                         </div>
-                                    ) : taskComments.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center h-full text-center space-y-2 opacity-30">
-                                            <MessageSquare className="w-8 h-8" />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">Aucun commentaire</p>
-                                        </div>
-                                    ) : (
-                                        taskComments.map(comment => (
-                                            <div key={comment.id} className="flex gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-shop/20 text-shop border border-shop/30 flex items-center justify-center text-[10px] font-black uppercase flex-shrink-0">
-                                                    {comment.profiles?.full_name ? comment.profiles.full_name.charAt(0) : comment.profiles?.email?.charAt(0) || '?'}
-                                                </div>
-                                                <div className="bg-white/5 border border-white/5 rounded-2xl rounded-tl-none p-3 flex-1">
-                                                    <div className="flex items-center justify-between mb-1">
-                                                        <span className="text-[10px] font-bold text-white">
-                                                            {comment.profiles?.full_name?.split(' ')[0] || comment.profiles?.email?.split('@')[0] || 'Utilisateur'}
-                                                        </span>
-                                                        <span className="text-[8px] text-muted-foreground">
-                                                            {new Date(comment.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">{comment.content}</p>
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
+                                    ))}
                                 </div>
-
-                                {/* Comment Input */}
-                                <div className="p-4 border-t border-white/5 bg-black/40 flex-shrink-0">
-                                    <div className="relative flex items-center">
-                                        <input
-                                            type="text"
-                                            placeholder="Écrire un commentaire..."
-                                            className="w-full bg-white/5 border border-white/10 rounded-full py-3 pl-4 pr-12 text-sm outline-none focus:border-shop/50"
-                                            value={newCommentText}
-                                            onChange={e => setNewCommentText(e.target.value)}
-                                            onKeyDown={e => {
-                                                if (e.key === 'Enter' && !e.shiftKey) {
-                                                    e.preventDefault();
-                                                    postComment();
-                                                }
-                                            }}
-                                        />
-                                        <button 
-                                            onClick={postComment}
-                                            disabled={postingComment || !newCommentText.trim()}
-                                            className="absolute right-2 p-1.5 bg-shop text-white rounded-full hover:scale-110 disabled:opacity-50 disabled:hover:scale-100 transition-all"
-                                        >
-                                            {postingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="hidden md:flex w-96 bg-black/20 flex-col items-center justify-center border-l border-white/5 p-8 text-center">
-                                <MessageSquare className="w-12 h-12 text-muted-foreground/20 mb-4" />
-                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                                    Créez la tâche pour<br/>débloquer la discussion
-                                </p>
+                                <div className="p-4 border-t border-white/5 bg-black/40"><div className="relative flex items-center"><input type="text" placeholder="Commentaire..." className="w-full bg-white/5 border border-white/10 rounded-full py-3 pl-4 pr-12 text-sm outline-none focus:border-shop/50" value={newCommentText} onChange={e => setNewCommentText(e.target.value)} onKeyDown={e => e.key === 'Enter' && postComment()} /><button onClick={postComment} disabled={postingComment} className="absolute right-2 p-1.5 bg-shop text-white rounded-full transition-all">{postingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}</button></div></div>
                             </div>
                         )}
                     </div>
                 </div>
             )}
 
-            {/* Edit Project Modal */}
+            {/* Project Edit Modal */}
             {isEditProjectModalOpen && editingProjectForm && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md bg-black/40">
-                    <div className="relative glass-card w-full max-w-2xl p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
-                        <button onClick={() => setIsEditProjectModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full text-muted-foreground"><X className="w-6 h-6" /></button>
-                        <div className="flex items-center space-x-4 mb-8">
-                            <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center text-shop">
-                                <FolderKanban className="w-6 h-6" />
+                    <div className="relative glass-card w-full max-w-2xl p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsEditProjectModalOpen(false)} className="absolute top-6 right-6 p-2 text-muted-foreground hover:text-white"><X className="w-6 h-6"/></button>
+                        <h2 className="text-xl font-black uppercase tracking-tight mb-8">Modifier le Projet</h2>
+                        <form onSubmit={handleUpdateProject} className="space-y-5">
+                            <div className="space-y-2"><label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Nom du projet</label><input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold text-white outline-none focus:border-shop/50" value={editingProjectForm.name} onChange={e => setEditingProjectForm({ ...editingProjectForm, name: e.target.value })} /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2"><label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Status</label><CustomDropdown options={[{label:'Planifié', value:'planifie'}, {label:'En cours', value:'en_cours'}, {label:'Terminé', value:'termine'}, {label:'Annulé', value:'annule'}]} value={editingProjectForm.status} onChange={v => setEditingProjectForm({ ...editingProjectForm, status: v })} /></div>
+                                <div className="space-y-2"><label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Budget</label><input type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold text-white outline-none focus:border-shop/50" value={editingProjectForm.budget} onChange={e => setEditingProjectForm({ ...editingProjectForm, budget: e.target.value })} /></div>
+                            </div>
+                            <button type="submit" disabled={savingProject} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl">{savingProject ? 'Chargement...' : 'Enregistrer'}</button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Share Project Modal */}
+            {isShareModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-xl bg-black/40 animate-in fade-in duration-300">
+                    <div className="relative glass-card w-full max-w-md p-10 rounded-[48px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsShareModalOpen(false)} className="absolute top-8 right-8 p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all text-muted-foreground hover:text-white"><X className="w-6 h-6"/></button>
+                        
+                        <div className="flex items-center space-x-5 mb-10">
+                            <div className="w-16 h-16 bg-shop/20 text-shop border border-shop/20 rounded-3xl flex items-center justify-center shadow-2xl">
+                                <Globe className="w-8 h-8" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-black uppercase tracking-tight">Modifier le Projet</h2>
-                                <p className="text-[10px] text-muted-foreground font-bold tracking-widest uppercase">Édition d'un projet existant</p>
+                                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Portail Client</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold tracking-[0.2em] uppercase mt-1">Lien de suivi public</p>
                             </div>
                         </div>
 
-                        <form onSubmit={handleUpdateProject} className="space-y-5">
-                            {/* Name */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nom du projet *</label>
-                                <input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50"
-                                    value={editingProjectForm.name} onChange={e => setEditingProjectForm({ ...editingProjectForm, name: e.target.value })} />
-                            </div>
-
-                            {/* Type + Status */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Type</label>
-                                    <CustomDropdown
-                                        options={[
-                                            { label: '👤 Client', value: 'client' },
-                                            { label: '🏢 Agence', value: 'agence' },
-                                        ]}
-                                        value={editingProjectForm.type}
-                                        onChange={val => setEditingProjectForm({ ...editingProjectForm, type: val })}
-                                        searchable={false}
-                                    />
+                        <div className="space-y-8 text-center">
+                            <div className="p-6 bg-white/[0.02] border border-white/5 rounded-[32px] space-y-4">
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Partagez ce lien secret avec votre client. Il pourra suivre la **Roadmap**, le **Mind Map** et le **Gantt** en direct.
+                                </p>
+                                <div className="p-4 bg-black/40 rounded-2xl border border-white/10 flex flex-col gap-3">
+                                    <div className="break-all text-[10px] font-mono text-shop/80">
+                                        {`${typeof window !== 'undefined' ? window.location.origin : ''}/projects/share/${project?.access_token}`}
+                                    </div>
+                                    <button onClick={handleRegenerateToken} className="text-[8px] font-black uppercase text-muted-foreground hover:text-red-400 transition-colors flex items-center justify-center gap-1">
+                                        <RefreshCcw className="w-2.5 h-2.5" /> Régénérer le code secret
+                                    </button>
                                 </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Statut</label>
-                                    <CustomDropdown
-                                        options={[
-                                            { label: 'Planifié', value: 'planifie', icon: <PauseCircle className="w-4 h-4" /> },
-                                            { label: 'En cours', value: 'en_cours', icon: <Clock className="w-4 h-4" /> },
-                                            { label: 'Terminé', value: 'termine', icon: <CheckCircle2 className="w-4 h-4" /> },
-                                            { label: 'Annulé', value: 'annule', icon: <XCircle className="w-4 h-4" /> },
-                                        ]}
-                                        value={editingProjectForm.status}
-                                        onChange={val => setEditingProjectForm({ ...editingProjectForm, status: val })}
-                                        searchable={false}
-                                    />
+                                <div className="p-3 bg-amber-500/5 border border-amber-500/10 rounded-xl">
+                                    <p className="text-[8px] font-black uppercase text-amber-500 flex items-center justify-center gap-1.5">
+                                        <Lock className="w-3 h-3" /> Sécurité Automatique : L'accès sera coupé dès que le projet passera en "Terminé".
+                                    </p>
                                 </div>
                             </div>
 
-                            {/* Client */}
-                            {editingProjectForm.type === 'client' && (
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Client</label>
-                                    <CustomDropdown
-                                        options={[
-                                            { label: '— Sélectionner un client —', value: '' },
-                                            ...customers.map(c => ({
-                                                label: c.name,
-                                                value: c.id,
-                                                icon: <User className="w-4 h-4" />
-                                            }))
-                                        ]}
-                                        value={editingProjectForm.client_id || ''}
-                                        onChange={val => setEditingProjectForm({ ...editingProjectForm, client_id: val || null })}
-                                    />
-                                </div>
-                            )}
-
-                            {/* Budget */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Budget (FCFA)</label>
-                                <input type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50"
-                                    value={editingProjectForm.budget} onChange={e => setEditingProjectForm({ ...editingProjectForm, budget: e.target.value })} placeholder="Ex: 500000" />
-                            </div>
-
-                            {/* Dates */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Date de début</label>
-                                    <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50"
-                                        value={editingProjectForm.start_date || ''} onChange={e => setEditingProjectForm({ ...editingProjectForm, start_date: e.target.value })} />
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Date de fin</label>
-                                    <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50"
-                                        value={editingProjectForm.end_date || ''} onChange={e => setEditingProjectForm({ ...editingProjectForm, end_date: e.target.value })} />
-                                </div>
-                            </div>
-
-                            {/* Description */}
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Description</label>
-                                <textarea rows={3} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 resize-none"
-                                    value={editingProjectForm.description || ''} onChange={e => setEditingProjectForm({ ...editingProjectForm, description: e.target.value })} placeholder="Décrivez le projet..." />
-                            </div>
-
-                            <div className="flex items-center gap-4 pt-4">
-                                <button type="submit" disabled={savingProject} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl flex items-center justify-center gap-2">
-                                    {savingProject ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                    {savingProject ? 'Sauvegarde...' : 'Sauvegarder'}
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={handleDeleteProject}
-                                    className="p-5 bg-red-500/10 text-red-400 rounded-3xl hover:bg-red-500 hover:text-white transition-all shadow-xl flex items-center justify-center"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={handleArchiveProject}
-                                    className="p-5 bg-yellow-500/10 text-yellow-400 rounded-3xl hover:bg-yellow-500 hover:text-white transition-all shadow-xl flex items-center justify-center"
-                                >
-                                    <Archive className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </form>
+                            <button 
+                                onClick={handleCopyLink}
+                                className="w-full py-6 bg-white text-black hover:bg-shop hover:text-white rounded-[28px] text-xs font-black uppercase tracking-widest shadow-2xl transition-all active:scale-95 flex items-center justify-center space-x-3"
+                            >
+                                <Plus className="w-5 h-5" />
+                                <span>Copier le lien secret</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

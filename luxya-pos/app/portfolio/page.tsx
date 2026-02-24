@@ -9,13 +9,23 @@ import {
 import { createClient } from '@/utils/supabase/client'
 import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
+import { useUser } from '@/context/UserContext'
+import { redirect } from 'next/navigation'
 import { API_URL } from '@/utils/api'
 import CustomDropdown from '@/components/CustomDropdown'
 
 export default function AgencyPortfolioPage() {
     const supabase = useMemo(() => createClient(), [])
     const { activeShop } = useShop()
+    const { profile, loading: profileLoading } = useUser()
     const { showToast } = useToast()
+
+    // 🔐 Access Control
+    useEffect(() => {
+        if (!profileLoading && profile?.role !== 'admin' && profile?.role !== 'manager' && profile?.role !== 'lead') {
+            redirect('/sales?error=unauthorized_portfolio')
+        }
+    }, [profile, profileLoading])
 
     const [customers, setCustomers] = useState<any[]>([])
     const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)

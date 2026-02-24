@@ -78,12 +78,14 @@ export default function ExpensesPage() {
     ]
 
     useEffect(() => {
-        if (profile?.role === 'cashier') {
-            redirect('/')
+        if (!profileLoading && profile?.role !== 'admin' && profile?.role !== 'manager') {
+            redirect('/sales?error=unauthorized_expenses')
         }
-        fetchExpenses()
-        fetchProjects()
-    }, [activeShop, profile])
+        if (profile) {
+            fetchExpenses()
+            fetchProjects()
+        }
+    }, [activeShop, profile, profileLoading])
 
     const fetchProjects = async () => {
         const { data } = await supabase.from('agency_projects').select('id, name').order('name');

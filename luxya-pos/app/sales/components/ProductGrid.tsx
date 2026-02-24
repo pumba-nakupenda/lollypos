@@ -28,7 +28,7 @@ export default function ProductGrid({
     brands, selectedBrand, setSelectedBrand,
     addToCart, imageErrors, setImageErrors
 }: ProductGridProps) {
-    
+
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (p.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -109,6 +109,7 @@ export default function ProductGrid({
                                             src={p.image}
                                             alt={p.name}
                                             fill
+                                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                                             className="object-cover group-hover:scale-110 transition-transform duration-700"
                                             onError={() => setImageErrors(prev => ({ ...prev, [p.id]: true }))}
                                         />
