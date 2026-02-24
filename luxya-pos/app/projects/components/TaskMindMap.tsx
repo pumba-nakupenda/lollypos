@@ -16,7 +16,7 @@ interface Task {
     category?: string;
     tags?: string[];
     _blocked?: boolean;
-    _assignee?: { full_name: string | null; email: string | null } | null;
+    _assignee?: { id: string; full_name: string | null; email: string | null } | null;
 }
 
 interface Stage {
