@@ -258,22 +258,27 @@ export default async function Home(props: {
                                 tags={["Smartphones", "Accessoires", "Audio"]}
                             />
 
-                            <div className="bg-white p-6 shadow-xl border border-gray-100 rounded-xl relative overflow-hidden group">
+                            <div className="bg-white p-6 sm:p-8 shadow-xl border border-gray-100 rounded-[32px] relative overflow-hidden group flex flex-col h-full">
                                 <div className="absolute top-0 right-0 p-4 text-[#FF9900]/5 group-hover:text-[#FF9900]/10 transition-colors">
-                                    <TrendingUp className="w-20 h-20 rotate-12" />
+                                    <TrendingUp className="w-24 h-24 rotate-12" />
                                 </div>
-                                <h3 className="text-xl font-black italic mb-4 uppercase tracking-tighter">Populaires</h3>
-                                <div className="grid grid-cols-2 gap-3 relative z-10">
+                                <h3 className="text-2xl sm:text-3xl font-black italic mb-6 uppercase tracking-tighter relative z-10">Populaires</h3>
+                                <div className="flex-1 flex flex-col gap-4 relative z-10 justify-center">
                                     {filteredProducts.slice(0, 4).map((p: any) => (
-                                        <Link key={p.id} href={`/product/${p.id}`} className="group/item block">
-                                            <div className="aspect-square relative mb-1 overflow-hidden bg-gray-50 rounded-lg border border-gray-100">
-                                                {p.image ? <Image src={p.image} alt={p.name} fill className="object-contain p-2 group-hover/item:scale-110 transition-transform" /> : <ShoppingBag className="w-6 h-6 m-auto text-gray-200" />}
+                                        <Link key={p.id} href={`/product/${p.id}`} className="group/item flex items-center space-x-4 bg-gray-50/50 hover:bg-gray-50 p-2 rounded-2xl transition-colors border border-transparent hover:border-gray-100">
+                                            <div className="w-16 h-16 relative shrink-0 overflow-hidden bg-white rounded-xl border border-gray-100 shadow-sm">
+                                                {p.image ? <Image src={p.image} alt={p.name} fill sizes="64px" className="object-contain p-1.5 group-hover/item:scale-110 transition-transform" /> : <ShoppingBag className="w-6 h-6 m-auto text-gray-200" />}
                                             </div>
-                                            <p className="text-[9px] font-bold text-gray-600 truncate uppercase">{p.name}</p>
+                                            <div className="flex-1 min-w-0 pr-2">
+                                                <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tighter">{p.name}</p>
+                                                {p.price && <p className="text-[10px] font-black text-lolly mt-1">{p.price.toLocaleString('fr-FR')} CFA</p>}
+                                            </div>
                                         </Link>
                                     ))}
                                 </div>
-                                <Link href="/?sort=best" className="mt-4 block text-[10px] font-black text-[#007185] uppercase tracking-widest hover:underline">Tout voir</Link>
+                                <Link href="/?sort=best" className="mt-6 w-full py-3.5 bg-gray-50 hover:bg-gray-100 rounded-xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center transition-all text-gray-900 active:scale-95 group-hover:shadow-sm relative z-10 border border-gray-100">
+                                    Tout voir
+                                </Link>
                             </div>
 
                             <div className="bg-white p-6 shadow-xl border border-gray-100 rounded-xl flex flex-col h-full bg-gradient-to-br from-white to-yellow-50/30">
