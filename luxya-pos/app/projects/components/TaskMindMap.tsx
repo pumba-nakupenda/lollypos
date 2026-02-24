@@ -5,16 +5,16 @@ import { Zap, Link2, Sparkles, X, Plus, Globe, Move, Trash2 } from 'lucide-react
 
 interface Task {
     id: string;
-    title: string;
-    status: string;
-    description?: string | null;
-    priority?: string;
-    deadline?: string | null;
     stage_id: string;
+    title: string;
+    description: string | null;
+    status: 'todo' | 'in_progress' | 'done';
+    priority: 'basse' | 'normale' | 'haute' | 'urgente';
+    assignee_id: string | null;
+    deadline: string | null;
+    position: number;
     category?: string;
     tags?: string[];
-    assignee_id?: string | null;
-    position?: number;
     _blocked?: boolean;
     _assignee?: { full_name: string | null; email: string | null } | null;
 }
