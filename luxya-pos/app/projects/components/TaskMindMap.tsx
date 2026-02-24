@@ -13,6 +13,8 @@ interface Task {
     stage_id: string;
     category?: string;
     tags?: string[];
+    assignee_id?: string | null;
+    position?: number;
     _blocked?: boolean;
     _assignee?: { full_name: string | null; email: string | null } | null;
 }
