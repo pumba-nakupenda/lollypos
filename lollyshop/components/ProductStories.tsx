@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ShoppingBag } from 'lucide-react';
 
 interface ProductStoriesProps {
     products: any[];
@@ -58,13 +58,12 @@ export default function ProductStories({ products }: ProductStoriesProps) {
                             <motion.div
                                 whileHover={{ scale: 1.08 }}
                                 whileTap={{ scale: 0.92 }}
-                                className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[3.5px] mb-3 shadow-xl transition-all ${
-                                    product.hasPromo 
-                                    ? "bg-gradient-to-tr from-[#fde700] via-[#ff5f6d] to-[#ffc371]" 
-                                    : product.isFeatured
-                                    ? "bg-gradient-to-tr from-blue-400 via-purple-500 to-pink-500"
-                                    : "bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-300"
-                                }`}
+                                className={`relative w-20 h-20 sm:w-24 sm:h-24 rounded-full p-[3.5px] mb-3 shadow-xl transition-all ${product.hasPromo
+                                        ? "bg-gradient-to-tr from-[#fde700] via-[#ff5f6d] to-[#ffc371]"
+                                        : product.isFeatured
+                                            ? "bg-gradient-to-tr from-blue-400 via-purple-500 to-pink-500"
+                                            : "bg-gradient-to-tr from-gray-200 via-gray-100 to-gray-300"
+                                    }`}
                             >
                                 <div className="w-full h-full rounded-full bg-white p-[2px]">
                                     <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-50 border border-gray-100 flex items-center justify-center group-hover:bg-white transition-colors">
@@ -100,9 +99,8 @@ export default function ProductStories({ products }: ProductStoriesProps) {
                                 <span className="block text-[10px] font-black text-gray-900 truncate uppercase tracking-tighter">
                                     {product.name.split(' ')[0]}
                                 </span>
-                                <span className={`block text-[7px] font-bold uppercase tracking-widest rounded-md py-0.5 ${
-                                    product.hasPromo ? "text-red-600 bg-red-50" : product.isFeatured ? "text-lolly bg-yellow-50" : "text-[#007185] bg-cyan-50"
-                                }`}>
+                                <span className={`block text-[7px] font-bold uppercase tracking-widest rounded-md py-0.5 ${product.hasPromo ? "text-red-600 bg-red-50" : product.isFeatured ? "text-lolly bg-yellow-50" : "text-[#007185] bg-cyan-50"
+                                    }`}>
                                     {product.hasPromo ? "OFFRE FLASH" : product.isFeatured ? "TOP VENTE" : "NOUVEAUTÉ"}
                                 </span>
                             </div>
