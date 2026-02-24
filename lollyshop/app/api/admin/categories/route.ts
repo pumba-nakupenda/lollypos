@@ -16,7 +16,7 @@ export async function GET(req: Request) {
 
         let query = supabase
             .from('products')
-            .select('category', { distinct: true })
+            .select('category')
             .neq('show_on_website', false);
 
         if (shopId && shopId !== 'all') {
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 
         if (error) throw error;
 
-        const categories = data.map((item: any) => item.category).filter(Boolean).sort();
+        const categories = [...new Set(data.map((item: any) => item.category).filter(Boolean))].sort();
 
         return NextResponse.json(categories);
     } catch (error: any) {
