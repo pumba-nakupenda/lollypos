@@ -61,6 +61,8 @@ type TaskLink = { from_task_id: string; to_task_id: string }
 
 type ProjectComment = {
     id: string; project_id: string; user_id: string; content: string; created_at: string; is_public?: boolean;
+    type?: 'project' | 'task';
+    taskTitle?: string;
     profiles?: { full_name: string | null; email: string | null } | null
 }
 
