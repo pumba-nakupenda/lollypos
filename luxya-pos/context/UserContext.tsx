@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
 
-export type UserRole = 'admin' | 'manager' | 'cashier'
+export type UserRole = 'admin' | 'manager' | 'lead' | 'inventory' | 'cashier' | 'client'
 export type UserAppType = 'staff' | 'client'
 
 export interface UserProfile {

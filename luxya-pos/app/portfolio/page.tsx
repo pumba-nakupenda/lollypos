@@ -22,7 +22,8 @@ export default function AgencyPortfolioPage() {
 
     // 🔐 Access Control
     useEffect(() => {
-        if (!profileLoading && profile?.role !== 'admin' && profile?.role !== 'manager' && profile?.role !== 'lead') {
+        const role = profile?.role as string;
+        if (!profileLoading && role !== 'admin' && role !== 'manager' && role !== 'lead') {
             redirect('/sales?error=unauthorized_portfolio')
         }
     }, [profile, profileLoading])
