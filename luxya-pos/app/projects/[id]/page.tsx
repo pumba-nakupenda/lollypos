@@ -783,8 +783,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                             <span className="text-[8px] font-bold text-muted-foreground uppercase opacity-40">
                                                 {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                             </span>
-                                            {msg.is_public && <Globe className="w-3 h-3 text-green-500" title="Visible par le client" />}
-                                            {!msg.is_public && !isClient && <Lock className="w-3 h-3 text-muted-foreground/30" title="Message interne" />}
+                                            {msg.is_public && <span title="Visible par le client"><Globe className="w-3 h-3 text-green-500" /></span>}
+                                            {!msg.is_public && !isClient && <span title="Message interne"><Lock className="w-3 h-3 text-muted-foreground/30" /></span>}
                                         </div>
 
                                         {/* Message Bubble */}
