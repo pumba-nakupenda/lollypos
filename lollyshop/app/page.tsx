@@ -15,6 +15,8 @@ import PriceSlider from "@/components/PriceSlider";
 import ProductStories from "@/components/ProductStories";
 import CategoryQuickBar from "@/components/CategoryQuickBar";
 
+export const dynamic = 'force-dynamic';
+
 async function getProducts(filters: {
     page?: number,
     shopId?: string,
@@ -255,7 +257,7 @@ export default async function Home(props: {
                                 hexColor="#3b82f6"
                                 tags={["Smartphones", "Accessoires", "Audio"]}
                             />
-                            
+
                             <div className="bg-white p-6 shadow-xl border border-gray-100 rounded-xl relative overflow-hidden group">
                                 <div className="absolute top-0 right-0 p-4 text-[#FF9900]/5 group-hover:text-[#FF9900]/10 transition-colors">
                                     <TrendingUp className="w-20 h-20 rotate-12" />
@@ -459,7 +461,7 @@ function UniverseEntry({ title, sub, href, img, hexColor, tags }: any) {
             <div className="p-6 sm:p-8 flex-1 flex flex-col">
                 <h3 className="text-2xl sm:text-3xl font-black italic mb-1 uppercase tracking-tighter leading-none">{title}</h3>
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-6" style={{ color: hexColor }}>{sub}</p>
-                
+
                 <div className="relative flex-1 mb-6 overflow-hidden rounded-[24px] min-h-[220px] bg-gray-50 shadow-inner">
                     <Image src={img} alt={title} fill className="object-cover group-hover:scale-110 transition-transform duration-[2000ms]" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -467,8 +469,8 @@ function UniverseEntry({ title, sub, href, img, hexColor, tags }: any) {
 
                 <div className="flex flex-wrap gap-2 mb-6">
                     {tags?.map((tag: string) => (
-                        <Link 
-                            key={tag} 
+                        <Link
+                            key={tag}
                             href={`${href}&cat=${tag}`}
                             className="px-3 py-1.5 bg-gray-50 hover:bg-white border border-gray-100 hover:border-gray-200 rounded-full text-[9px] font-black uppercase tracking-widest text-gray-500 hover:text-black transition-all"
                         >
@@ -481,7 +483,7 @@ function UniverseEntry({ title, sub, href, img, hexColor, tags }: any) {
                     EXPLORER <ArrowRight className="w-4 h-4 ml-3 group-hover:translate-x-2 transition-transform" />
                 </Link>
             </div>
-            
+
             <div className="absolute -right-20 -bottom-20 w-64 h-64 opacity-0 group-hover:opacity-10 transition-opacity duration-700 rounded-full blur-3xl pointer-events-none" style={{ backgroundColor: hexColor }} />
         </div>
     );
