@@ -46,8 +46,9 @@ export const updateSession = async (request: NextRequest) => {
 
         // protected routes
         const isApiRoute = request.nextUrl.pathname.startsWith("/api");
+        const isSharePage = request.nextUrl.pathname.startsWith("/projects/share/");
 
-        if (request.nextUrl.pathname.startsWith("/") && !isApiRoute && !user && request.nextUrl.pathname !== "/login") {
+        if (request.nextUrl.pathname.startsWith("/") && !isApiRoute && !isSharePage && !user && request.nextUrl.pathname !== "/login") {
             return NextResponse.redirect(new URL("/login", request.url));
         }
 
