@@ -261,7 +261,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                                         const file = item.getAsFile();
                                         if (file) {
                                             const url = URL.createObjectURL(file);
-                                            setPreviewUrl(url);
+                                            setPreview(url);
                                             setIsImageDeleted(false);
                                             setPastedMainFile(file);
                                             showToast("Image principale collée !", "success");
