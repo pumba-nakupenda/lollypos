@@ -159,14 +159,44 @@ export default function CreateProductButton() {
         formData.set('category', newCategoryMode ? customCategory : selectedCategory)
         formData.set('brand', newBrandMode ? customBrand : selectedBrand)
 
-        const originalImage = formData.get('image') as File | null;
-        if (originalImage && originalImage.size > 0 && typeof originalImage !== 'string') formData.set('image', await compressImage(originalImage))
+        // Compression en parallèle pour gagner en vitesse
+        const compressionPromises: Promise<void>[] = []
 
+        // Image principale
+        const originalImage = formData.get('image') as File | null;
+        if (originalImage && originalImage.size > 0 && typeof originalImage !== 'string') {
+            compressionPromises.push(
+                compressImage(originalImage).then(compressed => {
+                    formData.set('image', compressed)
+                })
+            )
+        }
+
+        // Galerie
         const galleryFiles = formData.getAll('gallery') as File[];
         formData.delete('gallery');
-        for (const file of galleryFiles) if (file && file.size > 0 && typeof file !== 'string') formData.append('gallery', await compressImage(file));
+        if (galleryFiles.length > 0) {
+            const galleryCompressed = Promise.all(
+                galleryFiles
+                    .filter(file => file && file.size > 0 && typeof file !== 'string')
+                    .map(file => compressImage(file))
+            ).then(compressedFiles => {
+                compressedFiles.forEach(file => formData.append('gallery', file))
+            })
+            compressionPromises.push(galleryCompressed)
+        }
 
-        for (const [id, file] of Object.entries(variantFiles)) formData.append(`variant_image_${id}`, await compressImage(file))
+        // Variantes
+        for (const [id, file] of Object.entries(variantFiles)) {
+            compressionPromises.push(
+                compressImage(file).then(compressed => {
+                    formData.set(`variant_image_${id}`, compressed)
+                })
+            )
+        }
+
+        // Attendre que toutes les compressions soient finies
+        await Promise.all(compressionPromises)
 
         const result = await createProduct(formData)
         if (result?.error) setError(result.error)

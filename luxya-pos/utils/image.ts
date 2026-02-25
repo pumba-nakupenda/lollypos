@@ -21,25 +21,24 @@ export async function compressImage(file: File, maxWidth = 1200, quality = 0.8):
                 const ctx = canvas.getContext('2d');
                 ctx?.drawImage(img, 0, 0, width, height);
 
-                // Forcer l'encodage en AVIF
+                // Forcer l'encodage en WebP pour une meilleure performance
                 canvas.toBlob(
                     (blob) => {
                         if (blob) {
-                            // Supprimer l'ancienne extension et ajouter .avif
+                            // Supprimer l'ancienne extension et ajouter .webp
                             const orgName = file.name ? file.name.split('.').slice(0, -1).join('.') : 'image';
-                            const newFilename = orgName ? `${orgName}.avif` : 'image.avif';
+                            const newFilename = orgName ? `${orgName}.webp` : 'image.webp';
                             const newFile = new File([blob], newFilename, {
-                                type: 'image/avif',
+                                type: 'image/webp',
                                 lastModified: Date.now(),
                             });
                             resolve(newFile);
                         } else {
-                            // En cas d'échec du navigateur sur l'AVIF, fallback silencieux vers WEBP possible
-                            // mais on reste sur le type avif pour forcer si ça marche
+                            // En cas d'échec du navigateur sur l'WebP
                             reject(new Error('Canvas to Blob conversion failed'));
                         }
                     },
-                    'image/avif',
+                    'image/webp',
                     quality
                 );
             };

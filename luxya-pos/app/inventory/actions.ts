@@ -143,11 +143,34 @@ export async function createProduct(formData: FormData) {
     }
 }
 
+// Helper to extract filename from URL and delete from storage
+async function deleteFromStorage(urls: string[]) {
+    if (!urls || urls.length === 0) return;
+    const supabaseAdmin = await createAdminClient();
+    const paths = urls
+        .map(url => {
+            if (!url || !url.includes('/storage/v1/object/public/products/')) return null;
+            return url.split('/products/').pop();
+        })
+        .filter(Boolean) as string[];
+
+    if (paths.length > 0) {
+        await supabaseAdmin.storage.from('products').remove(paths);
+    }
+}
+
 export async function updateProduct(productId: number, formData: FormData) {
     const supabaseServer = await createClient()
     const supabaseAdmin = await createAdminClient()
     const { data: { user } } = await supabaseServer.auth.getUser()
     if (!user) return { error: 'Non authentifié' }
+
+    // Fetch CURRENT state to know what to delete
+    const { data: oldProduct } = await supabaseAdmin
+        .from('products')
+        .select('image, images, variants')
+        .eq('id', productId)
+        .single();
 
     const name = formData.get('name') as string
     const brand = formData.get('brand') as string
@@ -175,17 +198,26 @@ export async function updateProduct(productId: number, formData: FormData) {
 
     // Logic: Ensure new URLs or files override current ones
     let imageUrl = currentImageUrl || ''
+    const filesToDelete: string[] = [];
 
     // If we have a new URL from paste/search, it takes priority
     if (aiImageUrl && aiImageUrl.startsWith('http') && aiImageUrl !== currentImageUrl) {
+        if (oldProduct?.image) filesToDelete.push(oldProduct.image);
         imageUrl = aiImageUrl
     }
 
     if (isImageDeleted && (!imageFile || imageFile.size === 0) && !aiImageUrl) {
+        if (oldProduct?.image) filesToDelete.push(oldProduct.image);
         imageUrl = ''
     }
 
     let galleryUrls: string[] = [...existingGallery]
+    
+    // Identify removed gallery images
+    if (oldProduct?.images) {
+        const removedGallery = oldProduct.images.filter((url: string) => !existingGallery.includes(url));
+        filesToDelete.push(...removedGallery);
+    }
 
     // Handle Main Image Upload
     if (imageFile && imageFile.size > 0 && typeof imageFile !== 'string') {
@@ -198,6 +230,7 @@ export async function updateProduct(productId: number, formData: FormData) {
 
         if (!uploadError) {
             const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
+            if (oldProduct?.image) filesToDelete.push(oldProduct.image);
             imageUrl = publicUrl
         }
     }
@@ -255,6 +288,11 @@ export async function updateProduct(productId: number, formData: FormData) {
 
             if (!uploadError) {
                 const { data: { publicUrl } } = supabaseAdmin.storage.from('products').getPublicUrl(fileName)
+                
+                // Find old variant image to delete
+                const oldVariant = oldProduct?.variants?.find((v: any) => v.id === variant.id);
+                if (oldVariant?.image) filesToDelete.push(oldVariant.image);
+                
                 parsedVariants[i].image = publicUrl
             } else {
                 console.error(`[UPDATE_PRODUCT] Variant ${variant.id} upload error:`, uploadError);
@@ -273,6 +311,11 @@ export async function updateProduct(productId: number, formData: FormData) {
             const errorText = await response.text();
             console.error(`[UPDATE_PRODUCT] Backend Error (${response.status}):`, errorText);
             return { error: `Erreur lors de la mise à jour (${response.status})` }
+        }
+
+        // Cleanup storage after successful DB update
+        if (filesToDelete.length > 0) {
+            await deleteFromStorage(filesToDelete);
         }
 
         // Client handles refresh

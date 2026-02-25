@@ -134,22 +134,60 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
         formData.set('show_on_website', showOnWebsite.toString())
         formData.set('is_featured', isFeatured.toString())
         formData.set('isImageDeleted', isImageDeleted.toString())
-        if (pastedMainFile) formData.set('image', await compressImage(pastedMainFile))
-        else if (preview && preview.startsWith('http')) formData.set('ai_image_url', preview)
-        else {
+
+        const compressionPromises: Promise<void>[] = []
+
+        if (pastedMainFile) {
+            compressionPromises.push(
+                compressImage(pastedMainFile).then(compressed => {
+                    formData.set('image', compressed)
+                })
+            )
+        } else if (preview && preview.startsWith('http')) {
+            formData.set('ai_image_url', preview)
+        } else {
             const originalImage = formData.get('image') as File | null;
-            if (originalImage && originalImage.size > 0 && typeof originalImage !== 'string') formData.set('image', await compressImage(originalImage))
+            if (originalImage && originalImage.size > 0 && typeof originalImage !== 'string') {
+                compressionPromises.push(
+                    compressImage(originalImage).then(compressed => {
+                        formData.set('image', compressed)
+                    })
+                )
+            }
         }
+
         if (newBrandMode && customBrand) formData.set('brand', customBrand)
         else formData.set('brand', selectedBrand)
         formData.set('variants', JSON.stringify(variants))
         formData.set('existingGallery', JSON.stringify(gallery))
         if (newCategoryMode && customCategory) formData.set('category', customCategory)
         else formData.set('category', selectedCategory)
-        for (const [id, file] of Object.entries(variantFiles)) formData.append(`variant_image_${id}`, await compressImage(file))
+
+        // Variantes
+        for (const [id, file] of Object.entries(variantFiles)) {
+            compressionPromises.push(
+                compressImage(file).then(compressed => {
+                    formData.set(`variant_image_${id}`, compressed)
+                })
+            )
+        }
+
+        // Galerie
         const galleryFiles = formData.getAll('gallery') as File[];
         formData.delete('gallery');
-        for (const file of galleryFiles) if (file && file.size > 0 && typeof file !== 'string') formData.append('gallery', await compressImage(file));
+        if (galleryFiles.length > 0) {
+            const galleryCompressed = Promise.all(
+                galleryFiles
+                    .filter(file => file && file.size > 0 && typeof file !== 'string')
+                    .map(file => compressImage(file))
+            ).then(compressedFiles => {
+                compressedFiles.forEach(file => formData.append('gallery', file))
+            })
+            compressionPromises.push(galleryCompressed)
+        }
+
+        // Attendre que toutes les compressions soient finies
+        await Promise.all(compressionPromises)
 
         const result = await updateProduct(product.id, formData)
         setLoading(false)
