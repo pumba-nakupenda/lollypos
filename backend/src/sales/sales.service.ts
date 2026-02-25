@@ -32,7 +32,9 @@ export class SalesService {
                     status: createSaleDto.status || 'completed',
                     paid_amount: createSaleDto.paid_amount || 0,
                     invoice_number: createSaleDto.invoice_number,
-                    parent_id: createSaleDto.parent_id
+                    parent_id: createSaleDto.parent_id,
+                    project_id: createSaleDto.project_id,
+                    created_at: createSaleDto.created_at
                 })
                 .select('*')
                 .single();
@@ -144,7 +146,9 @@ export class SalesService {
                     type: updateSaleDto.type,
                     payment_method: updateSaleDto.paymentMethod,
                     paid_amount: updateSaleDto.paid_amount,
-                    linked_doc_number: updateSaleDto.linked_doc_number
+                    linked_doc_number: updateSaleDto.linked_doc_number,
+                    project_id: updateSaleDto.project_id,
+                    created_at: updateSaleDto.created_at
                 })
                 .eq('id', id)
                 .select('*')

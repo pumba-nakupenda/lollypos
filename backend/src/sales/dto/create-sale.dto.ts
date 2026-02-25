@@ -94,8 +94,12 @@ export class CreateSaleDto {
     status?: string;
 
     @IsOptional()
-    @IsString()
+    @IsUUID()
     project_id?: string;
+
+    @IsOptional()
+    @IsDateString()
+    created_at?: string;
 
     @IsArray()
     @ValidateNested({ each: true })
