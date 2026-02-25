@@ -35,7 +35,7 @@ export default function BottomNav({ onMenuClick }: { onMenuClick: () => void }) 
         { name: 'Home', href: '/', icon: LayoutDashboard },
         { name: 'POS', href: '/sales', icon: ShoppingBag },
         { name: 'Caisse', href: '/cash-management', icon: CreditCard },
-        { name: 'Stock', href: '/inventory', icon: Package },
+        { name: 'Dettes', href: '/inventory', icon: Package },
         { name: 'Frais', href: '/expenses', icon: Receipt },
     ]
 
