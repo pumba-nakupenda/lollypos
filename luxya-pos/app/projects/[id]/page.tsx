@@ -109,6 +109,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
     // Project Chat
     const [projectComments, setProjectComments] = useState<ProjectComment[]>([])
+    const [unreadCount, setUnreadCount] = useState(0)
     const [loadingProjectComments, setLoadingProjectComments] = useState(false)
     const [postingProjectComment, setPostingProjectComment] = useState(false)
     const [newProjectCommentText, setNewProjectCommentText] = useState('')
@@ -274,6 +275,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
     useEffect(() => { if (activeTab === 'finances' && projectId) fetchFinances() }, [activeTab, projectId])
 
+    const markAsRead = useCallback(async () => {
+        if (!projectId) return;
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        await supabase.rpc('mark_project_comments_as_read', { 
+            p_project_id: projectId, 
+            p_user_id: user.id 
+        });
+        setUnreadCount(0);
+    }, [projectId, supabase]);
+
     const fetchProjectComments = useCallback(async () => {
         if (!projectId) return
         setLoadingProjectComments(true)
@@ -311,16 +324,63 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
             ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
 
             setProjectComments(combined)
+
+            // 4. Update unread count if not in chat tab
+            if (activeTab !== 'chat') {
+                const { data: { user } } = await supabase.auth.getUser();
+                const unread = combined.filter((c: any) => !c.read_at && c.user_id !== user?.id).length;
+                setUnreadCount(unread);
+            }
         } catch (e) {
             console.error('Erreur chat unifié:', e)
         } finally {
             setLoadingProjectComments(false)
         }
-    }, [projectId, supabase, allTasks])
+    }, [projectId, supabase, allTasks, activeTab])
 
     useEffect(() => {
-        if (activeTab === 'chat' && projectId) fetchProjectComments()
-    }, [activeTab, projectId, fetchProjectComments])
+        if (activeTab === 'chat' && projectId) {
+            fetchProjectComments()
+            markAsRead()
+        }
+    }, [activeTab, projectId, fetchProjectComments, markAsRead])
+
+    // Real-time subscription
+    useEffect(() => {
+        if (!projectId) return;
+
+        const projectCommentsChannel = supabase
+            .channel(`project-comments-${projectId}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'agency_project_comments',
+                filter: `project_id=eq.${projectId}`
+            }, () => {
+                fetchProjectComments();
+                if (activeTab === 'chat') markAsRead();
+            })
+            .subscribe();
+
+        const taskCommentsChannel = supabase
+            .channel(`task-comments-${projectId}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'agency_task_comments'
+            }, (payload) => {
+                if (allTasks.some(t => t.id === payload.new.task_id)) {
+                    fetchProjectComments();
+                    if (activeTab === 'chat') markAsRead();
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(projectCommentsChannel);
+            supabase.removeChannel(taskCommentsChannel);
+        }
+    }, [projectId, supabase, activeTab, fetchProjectComments, markAsRead, allTasks]);
 
     const postProjectComment = async () => {
         if (!newProjectCommentText.trim() || !projectId) return
@@ -585,7 +645,20 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                 <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 sm:flex-none whitespace-nowrap px-4 sm:px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === tab ? 'bg-white/10 text-white shadow-sm' : 'text-muted-foreground hover:text-white'}`}>
                                     {tab === 'kanban' ? <span className="flex items-center justify-center gap-2"><FolderKanban className="w-3.5 h-3.5" />Tâches</span> : 
                                     tab === 'timeline' ? <span className="flex items-center justify-center gap-2"><Calendar className="w-3.5 h-3.5" />Gantt</span> :
-                                    tab === 'chat' ? <span className="flex items-center justify-center gap-2"><MessageSquare className="w-3.5 h-3.5" />Chat</span> :
+                                    tab === 'chat' ? (
+                                        <span className="flex items-center justify-center gap-2 relative">
+                                            <MessageSquare className="w-3.5 h-3.5" />
+                                            Chat
+                                            {unreadCount > 0 && (
+                                                <span className="absolute -top-1 -right-2 flex h-3 w-3">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-shop opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-shop text-[6px] items-center justify-center text-white font-black">
+                                                        {unreadCount}
+                                                    </span>
+                                                </span>
+                                            )}
+                                        </span>
+                                    ) :
                                     <span className="flex items-center justify-center gap-2"><DollarSign className="w-3.5 h-3.5" />Finances</span>}
                                 </button>
                             ))}

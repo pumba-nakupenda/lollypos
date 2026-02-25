@@ -33,6 +33,7 @@ type Project = {
     customers?: { name: string } | null
     _task_count?: number
     _done_count?: number
+    _unread_count?: number
     _assignees?: Profile[]
     _stages?: { id: string, name: string, position: number, _is_done: boolean, _is_current: boolean }[]
 }
@@ -134,14 +135,26 @@ export default function ProjectsPage() {
                 allTasks = tasks || []
             }
 
+            // Fetch unread counts
+            const { data: { user } } = await supabase.auth.getUser()
+            const [{ data: unreadPComms }, { data: unreadTComms }] = await Promise.all([
+                supabase.from('agency_project_comments').select('id, project_id').is('read_at', null).neq('user_id', user?.id),
+                supabase.from('agency_task_comments').select('id, task_id').is('read_at', null).neq('user_id', user?.id)
+            ])
+
             // Map data to projects
             const projectsWithCounts = proj.map((p: any) => {
                 const pStagesData = (stages || []).filter(s => s.project_id === p.id)
                 const pStageIds = pStagesData.map(s => s.id)
                 const pTasks = allTasks.filter(t => pStageIds.includes(t.stage_id))
+                const pTaskIds = pTasks.map(t => t.id)
                 
                 const total = pTasks.length
                 const done = pTasks.filter(t => t.status === 'done').length
+
+                // Calculate unread count
+                const pUnreadCount = (unreadPComms || []).filter(c => c.project_id === p.id).length +
+                                    (unreadTComms || []).filter(c => pTaskIds.includes(c.task_id)).length
                 
                 // Process stages for roadmap
                 const processedStages = pStagesData.map(s => {
@@ -165,6 +178,7 @@ export default function ProjectsPage() {
                     ...p, 
                     _task_count: total, 
                     _done_count: done,
+                    _unread_count: pUnreadCount,
                     _assignees: projectAssignees,
                     _stages: finalStages
                 } as Project
@@ -440,7 +454,15 @@ export default function ProjectsPage() {
                                                                 <TypeIcon className="w-3 h-3" />
                                                                 {typeCfg.label}
                                                             </div>
-                                                            <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-shop group-hover:translate-x-1 transition-all" />
+                                                            <div className="flex items-center gap-2">
+                                                                {project._unread_count! > 0 && (
+                                                                    <div className="flex items-center gap-1 bg-shop/20 text-shop px-2 py-0.5 rounded-full border border-shop/30 shadow-lg shadow-shop/10">
+                                                                        <MessageSquare className="w-2.5 h-2.5" />
+                                                                        <span className="text-[9px] font-black">{project._unread_count}</span>
+                                                                    </div>
+                                                                )}
+                                                                <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-shop group-hover:translate-x-1 transition-all" />
+                                                            </div>
                                                         </div>
 
                                                         {/* Name */}

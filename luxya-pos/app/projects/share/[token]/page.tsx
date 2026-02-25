@@ -76,7 +76,31 @@ export default function ClientSharePage({ params }: { params: Promise<{ token: s
         }
     }, [token, supabase])
 
-    useEffect(() => { fetchPublicData() }, [fetchPublicData])
+    useEffect(() => { 
+        fetchPublicData();
+        
+        // Real-time subscription
+        if (!project?.id) return;
+        
+        const channel = supabase
+            .channel(`public-comments-${project.id}`)
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'agency_project_comments',
+                filter: `project_id=eq.${project.id}`
+            }, (payload) => {
+                // Only refetch if the new message is public
+                if (payload.new.is_public) {
+                    fetchPublicData(true);
+                }
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        }
+    }, [fetchPublicData, project?.id, supabase])
 
     const handleSendComment = async () => {
         if (!newComment.trim() || !project) return
