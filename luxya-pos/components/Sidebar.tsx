@@ -113,28 +113,34 @@ export default function Sidebar() {
 
             <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto custom-scrollbar pb-20">
                 {navGroups.map((group) => {
+                    const isAgency = activeShop?.id === 3
+                    const groupTitle = (!isAgency && group.title === "Gestion Stock") ? "Gestion Dettes" : group.title
+
                     const filteredItems = group.items.filter((item: any) => {
                         if (item.superAdminOnly && !profile?.is_super_admin) return false
-                        if (item.agencyOnly && activeShop?.id !== 3) return false
+                        if (item.agencyOnly && !isAgency) return false
                         if (!item.roles) return true
                         if (item.name === 'Inventaire' && profile?.has_stock_access) return true
                         return item.roles.includes(profile?.role || '')
                     }).map((item: any) => {
                         // NEW: Dynamic naming for the Agency
                         if (item.href === '/sales') {
-                            return { ...item, name: activeShop?.id === 3 ? 'Facturation' : 'Caisse POS' }
+                            return { ...item, name: isAgency ? 'Facturation' : 'Caisse POS' }
                         }
                         if (item.href === '/cash-management') {
-                            return { ...item, name: activeShop?.id === 3 ? 'Trésorerie' : 'Ma Caisse' }
+                            return { ...item, name: isAgency ? 'Trésorerie' : 'Ma Caisse' }
                         }
                         if (item.href === '/portfolio') {
                             return { ...item, name: 'Relevés Clients' }
+                        }
+                        if (item.href === '/inventory' && !isAgency) {
+                            return { ...item, name: 'Gestion Dettes' }
                         }
                         return item
                     })
 
                     // Add Personal Expenses dynamically to Finance group for Agency
-                    if (group.title === "Finance & Frais" && activeShop?.id === 3 && (profile?.role === 'admin' || profile?.role === 'manager')) {
+                    if (group.title === "Finance & Frais" && isAgency && (profile?.role === 'admin' || profile?.role === 'manager')) {
                         filteredItems.push({
                             name: 'Dépenses Perso',
                             href: '/personal-expenses',
@@ -146,7 +152,7 @@ export default function Sidebar() {
 
                     return (
                         <div key={group.title} className="glass-panel p-3 rounded-[28px] border-white/5 bg-white/[0.02] shadow-inner">
-                            <p className="px-3 text-[10px] font-black uppercase tracking-[0.3em] text-shop mb-3 opacity-80">{group.title}</p>
+                            <p className="px-3 text-[10px] font-black uppercase tracking-[0.3em] text-shop mb-3 opacity-80">{groupTitle}</p>
                             <div className="space-y-1">
                                 {filteredItems.map((item) => {
                                     const isActive = pathname === item.href
