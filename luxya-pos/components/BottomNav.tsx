@@ -12,7 +12,8 @@ import {
     Receipt,
     FolderKanban,
     Users,
-    CreditCard
+    CreditCard,
+    Wallet
 } from 'lucide-react'
 import { useShop } from '@/context/ShopContext'
 
@@ -30,12 +31,12 @@ export default function BottomNav({ onMenuClick }: { onMenuClick: () => void }) 
         { name: 'Projets', href: '/projects', icon: FolderKanban },
         { name: 'Facture', href: '/sales', icon: ShoppingBag },
         { name: 'Relevés', href: '/portfolio', icon: Users },
-        { name: 'Trésor', href: '/cash-management', icon: CreditCard },
+        { name: 'Trésor', href: '/cash-management', icon: Wallet },
     ] : [
         { name: 'Home', href: '/', icon: LayoutDashboard },
         { name: 'POS', href: '/sales', icon: ShoppingBag },
-        { name: 'Caisse', href: '/cash-management', icon: CreditCard },
-        { name: 'Stock', href: '/inventory', icon: Package },
+        { name: 'Caisse', href: '/cash-management', icon: Wallet },
+        { name: 'Dette', href: '/debts', icon: CreditCard },
         { name: 'Frais', href: '/expenses', icon: Receipt },
     ]
 
