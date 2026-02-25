@@ -316,10 +316,10 @@ export default function SalesTerminal() {
                                     products={products} loading={loading} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
                                     categories={categories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
                                     brands={brands} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand}
-                                    addToCart={(p, v) => {
-                                        addToCart(p, v);
+                                    addToCart={(p) => {
+                                        addToCart(p);
                                         // Auto-open cart on mobile if it's not a variant selection step
-                                        if (window.innerWidth < 1024 && (!p.variants || p.variants.length === 0 || v)) {
+                                        if (window.innerWidth < 1024 && (!p.variants || p.variants.length === 0)) {
                                             setIsCartOpen(true);
                                         }
                                     }}
@@ -402,7 +402,11 @@ export default function SalesTerminal() {
                                 <div className="w-full space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                                     <div className="grid grid-cols-1 gap-3">
                                         {selectedProductForVariant.variants.map((v: any, i: number) => (
-                                            <button key={i} disabled={v.stock !== undefined && parseInt(v.stock) <= 0} onClick={() => { addToCart(selectedProductForVariant, v); setSelectedProductForVariant(null); }} className={`group flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 transition-all w-full text-left ${v.stock !== undefined && parseInt(v.stock) <= 0 ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:border-shop/50 hover:bg-shop/5'}`}>
+                                            <button key={i} disabled={v.stock !== undefined && parseInt(v.stock) <= 0} onClick={() => { 
+                                                addToCart(selectedProductForVariant, v); 
+                                                setSelectedProductForVariant(null);
+                                                if (window.innerWidth < 1024) setIsCartOpen(true);
+                                            }} className={`group flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 transition-all w-full text-left ${v.stock !== undefined && parseInt(v.stock) <= 0 ? 'opacity-40 grayscale cursor-not-allowed' : 'hover:border-shop/50 hover:bg-shop/5'}`}>
                                                 <div className="flex items-center space-x-4">
                                                     <div className="w-12 h-12 rounded-xl bg-black/20 overflow-hidden border border-white/5">
                                                         {v.image ? <img src={v.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" /> : <div className="w-full h-full flex items-center justify-center bg-white/5"><ImageIcon className="w-4 h-4 text-white/10" /></div>}
@@ -420,7 +424,11 @@ export default function SalesTerminal() {
                                         ))}
                                     </div>
                                 </div>
-                                <button onClick={() => { addToCart(selectedProductForVariant, { color: 'Standard', size: 'N/A' }); setSelectedProductForVariant(null); }} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white transition-colors py-2">Continuer sans variante spécifique</button>
+                                <button onClick={() => { 
+                                    addToCart(selectedProductForVariant, { color: 'Standard', size: 'N/A' }); 
+                                    setSelectedProductForVariant(null); 
+                                    if (window.innerWidth < 1024) setIsCartOpen(true);
+                                }} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white transition-colors py-2">Continuer sans variante spécifique</button>
                             </div>
                         </div>
                     </div>
