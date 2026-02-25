@@ -331,56 +331,53 @@ export default function ProjectsPage() {
 
     return (
         <div className="min-h-screen flex flex-col">
-            {/* Header */}
-            <header className="glass-panel sticky top-0 z-50 m-4 rounded-[24px] shadow-xl">
-                <div className="max-w-7xl mx-auto px-8 py-4 flex justify-between items-center">
-                    <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-shop rounded-xl flex items-center justify-center shadow-lg shadow-shop/20">
-                            <FolderKanban className="w-6 h-6 text-white" />
+            {/* Header - Made more compact for mobile */}
+            <header className="glass-panel sticky top-0 z-50 m-2 sm:m-4 rounded-[20px] sm:rounded-[24px] shadow-xl">
+                <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex justify-between items-center">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-shop rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-shop/20">
+                            <FolderKanban className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">Projets</h1>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                                {totalProjects} projet{totalProjects > 1 ? 's' : ''} · {activeProjects} en cours
+                            <h1 className="text-sm sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">Projets</h1>
+                            <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                                {totalProjects} projet{totalProjects > 1 ? 's' : ''} <span className="hidden sm:inline">· {activeProjects} en cours</span>
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <Link href="/projects/my-tasks" className="flex items-center px-4 py-2 bg-white/5 text-white border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-                            <ListTodo className="w-3 h-3 mr-2" /> Mes Tâches
-                        </Link>
-                        <Link href="/projects/archived" className="flex items-center px-4 py-2 bg-white/5 text-white border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
-                            <Archive className="w-3 h-3 mr-2" /> Archives
+                    <div className="flex items-center gap-1.5 sm:gap-2">
+                        <Link href="/projects/my-tasks" className="p-2 sm:px-4 sm:py-2 bg-white/5 text-white border border-white/10 rounded-xl sm:rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all">
+                            <ListTodo className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Mes Tâches</span>
                         </Link>
                         <button
                             onClick={() => setIsModalOpen(true)}
-                            className="flex items-center px-4 py-2 bg-shop text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
+                            className="flex items-center p-2 sm:px-4 sm:py-2 bg-shop text-white rounded-xl sm:rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg"
                         >
-                            <Plus className="w-3 h-3 mr-2" /> Nouveau
+                            <Plus className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">Nouveau</span>
                         </button>
                     </div>
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto w-full px-8 py-6 space-y-6 animate-in fade-in duration-500">
-                {/* Filters */}
-                <div className="flex flex-wrap gap-4 items-center">
-                    <div className="relative group flex-1 min-w-[240px]">
+            <main className="max-w-7xl mx-auto w-full px-4 sm:px-8 py-4 sm:py-6 space-y-6 animate-in fade-in duration-500">
+                {/* Filters - Improved for mobile touch */}
+                <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center">
+                    <div className="relative group flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <input
                             type="text"
-                            placeholder="Rechercher un projet ou client..."
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
+                            placeholder="Rechercher..."
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                         />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0">
                         {(['all', 'client', 'agence'] as const).map(t => (
                             <button
                                 key={t}
                                 onClick={() => setFilterType(t)}
-                                className={`px-4 py-2 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border ${filterType === t
+                                className={`px-5 py-3 sm:py-2 whitespace-nowrap rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border ${filterType === t
                                     ? 'bg-shop text-white border-shop shadow-lg shadow-shop/20'
                                     : 'bg-white/5 text-muted-foreground border-white/10 hover:border-shop/30'
                                     }`}

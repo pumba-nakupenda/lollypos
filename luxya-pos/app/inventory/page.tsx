@@ -131,31 +131,23 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
   };
 
   return (
-    <div className="min-h-screen pb-20 bg-[#0a0a0c]">
-      <header className="glass-panel sticky top-0 z-50 mx-0 sm:mx-4 sm:top-4 rounded-none sm:rounded-[24px] shadow-xl border-white/5">
+    <div className="min-h-screen pb-24 bg-[#0a0a0c]">
+      <header className="glass-panel sticky top-0 z-50 mx-0 sm:mx-4 sm:top-4 rounded-none sm:rounded-[24px] shadow-xl border-white/5 bg-background/80 backdrop-blur-md">
         <div className="max-w-7xl mx-auto py-3 sm:py-4 px-4 sm:px-8 flex justify-between items-center">
           <div className="flex items-center space-x-3 sm:space-x-6">
             <Link href="/" prefetch={false} className="p-2 sm:p-2.5 glass-card rounded-xl text-muted-foreground hover:text-shop transition-all">
               <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
             </Link>
             <div className="hidden sm:block h-8 w-px bg-white/10" />
-            <div>
+            <div className="pl-10 lg:pl-0">
               <h1 className="text-sm sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">
                 Inventaire
               </h1>
-              <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 sm:mt-1">{shopName}</p>
+              <p className="text-[10px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">{shopName}</p>
             </div>
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <Link
-              href="/inventory/quick"
-              prefetch={false}
-              className="hidden lg:flex items-center px-4 py-2 bg-white/5 text-shop border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-shop/10 transition-all"
-            >
-              <Plus className="w-3.5 h-3.5 mr-2" />
-              Inventaire Rapide
-            </Link>
             <div className="hidden sm:block">
               <ShopSelector />
             </div>

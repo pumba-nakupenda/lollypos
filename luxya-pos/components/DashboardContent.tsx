@@ -190,48 +190,30 @@ export default function DashboardContent({ user }: { user: any }) {
     ]
 
     return (
-        <div className="min-h-screen flex flex-col pb-12">
-            {/* Header / Navigation */}
-            <header className="glass-panel sticky top-0 z-[60] border-b-0 m-2 sm:m-4 rounded-[20px] sm:rounded-[24px] shadow-xl">
+        <div className="min-h-screen flex flex-col pb-24">
+            {/* Header / Navigation - Optimized for mobile */}
+            <header className="glass-panel sticky top-0 z-[60] border-b-0 m-0 sm:m-4 rounded-none sm:rounded-[24px] shadow-xl bg-background/80 backdrop-blur-md">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-8 py-3 sm:py-4 flex justify-between items-center">
                     <div className="flex items-center space-x-3 sm:space-x-6">
                         <div className="flex items-center space-x-2">
                             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-shop rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-shop/20">
                                 <LayoutDashboard className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                             </div>
-                            <div className="flex items-center">
+                            <div className="flex items-center pl-10 lg:pl-0">
                                 <h1 className="text-sm sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none">
                                     <span className="brand-lolly">Lolly</span>
                                 </h1>
-                                <span className="ml-2 px-2 py-0.5 bg-shop/20 text-[8px] sm:text-[10px] font-black rounded-full border border-shop/40 text-shop animate-pulse shadow-[0_0_15px_rgba(var(--shop-primary),0.1)] whitespace-nowrap">
-                                    v1.5 - GLOBAL REFINED
+                                <span className="ml-2 px-2 py-0.5 bg-shop/20 text-[8px] sm:text-[10px] font-black rounded-full border border-shop/40 text-shop animate-pulse shadow-[0_0_15px_rgba(var(--shop-primary),0.1)] whitespace-nowrap hidden xs:inline">
+                                    v1.5
                                 </span>
                             </div>
-                        </div>
-                        <div className="h-6 sm:h-8 w-px bg-white/10" />
-                        <div className="scale-90 sm:scale-100 origin-left">
-                            <ShopSelector />
                         </div>
                     </div>
 
                     <div className="flex items-center space-x-2 sm:space-x-4">
-                        <div className="hidden lg:block">
-                            <CustomDropdown
-                                options={monthOptions}
-                                value={selectedMonth}
-                                onChange={setSelectedMonth}
-                                className="w-40"
-                            />
+                        <div className="hidden sm:block">
+                            <ShopSelector />
                         </div>
-                        <div className="hidden lg:block">
-                            <CustomDropdown
-                                options={categoryOptions}
-                                value={selectedCategory}
-                                onChange={setSelectedCategory}
-                                className="w-48"
-                            />
-                        </div>
-                        <div className="h-8 w-px bg-white/10 mx-1 hidden lg:block" />
                         <div className="hidden sm:flex flex-col items-end mr-2">
                             <span className="text-[10px] font-bold text-white truncate max-w-[100px]">{user.email?.split('@')[0]}</span>
                             <span className={`text-[7px] font-black uppercase tracking-[0.2em] ${profile?.is_super_admin ? 'text-yellow-400 animate-pulse' : 'text-shop/60'}`}>
@@ -525,9 +507,9 @@ export default function DashboardContent({ user }: { user: any }) {
                                                         <div>
                                                             <p className="font-bold text-xs sm:text-sm">{new Date(sale.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                                                             <div className="flex items-center space-x-2">
-                                                                <p className="text-[8px] sm:text-[9px] font-black text-muted-foreground uppercase opacity-50">{new Date(sale.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</p>
+                                                                <p className="text-[10px] sm:text-[11px] font-black text-muted-foreground uppercase opacity-50">{new Date(sale.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</p>
                                                                 {sale.profiles?.email && (
-                                                                    <p className="text-[7px] font-black text-shop uppercase tracking-widest bg-shop/5 px-1 rounded">Par: {sale.profiles.email.split('@')[0]}</p>
+                                                                    <p className="text-[9px] font-black text-shop uppercase tracking-widest bg-shop/5 px-1.5 rounded">Par: {sale.profiles.email.split('@')[0]}</p>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -580,10 +562,10 @@ export default function DashboardContent({ user }: { user: any }) {
                                 {topProducts.map((p: any, i: number) => (
                                     <div key={i} className="flex items-center justify-between group">
                                         <div className="flex items-center space-x-2 sm:space-x-3">
-                                            <span className="text-[9px] sm:text-[10px] font-black text-shop w-3 sm:w-4">{i + 1}.</span>
-                                            <p className="text-[10px] sm:text-xs font-bold text-white truncate max-w-[80px] sm:max-w-[120px]">{p.name}</p>
+                                            <span className="text-[10px] sm:text-[11px] font-black text-shop w-3 sm:w-4">{i + 1}.</span>
+                                            <p className="text-[11px] sm:text-xs font-bold text-white truncate max-w-[80px] sm:max-w-[120px]">{p.name}</p>
                                         </div>
-                                        <p className="text-[9px] sm:text-[10px] font-black text-muted-foreground">{p.totalQuantity} <span className="opacity-50 text-[7px] sm:text-[8px]">u.</span></p>
+                                        <p className="text-[10px] sm:text-[11px] font-black text-muted-foreground">{p.totalQuantity} <span className="opacity-50 text-[8px] sm:text-[9px]">u.</span></p>
                                     </div>
                                 ))}
                                 {topProducts.length === 0 && (
@@ -612,10 +594,10 @@ function FinancialProgressBar({ label, value, total, color, subLabel }: any) {
         <div className="space-y-3">
             <div className="flex justify-between items-end">
                 <div>
-                    <p className="text-[10px] font-black uppercase text-white">{label}</p>
-                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{subLabel}</p>
+                    <p className="text-[11px] font-black uppercase text-white">{label}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase">{subLabel}</p>
                 </div>
-                <p className="text-sm font-black text-white">{value.toLocaleString()} <span className="text-[8px] opacity-50">CFA</span></p>
+                <p className="text-sm font-black text-white">{value.toLocaleString()} <span className="text-[10px] opacity-50">CFA</span></p>
             </div>
             <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
                 <div

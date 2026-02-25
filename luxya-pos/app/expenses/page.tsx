@@ -222,38 +222,30 @@ export default function ExpensesPage() {
         .sort((a, b) => b.value - a.value);
 
     return (
-        <div className="min-h-screen flex flex-col pb-12">
+        <div className="min-h-screen flex flex-col pb-24">
             {/* Premium Header - Optimized for mobile */}
-            <header className="glass-panel sticky top-2 sm:top-4 z-50 mx-2 sm:mx-4 rounded-2xl sm:rounded-[24px] shadow-xl border-white/5">
+            <header className="glass-panel sticky top-0 z-50 mx-0 sm:mx-4 sm:top-4 rounded-none sm:rounded-[24px] shadow-xl border-white/5 bg-background/80 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 sm:py-4 flex justify-between items-center">
                     <div className="flex items-center space-x-3 sm:space-x-4">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 bg-shop rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-shop/20">
                             <Receipt className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
                         </div>
-                        <div>
+                        <div className="pl-10 lg:pl-0">
                             <h1 className="text-base sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none flex items-center">
                                 Depenses
-                                <span className="ml-2 px-1 py-0.5 bg-shop/20 text-[6px] rounded border border-shop/30 text-shop animate-pulse">v1.3 - GROUPED</span>
+                                <span className="ml-2 px-1 py-0.5 bg-shop/20 text-[6px] rounded border border-shop/30 text-shop animate-pulse hidden sm:inline">v1.3</span>
                             </h1>
-                            <p className="text-[7px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 hidden xs:block">Gestion des Flux Sortants</p>
+                            <p className="text-[10px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Gestion Flux</p>
                         </div>
                     </div>
 
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <button
-                            onClick={handleAiAudit}
-                            className="hidden sm:flex items-center px-4 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 transition-all"
-                        >
-                            <Sparkles className="w-3.5 h-3.5 mr-2" />
-                            Audit IA
-                        </button>
-                        <button
                             onClick={() => setIsCreateModalOpen(true)}
                             className="flex items-center px-4 sm:px-6 py-2 bg-shop text-white rounded-xl sm:rounded-2xl text-[10px] sm:text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-shop/20"
                         >
                             <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Nouvelle Depense</span>
-                            <span className="sm:hidden">Ajouter</span>
+                            <span>Ajouter</span>
                         </button>
                     </div>
                 </div>

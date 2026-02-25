@@ -551,76 +551,102 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
     return (
         <div className="min-h-screen flex flex-col">
-            <header className="glass-panel sticky top-0 z-50 m-4 rounded-[24px] shadow-xl">
-                <div className="max-w-full px-6 py-4 flex items-center gap-4">
-                    <button onClick={() => router.push('/projects')} className="p-2 hover:bg-white/5 rounded-xl text-muted-foreground hover:text-white transition-colors"><ArrowLeft className="w-5 h-5" /></button>
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-lg font-black shop-gradient-text uppercase tracking-tighter leading-none truncate">{project.name}</h1>
-                            <button onClick={() => { setEditingProjectForm({ ...project, budget: project.budget?.toString() || '' }); setIsEditProjectModalOpen(true) }} className="p-1.5 hover:bg-white/5 rounded-lg text-muted-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
-                            <button onClick={() => setIsShareModalOpen(true)} className="p-1.5 bg-shop/10 text-shop rounded-lg hover:bg-shop/20 transition-all border border-shop/20 shadow-sm" title="Partager au client"><Globe className="w-3.5 h-3.5" /></button>
-                            <button onClick={handleArchiveProject} className="p-1.5 bg-white/5 text-muted-foreground rounded-lg hover:bg-red-500/10 hover:text-red-400 transition-all border border-white/5" title="Archiver le projet"><Archive className="w-3.5 h-3.5" /></button>
+            <header className="glass-panel sticky top-0 z-50 m-2 sm:m-4 rounded-[20px] sm:rounded-[24px] shadow-xl">
+                <div className="max-w-full px-4 sm:px-6 py-3 sm:py-4 flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
+                    <div className="flex items-center gap-3 sm:gap-4">
+                        <button onClick={() => router.push('/projects')} className="p-2 hover:bg-white/5 rounded-xl text-muted-foreground hover:text-white transition-colors"><ArrowLeft className="w-5 h-5" /></button>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                                <h1 className="text-sm sm:text-lg font-black shop-gradient-text uppercase tracking-tighter leading-none truncate">{project.name}</h1>
+                                <button onClick={() => { setEditingProjectForm({ ...project, budget: project.budget?.toString() || '' }); setIsEditProjectModalOpen(true) }} className="p-1.5 hover:bg-white/5 rounded-lg text-muted-foreground transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                                <button onClick={() => setIsShareModalOpen(true)} className="p-1.5 bg-shop/10 text-shop rounded-lg hover:bg-shop/20 transition-all border border-shop/20 shadow-sm" title="Partager au client"><Globe className="w-3.5 h-3.5" /></button>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1">
+                                {project.customers?.name && <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" />{project.customers.name}</span>}
+                                {project.end_date && <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(project.end_date).toLocaleDateString('fr-FR')}</span>}
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3 mt-1">
-                            {project.customers?.name && <span className="text-[9px] font-bold text-muted-foreground flex items-center gap-1"><Users className="w-3 h-3" />{project.customers.name}</span>}
-                            {project.end_date && <span className="text-[9px] font-bold text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(project.end_date).toLocaleDateString('fr-FR')}</span>}
-                        </div>
+                        {/* Mobile Report Button */}
+                        <button 
+                            onClick={() => triggerN8nAutomation()}
+                            disabled={progress < 100}
+                            className={`lg:hidden flex items-center justify-center p-2.5 rounded-xl transition-all shadow-xl
+                                ${progress < 100 
+                                    ? 'bg-white/5 text-muted-foreground opacity-50' 
+                                    : 'bg-shop text-white border border-shop/20'}`}
+                        >
+                            <FileText className="w-5 h-5" />
+                        </button>
                     </div>
-                    <div className="flex bg-black/40 p-1 rounded-2xl">
-                        {(['kanban', 'timeline', 'finances', 'chat'] as const).map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === tab ? 'bg-white/10 text-white shadow-sm' : 'text-muted-foreground hover:text-white'}`}>
-                                {tab === 'kanban' ? <span className="flex items-center gap-2"><FolderKanban className="w-3.5 h-3.5" />Tâches</span> : 
-                                 tab === 'timeline' ? <span className="flex items-center gap-2"><Calendar className="w-3.5 h-3.5" />Gantt</span> :
-                                 tab === 'chat' ? <span className="flex items-center gap-2"><MessageSquare className="w-3.5 h-3.5" />Chat</span> :
-                                 <span className="flex items-center gap-2"><DollarSign className="w-3.5 h-3.5" />Finances</span>}
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1">
+                        <div className="flex bg-black/40 p-1 rounded-2xl overflow-x-auto no-scrollbar">
+                            {(['kanban', 'timeline', 'finances', 'chat'] as const).map(tab => (
+                                <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-1 sm:flex-none whitespace-nowrap px-4 sm:px-5 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${activeTab === tab ? 'bg-white/10 text-white shadow-sm' : 'text-muted-foreground hover:text-white'}`}>
+                                    {tab === 'kanban' ? <span className="flex items-center justify-center gap-2"><FolderKanban className="w-3.5 h-3.5" />Tâches</span> : 
+                                    tab === 'timeline' ? <span className="flex items-center justify-center gap-2"><Calendar className="w-3.5 h-3.5" />Gantt</span> :
+                                    tab === 'chat' ? <span className="flex items-center justify-center gap-2"><MessageSquare className="w-3.5 h-3.5" />Chat</span> :
+                                    <span className="flex items-center justify-center gap-2"><DollarSign className="w-3.5 h-3.5" />Finances</span>}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="hidden lg:flex items-center gap-4 ml-auto">
+                            <button 
+                                onClick={() => triggerN8nAutomation()}
+                                disabled={progress < 100}
+                                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl
+                                    ${progress < 100 
+                                        ? 'bg-white/5 text-muted-foreground cursor-not-allowed border border-white/5 opacity-50' 
+                                        : 'bg-shop text-white hover:scale-105 active:scale-95 border border-shop/20 animate-pulse hover:animate-none'}`}
+                            >
+                                <FileText className="w-4 h-4" />
+                                {progress < 100 ? `Production: ${progress}%` : "Générer Rapport"}
                             </button>
-                        ))}
-                    </div>
-
-                    {/* 🚀 Manual Report Trigger (n8n) */}
-                    <button 
-                        onClick={() => triggerN8nAutomation()}
-                        disabled={progress < 100}
-                        className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl
-                            ${progress < 100 
-                                ? 'bg-white/5 text-muted-foreground cursor-not-allowed border border-white/5 opacity-50' 
-                                : 'bg-shop text-white hover:scale-105 active:scale-95 border border-shop/20 animate-pulse hover:animate-none'}`}
-                    >
-                        <FileText className="w-4 h-4" />
-                        {progress < 100 ? `Production: ${progress}%` : "Générer Rapport"}
-                    </button>
-
-                    <div className="hidden md:flex items-center gap-4">
-                        <div className="text-right">
-                            <p className="text-[9px] font-black uppercase text-muted-foreground">Avancement</p>
-                            <p className="text-2xl font-black shop-gradient-text">{progress}%</p>
+                            <div className="text-right">
+                                <p className="text-[9px] font-black uppercase text-muted-foreground">Avancement</p>
+                                <p className="text-2xl font-black shop-gradient-text">{progress}%</p>
+                            </div>
+                            <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-shop rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
                         </div>
-                        <div className="w-32 h-2 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-shop rounded-full transition-all" style={{ width: `${progress}%` }} /></div>
                     </div>
                 </div>
             </header>
 
-            <main className="flex-1 px-4 py-4 overflow-x-auto">
+            <main className="flex-1 px-2 sm:px-4 py-4">
                 {activeTab === 'kanban' ? (
-                    <div className="flex flex-col gap-10">
-                        <div className="flex gap-4 min-w-max pb-6 px-4">
+                    <div className="flex flex-col gap-6 sm:gap-10">
+                        {/* Mobile Progress Bar */}
+                        <div className="lg:hidden glass-panel mx-2 p-3 rounded-2xl border-white/5 space-y-2">
+                            <div className="flex justify-between items-center text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                                <span>Progression globale</span>
+                                <span className="text-shop">{progress}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-shop rounded-full transition-all" style={{ width: `${progress}%` }} />
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col lg:flex-row gap-6 lg:gap-4 pb-12 sm:pb-6 px-2 sm:px-4">
                             {stages.map(stage => (
-                                <div key={stage.id} id={stage.id} className={`w-72 flex-shrink-0 flex flex-col gap-3 rounded-[24px] transition-colors duration-300 ${dragOverStageId === stage.id ? 'bg-shop/5 border border-dashed border-shop/40' : 'bg-transparent'}`} onDragOver={(e) => handleDragOver(e, stage.id)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, stage.id)}>
-                                    <div className="glass-panel rounded-[20px] px-4 py-3 border-white/5 flex items-center gap-2">
+                                <div key={stage.id} id={stage.id} className={`w-full lg:w-80 flex-shrink-0 flex flex-col gap-3 rounded-[24px] transition-colors duration-300 ${dragOverStageId === stage.id ? 'bg-shop/5 border border-dashed border-shop/40' : 'bg-transparent'}`} onDragOver={(e) => handleDragOver(e, stage.id)} onDragLeave={handleDragLeave} onDrop={(e) => handleDrop(e, stage.id)}>
+                                    <div className="glass-panel rounded-[20px] px-4 py-3.5 border-white/5 flex items-center gap-2">
                                         {editingStageId === stage.id ? (
                                             <div className="flex-1 flex gap-2">
-                                                <input autoFocus className="flex-1 bg-white/10 rounded-xl px-3 py-1 text-xs font-black outline-none" value={editingStageValue} onChange={e => setEditingStageValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') renameStage(stage.id); if (e.key === 'Escape') setEditingStageId(null) }} />
-                                                <button onClick={() => renameStage(stage.id)} className="p-1 text-shop"><Save className="w-3.5 h-3.5" /></button>
+                                                <input autoFocus className="flex-1 bg-white/10 rounded-xl px-3 py-1 text-sm font-black outline-none" value={editingStageValue} onChange={e => setEditingStageValue(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') renameStage(stage.id); if (e.key === 'Escape') setEditingStageId(null) }} />
+                                                <button onClick={() => renameStage(stage.id)} className="p-1 text-shop"><Save className="w-4 h-4" /></button>
                                             </div>
                                         ) : (
                                             <>
-                                                <span className="flex-1 text-[10px] font-black uppercase tracking-widest text-white truncate">{stage.name}</span>
-                                                <button onClick={() => { setEditingStageId(stage.id); setEditingStageValue(stage.name) }} className="p-1 text-muted-foreground hover:text-shop"><Edit2 className="w-3 h-3" /></button>
-                                                <button onClick={() => deleteStage(stage.id)} className="p-1 text-muted-foreground hover:text-red-400"><Trash2 className="w-3 h-3" /></button>
+                                                <span className="flex-1 text-[11px] font-black uppercase tracking-[0.15em] text-white truncate">{stage.name}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-[9px] font-black px-2 py-0.5 bg-white/5 rounded-lg text-muted-foreground mr-2">{(stage.tasks || []).length}</span>
+                                                    <button onClick={() => { setEditingStageId(stage.id); setEditingStageValue(stage.name) }} className="p-1.5 text-muted-foreground hover:text-shop transition-colors"><Edit2 className="w-3.5 h-3.5" /></button>
+                                                </div>
                                             </>
                                         )}
                                     </div>
-                                    <div className="flex flex-col gap-2 flex-1">
+                                    <div className="flex flex-col gap-3">
                                         {(stage.tasks || []).map(task => {
                                             const sCfg = STATUS_CONFIG[task.status]
                                             const StatusIcon = sCfg.icon
@@ -632,84 +658,79 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                     key={task.id} 
                                                     draggable 
                                                     onDragStart={(e) => handleDragStart(e, task.id)} 
-                                                    className={`glass-panel rounded-[20px] p-4 border transition-all group cursor-pointer border-l-4 ${PRIORITY_CONFIG[task.priority].border} 
+                                                    className={`glass-panel rounded-[24px] p-4.5 sm:p-4 border transition-all group cursor-pointer border-l-[6px] ${PRIORITY_CONFIG[task.priority].border} 
                                                         ${task.status === 'done' ? 'opacity-40 grayscale-[0.5]' : ''}
                                                         ${isTracking ? 'border-shop shadow-[0_0_20px_rgba(0,85,255,0.2)] scale-[1.02] bg-shop/5' : ''}
                                                         ${isWaiting ? 'opacity-20 grayscale border-dashed border-white/5 cursor-not-allowed' : 'hover:border-white/20'}`} 
                                                     onClick={() => openEditTask(task)}
                                                 >
-                                                    <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center justify-between mb-2.5">
                                                         <div className="flex items-center gap-2">
-                                                            {task._blocked && <AlertTriangle className={`w-3 h-3 ${isWaiting ? 'text-muted-foreground' : 'text-red-400'}`} />}
-                                                            {isWaiting && <span className="text-[7px] font-black uppercase text-muted-foreground tracking-widest">En attente</span>}
-                                                            {isTracking && <div className="flex items-center gap-1.5 bg-shop/20 px-2 py-0.5 rounded-full animate-pulse"><Clock className="w-2.5 h-2.5 text-shop" /><span className="text-[7px] font-black uppercase text-shop">Chrono en cours</span></div>}
+                                                            {task._blocked && <AlertTriangle className={`w-3.5 h-3.5 ${isWaiting ? 'text-muted-foreground' : 'text-red-400'}`} />}
+                                                            {isWaiting && <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">En attente</span>}
+                                                            {isTracking && <div className="flex items-center gap-1.5 bg-shop/20 px-2 py-0.5 rounded-full animate-pulse"><Clock className="w-2.5 h-2.5 text-shop" /><span className="text-[8px] font-black uppercase text-shop">Chrono</span></div>}
                                                         </div>
-                                                        <GripVertical className="w-3 h-3 text-white/10" />
+                                                        <GripVertical className="w-3.5 h-3.5 text-white/10" />
                                                     </div>
-                                                    <div className="flex items-start gap-2">
+                                                    <div className="flex items-start gap-3">
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); if(!isWaiting) cycleStatus(task); }} 
-                                                            className={`mt-0.5 flex-shrink-0 ${isWaiting ? 'text-muted-foreground/30' : sCfg.color} hover:scale-110 transition-transform`}
+                                                            className={`mt-0.5 flex-shrink-0 p-1.5 rounded-lg bg-white/5 ${isWaiting ? 'text-muted-foreground/30' : sCfg.color} hover:scale-110 transition-transform`}
                                                             disabled={isWaiting}
                                                         >
-                                                            <StatusIcon className="w-4 h-4" />
+                                                            <StatusIcon className="w-5 h-5" />
                                                         </button>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className={`text-xs font-bold leading-tight ${task.status === 'done' ? 'line-through' : isWaiting ? 'text-muted-foreground' : 'text-white'}`}>{task.title}</p>
+                                                            <p className={`text-[13px] sm:text-xs font-bold leading-tight ${task.status === 'done' ? 'line-through' : isWaiting ? 'text-muted-foreground' : 'text-white'}`}>{task.title}</p>
                                                             
-                                                            {/* Categories & Badges Preview */}
-                                                            <div className="flex flex-wrap gap-1 mt-2">
+                                                            <div className="flex flex-wrap gap-1.5 mt-2.5">
                                                                 {task.category && task.category !== 'Général' && (
-                                                                    <span className="px-1.5 py-0.5 bg-white/5 border border-white/10 rounded text-[7px] font-black uppercase text-muted-foreground">{task.category}</span>
+                                                                    <span className="px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[8px] font-black uppercase text-muted-foreground">{task.category}</span>
                                                                 )}
                                                                 {task.tags?.map(tag => (
-                                                                    <span key={tag} className="px-1.5 py-0.5 bg-shop/5 border border-shop/10 rounded text-[7px] font-black uppercase text-shop">{tag}</span>
+                                                                    <span key={tag} className="px-2 py-0.5 bg-shop/5 border border-shop/10 rounded-md text-[8px] font-black uppercase text-shop">{tag}</span>
                                                                 ))}
                                                             </div>
                                                         </div>
 
-                                                        {/* Time Tracker Mini Toggle */}
                                                         {!isWaiting && task.status !== 'done' && (
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); isTracking ? stopTimer() : startTimer(task.id, task.title); }}
-                                                                className={`p-2 rounded-xl transition-all shadow-lg ${isTracking ? 'bg-red-500 text-white animate-pulse' : 'bg-white/5 text-muted-foreground hover:bg-shop hover:text-white opacity-0 group-hover:opacity-100'}`}
+                                                                className={`p-2.5 rounded-xl transition-all shadow-lg ${isTracking ? 'bg-red-500 text-white animate-pulse' : 'bg-white/5 text-muted-foreground hover:bg-shop hover:text-white opacity-0 group-hover:opacity-100'}`}
                                                             >
-                                                                {isTracking ? <Square className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                                                                {isTracking ? <Square className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                                                             </button>
                                                         )}
                                                     </div>
-                                                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-white/5">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`text-[7px] font-black uppercase px-2 py-0.5 rounded-full ${PRIORITY_CONFIG[task.priority].bg} ${PRIORITY_CONFIG[task.priority].color}`}>{task.priority}</span>
-                                                            {task._assignee && <div className="w-4 h-4 rounded-full bg-shop/20 text-shop flex items-center justify-center text-[7px] font-black uppercase">{task._assignee.full_name?.charAt(0)}</div>}
+                                                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-white/5">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className={`text-[8px] font-black uppercase px-2.5 py-1 rounded-full ${PRIORITY_CONFIG[task.priority].bg} ${PRIORITY_CONFIG[task.priority].color}`}>{task.priority}</span>
+                                                            {task._assignee && <div className="w-5 h-5 rounded-full bg-shop/20 text-shop border border-shop/10 flex items-center justify-center text-[9px] font-black uppercase">{task._assignee.full_name?.charAt(0)}</div>}
                                                         </div>
-                                                        <div className="flex items-center gap-1">
-                                                            {task.deadline && <span className="text-[8px] text-muted-foreground flex items-center gap-0.5"><Calendar className="w-2.5 h-2.5" />{new Date(task.deadline).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>}
+                                                        <div className="flex items-center gap-2">
+                                                            {task.deadline && <span className="text-[10px] text-muted-foreground font-bold flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(task.deadline).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>}
                                                             <button 
                                                                 onClick={(e) => { e.stopPropagation(); setShowDepsFor(showDepsFor === task.id ? null : task.id); }}
-                                                                className={`p-1 rounded-lg transition-all ${showDepsFor === task.id ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground hover:text-shop hover:bg-shop/10 opacity-0 group-hover:opacity-100'}`}
-                                                                title="Lier des tâches"
+                                                                className={`p-1.5 rounded-lg transition-all ${showDepsFor === task.id ? 'bg-shop text-white shadow-lg' : 'text-muted-foreground hover:text-shop hover:bg-shop/10 opacity-0 group-hover:opacity-100'}`}
                                                             >
-                                                                <Link2 className="w-3.5 h-3.5" />
+                                                                <Link2 className="w-4 h-4" />
                                                             </button>
-                                                            <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id); }} className="p-1 text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                                                         </div>
                                                     </div>
 
-                                                    {/* Inline dependency picker */}
                                                     {showDepsFor === task.id && (
-                                                        <div className="mt-3 pt-3 border-t border-white/10 space-y-1 animate-in slide-in-from-top-2 duration-200" onClick={e => e.stopPropagation()}>
-                                                            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-2">Dépend de :</p>
-                                                            <div className="max-h-32 overflow-y-auto custom-scrollbar space-y-1 pr-1">
+                                                        <div className="mt-4 pt-4 border-t border-white/10 space-y-2 animate-in slide-in-from-top-2 duration-200" onClick={e => e.stopPropagation()}>
+                                                            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2">Dépend de :</p>
+                                                            <div className="max-h-48 overflow-y-auto custom-scrollbar space-y-2 pr-1">
                                                                 {allTasks.filter(t => t.id !== task.id).map(otherTask => {
                                                                     const linked = taskLinks.some(l => l.from_task_id === otherTask.id && l.to_task_id === task.id)
                                                                     return (
                                                                         <button
                                                                             key={otherTask.id}
                                                                             onClick={() => toggleDep(otherTask.id, task.id)}
-                                                                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-xl text-[9px] font-bold transition-all ${linked ? 'bg-shop/10 text-shop border border-shop/20' : 'bg-white/5 text-muted-foreground hover:bg-white/10'}`}
+                                                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[10px] font-bold transition-all ${linked ? 'bg-shop/10 text-shop border border-shop/20 shadow-sm shadow-shop/10' : 'bg-white/5 text-muted-foreground hover:bg-white/10 border border-transparent'}`}
                                                                         >
-                                                                            {linked ? <Link2 className="w-3 h-3 flex-shrink-0" /> : <Link2Off className="w-3 h-3 flex-shrink-0" />}
+                                                                            {linked ? <Link2 className="w-4 h-4 flex-shrink-0" /> : <Link2Off className="w-4 h-4 flex-shrink-0" />}
                                                                             <span className="truncate">{otherTask.title}</span>
                                                                         </button>
                                                                     )
@@ -720,18 +741,18 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                                                 </div>
                                             )
                                         })}
-                                        <button onClick={() => openNewTask(stage.id)} className="w-full h-12 glass-panel rounded-[20px] border border-dashed border-white/10 text-[9px] font-black uppercase text-muted-foreground hover:text-shop flex items-center justify-center gap-2 transition-all"><Plus className="w-3.5 h-3.5" /> Ajouter</button>
+                                        <button onClick={() => openNewTask(stage.id)} className="w-full h-14 glass-panel rounded-[24px] border border-dashed border-white/10 text-[10px] font-black uppercase text-muted-foreground hover:text-shop flex items-center justify-center gap-2 transition-all active:scale-95"><Plus className="w-4 h-4" /> Ajouter une tâche</button>
                                     </div>
                                 </div>
                             ))}
-                            <div className="w-72 flex-shrink-0">
+                            <div className="w-full lg:w-80 flex-shrink-0">
                                 {addingStage ? (
-                                    <div className="glass-panel rounded-[24px] p-4 space-y-3">
-                                        <input autoFocus className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-xs font-bold text-white outline-none focus:border-shop/50" value={newStageName} onChange={e => setNewStageName(e.target.value)} placeholder="Nom étape..." onKeyDown={e => e.key === 'Enter' && addStage()} />
-                                        <div className="flex gap-2"><button onClick={addStage} className="flex-1 py-2 bg-shop text-white text-[10px] font-black uppercase rounded-xl">Ajouter</button><button onClick={() => setAddingStage(false)} className="px-3 py-2 bg-white/5 text-muted-foreground rounded-xl"><X className="w-3.5 h-3.5" /></button></div>
+                                    <div className="glass-panel rounded-[28px] p-5 space-y-4 shadow-2xl">
+                                        <input autoFocus className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-3 text-sm font-bold text-white outline-none focus:border-shop/50" value={newStageName} onChange={e => setNewStageName(e.target.value)} placeholder="Nom de l'étape..." onKeyDown={e => e.key === 'Enter' && addStage()} />
+                                        <div className="flex gap-2"><button onClick={addStage} className="flex-1 py-3 bg-shop text-white text-[11px] font-black uppercase rounded-2xl shadow-lg">Ajouter</button><button onClick={() => setAddingStage(false)} className="px-4 py-3 bg-white/5 text-muted-foreground rounded-2xl hover:text-white transition-colors"><X className="w-4 h-4" /></button></div>
                                     </div>
                                 ) : (
-                                    <button onClick={() => setAddingStage(true)} className="w-full h-16 glass-panel rounded-[24px] border border-dashed border-white/10 text-[10px] font-black uppercase text-muted-foreground hover:text-shop flex items-center justify-center gap-2 transition-all"><Plus className="w-4 h-4" /> Nouvelle Étape</button>
+                                    <button onClick={() => setAddingStage(true)} className="w-full h-16 glass-panel rounded-[28px] border border-dashed border-white/10 text-[10px] font-black uppercase text-muted-foreground hover:text-shop flex items-center justify-center gap-2 transition-all active:scale-95"><Plus className="w-5 h-5" /> Nouvelle Étape</button>
                                 )}
                             </div>
                         </div>

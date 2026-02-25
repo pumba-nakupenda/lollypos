@@ -316,7 +316,14 @@ export default function SalesTerminal() {
                                     products={products} loading={loading} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
                                     categories={categories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
                                     brands={brands} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand}
-                                    addToCart={addToCart} imageErrors={imageErrors} setImageErrors={setImageErrors}
+                                    addToCart={(p, v) => {
+                                        addToCart(p, v);
+                                        // Auto-open cart on mobile if it's not a variant selection step
+                                        if (window.innerWidth < 1024 && (!p.variants || p.variants.length === 0 || v)) {
+                                            setIsCartOpen(true);
+                                        }
+                                    }}
+                                    imageErrors={imageErrors} setImageErrors={setImageErrors}
                                 />
                             ) : (
                                 <AgencyForm
@@ -361,6 +368,21 @@ export default function SalesTerminal() {
             )}
 
             {lastSale && <ReceiptModal isOpen={isReceiptOpen} onClose={() => setIsReceiptOpen(false)} saleData={lastSale} shop={activeShop} />}
+
+            {/* Mobile Cart Floating Button */}
+            {!isAgency && cart.length > 0 && (
+                <button
+                    onClick={() => setIsCartOpen(true)}
+                    className="lg:hidden fixed bottom-28 right-6 z-[140] w-16 h-16 bg-shop text-white rounded-2xl shadow-2xl shadow-shop/40 flex items-center justify-center animate-bounce-subtle"
+                >
+                    <div className="relative">
+                        <ShoppingCart className="w-7 h-7" />
+                        <span className="absolute -top-3 -right-3 bg-white text-shop text-[10px] font-black w-6 h-6 rounded-full flex items-center justify-center border-2 border-shop shadow-lg">
+                            {cart.reduce((sum, i) => sum + i.quantity, 0)}
+                        </span>
+                    </div>
+                </button>
+            )}
 
             {/* Variant Selection Modal */}
             {selectedProductForVariant && (

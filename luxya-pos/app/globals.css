@@ -56,6 +56,7 @@
   --color-shop-accent: hsl(var(--shop-accent));
 
   --animate-float: float 6s ease-in-out infinite;
+  --animate-bounce-subtle: bounce-subtle 3s ease-in-out infinite;
 }
 
 @keyframes float {
@@ -69,6 +70,15 @@
 
   100% {
     transform: translateY(0px);
+  }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-8px) scale(1.05);
   }
 }
 

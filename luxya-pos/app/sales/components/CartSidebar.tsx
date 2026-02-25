@@ -55,10 +55,10 @@ export default function CartSidebar({
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-[10px] sm:text-xs truncate text-white">{item.name}</h4>
+                                <h4 className="font-bold text-xs sm:text-sm truncate text-white">{item.name}</h4>
                                 <div className="flex items-center">
-                                    <input type="number" value={item.price} onChange={(e) => updateCartItemPrice(item.id, parseFloat(e.target.value))} className="w-16 sm:w-20 bg-black/20 border border-white/5 rounded-lg px-2 py-0.5 text-[9px] sm:text-[10px] font-black text-shop outline-none" />
-                                    <span className="text-[7px] sm:text-[8px] font-black text-muted-foreground uppercase ml-1">CFA</span>
+                                    <input type="number" inputMode="decimal" value={item.price} onChange={(e) => updateCartItemPrice(item.id, parseFloat(e.target.value))} className="w-16 sm:w-20 bg-black/20 border border-white/5 rounded-lg px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-shop outline-none" />
+                                    <span className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase ml-1">CFA</span>
                                 </div>
                             </div>
                             <div className="flex items-center bg-white/5 rounded-xl border border-white/5 p-1">
@@ -102,6 +102,7 @@ export default function CartSidebar({
                                 <label className="text-[10px] font-black uppercase text-muted-foreground">Reçu</label>
                                 <input
                                     type="number"
+                                    inputMode="decimal"
                                     value={receivedAmount}
                                     onChange={(e) => setReceivedAmount(e.target.value)}
                                     placeholder="Montant reçu..."

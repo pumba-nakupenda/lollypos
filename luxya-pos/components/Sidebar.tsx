@@ -31,6 +31,7 @@ import {
 import { useUser } from '@/context/UserContext'
 import { useShop } from '@/context/ShopContext'
 import ShopSelector from './ShopSelector'
+import BottomNav from './BottomNav'
 
 const navGroups = [
     {
@@ -145,7 +146,7 @@ export default function Sidebar() {
 
                     return (
                         <div key={group.title} className="glass-panel p-3 rounded-[28px] border-white/5 bg-white/[0.02] shadow-inner">
-                            <p className="px-3 text-[8px] font-black uppercase tracking-[0.3em] text-shop mb-3 opacity-80">{group.title}</p>
+                            <p className="px-3 text-[10px] font-black uppercase tracking-[0.3em] text-shop mb-3 opacity-80">{group.title}</p>
                             <div className="space-y-1">
                                 {filteredItems.map((item) => {
                                     const isActive = pathname === item.href
@@ -186,7 +187,7 @@ export default function Sidebar() {
                             <p className="text-[10px] font-black uppercase tracking-tight truncate text-white">
                                 {profile?.email?.split('@')[0]}
                             </p>
-                            <span className="text-[8px] font-black uppercase tracking-widest text-shop/60 px-2 py-0.5 bg-shop/5 rounded-full border border-shop/10">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-shop/60 px-2 py-0.5 bg-shop/5 rounded-full border border-shop/10">
                                 {profile?.role || 'User'}
                             </span>
                         </div>
@@ -208,15 +209,8 @@ export default function Sidebar() {
 
     return (
         <>
-            {/* Mobile Toggle Button */}
-            <div className="lg:hidden fixed top-4 left-4 z-[150]">
-                <button
-                    onClick={() => setIsMobileOpen(true)}
-                    className="p-3 bg-shop text-white rounded-2xl shadow-2xl shadow-shop/40 active:scale-90 transition-all border border-white/10 backdrop-blur-xl"
-                >
-                    <Menu className="w-6 h-6" />
-                </button>
-            </div>
+            {/* Mobile Bottom Navigation */}
+            <BottomNav onMenuClick={() => setIsMobileOpen(true)} />
 
             {/* Desktop Sidebar */}
             <aside className="hidden lg:flex w-72 bg-background border-r border-white/5 flex-col h-screen sticky top-0 z-[60]">

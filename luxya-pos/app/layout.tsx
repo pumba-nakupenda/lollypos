@@ -92,7 +92,7 @@ export default async function RootLayout({
                   <TimeTrackerProvider>
                     <div className="flex min-h-screen relative">
                       {!isSharePage && <Sidebar />}
-                      <main className={`flex-1 min-w-0 overflow-y-auto ${isSharePage ? 'w-full' : ''}`}>
+                      <main className={`flex-1 min-w-0 overflow-y-auto ${isSharePage ? 'w-full' : 'pb-24 lg:pb-0'}`}>
                         {children}
                       </main>
                       {showAi && <AiFloatingButton />}
