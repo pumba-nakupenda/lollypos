@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import {
     FolderKanban, Plus, Search, Users, Calendar, ChevronRight,
     X, Loader2, Briefcase, Building2, CheckCircle2, Clock, XCircle, PauseCircle,
-    DollarSign, ArrowRight, ListTodo, Archive,
+    DollarSign, ArrowRight, ListTodo, Archive, MessageSquare,
     FileText, User, LayoutDashboard
 } from 'lucide-react'
 import CustomDropdown from '@/components/CustomDropdown'
