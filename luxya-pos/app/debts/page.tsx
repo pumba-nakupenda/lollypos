@@ -476,6 +476,101 @@ export default function DebtsPage() {
                     </div>
                 </div>
             )}
+
+            {/* Creation Modal */}
+            {isModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-xl bg-background/40 animate-in fade-in duration-300">
+                    <div className="relative glass-card w-full max-w-lg p-10 rounded-[48px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all"><X className="w-6 h-6 text-white" /></button>
+
+                        <div className="flex items-center space-x-5 mb-10">
+                            <div className={`w-16 h-16 ${styles.bgLight} ${styles.text} ${styles.border} rounded-3xl flex items-center justify-center border shadow-2xl`}>
+                                {isReceivable ? <ArrowDownLeft className="w-8 h-8" /> : <ArrowUpRight className="w-8 h-8" />}
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Nouveau Dossier</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold tracking-[0.2em] uppercase mt-1">
+                                    {isReceivable ? 'Créance Client' : 'Dette Fournisseur'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleCreateEntry} className="space-y-6">
+                            {isReceivable ? (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Client</label>
+                                    <CustomDropdown
+                                        options={customers.map(c => ({ label: c.name, value: c.id, icon: <User className="w-3.5 h-3.5" /> }))}
+                                        value={newEntry.customer_id}
+                                        onChange={val => setNewEntry({ ...newEntry, customer_id: val })}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Nom du Créancier</label>
+                                    <div className="relative">
+                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input
+                                            required
+                                            type="text"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                                            placeholder="Ex: Fournisseur XYZ"
+                                            value={newEntry.creditor_name}
+                                            onChange={e => setNewEntry({ ...newEntry, creditor_name: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Montant Total</label>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input
+                                            required
+                                            type="number"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                                            value={newEntry.total_amount}
+                                            onChange={e => setNewEntry({ ...newEntry, total_amount: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Acompte déjà payé</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                                        value={newEntry.paid_amount}
+                                        onChange={e => setNewEntry({ ...newEntry, paid_amount: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Date d'échéance</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input
+                                        type="date"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                                        value={newEntry.due_date}
+                                        onChange={e => setNewEntry({ ...newEntry, due_date: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={creating}
+                                className={`w-full py-6 ${styles.bg} ${styles.shadow} text-white font-black uppercase tracking-[0.2em] rounded-[28px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl text-xs disabled:opacity-50`}
+                            >
+                                {creating ? 'Enregistrement...' : 'Créer le Dossier'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
