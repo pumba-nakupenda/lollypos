@@ -20,6 +20,7 @@ export default function CalendarCallback() {
     }, [searchParams, profile])
 
     const exchangeCode = async (code: string) => {
+        if (!profile?.id) return;
         try {
             const res = await authFetch(`${API_URL}/calendar/callback`, {
                 method: 'POST',
