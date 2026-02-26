@@ -28,12 +28,12 @@ export default function CustomersPage() {
     const [selectedShopId, setSelectedShopId] = useState<number>(1)
 
     const [newCustomer, setNewCustomer] = useState({
-        name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'client', lead_source: ''
+        name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: ''
     })
 
     const [editingCustomer, setEditingCustomer] = useState<any>(null)
     const [editData, setEditData] = useState({
-        name: '', phone: '', email: '', address: '', ninea: '', rc: '', shop_id: 1, lead_status: 'client', lead_source: ''
+        name: '', phone: '', email: '', address: '', ninea: '', rc: '', shop_id: 1, lead_status: 'customer', lead_source: ''
     })
 
     useEffect(() => {
@@ -78,8 +78,9 @@ export default function CustomersPage() {
             setIsModalOpen(false)
             setNewCustomer({ name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: '' })
             fetchCustomers()
-        } catch (err) {
-            showToast("Erreur lors de la création", "error")
+        } catch (err: any) {
+            console.error("Create error:", err)
+            showToast(`Erreur : ${err.message || "lors de la création"}`, "error")
         } finally {
             setCreating(false)
         }
@@ -95,7 +96,7 @@ export default function CustomersPage() {
             ninea: customer.ninea || '',
             rc: customer.rc || '',
             shop_id: customer.shop_id || 1,
-            lead_status: customer.lead_status || 'client',
+            lead_status: customer.lead_status || 'customer',
             lead_source: customer.lead_source || ''
         })
         setIsEditModalOpen(true)
@@ -195,7 +196,7 @@ export default function CustomersPage() {
                                                     customer.lead_status === 'customer' ? 'bg-green-500/20 border-green-500/30 text-green-400' :
                                                     'bg-white/5 border-white/10 text-muted-foreground'
                                                 }`}>
-                                                    {customer.lead_status || 'client'}
+                                                    {customer.lead_status || 'customer'}
                                                 </span>
                                             </div>
                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{customer.email || "Pas d'email"}</p>
