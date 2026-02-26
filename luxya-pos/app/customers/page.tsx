@@ -76,7 +76,7 @@ export default function CustomersPage() {
             
             showToast("Client enregistré !", "success")
             setIsModalOpen(false)
-            setNewCustomer({ name: '', phone: '', email: '', address: '', ninea: '', rc: '' })
+            setNewCustomer({ name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: '' })
             fetchCustomers()
         } catch (err) {
             showToast("Erreur lors de la création", "error")
