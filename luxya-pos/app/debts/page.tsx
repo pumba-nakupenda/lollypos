@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import {
     CreditCard, Search, User, Calendar, DollarSign,
-    CheckCircle2, AlertCircle, Clock, Trash2, ArrowRight,
+    CheckCircle2, AlertCircle, Clock, Trash2, ArrowRight, Package, Edit2,
     Loader2, Filter, Plus, X, ArrowUpRight, ArrowDownLeft, Building2, History
 } from 'lucide-react'
 import { useShop } from '@/context/ShopContext'
@@ -24,10 +24,13 @@ export default function DebtsPage() {
     const [statusFilter, setStatusFilter] = useState('all')
     const [viewType, setViewType] = useState<'receivable' | 'debt'>('receivable')
     const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
+    const [updating, setUpdating] = useState(false)
     const [currentSession, setCurrentSession] = useState<any>(null)
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
     const [selectedDebt, setSelectedDebt] = useState<any>(null)
+    const [editingDebt, setEditingDebt] = useState<any>(null)
     const [paymentAmount, setPaymentAmount] = useState('')
     const [paymentProcessing, setPaymentProcessing] = useState(false)
     const [payMethod, setPayMethod] = useState<'cash' | 'wave' | 'om'>('cash')
@@ -41,6 +44,16 @@ export default function DebtsPage() {
         paid_amount: '0',
         due_date: '',
         type: 'receivable' as 'receivable' | 'debt',
+        description: '',
+        items: [] as any[]
+    })
+
+    const [editData, setEditData] = useState({
+        customer_id: '',
+        creditor_name: '',
+        total_amount: '',
+        paid_amount: '0',
+        due_date: '',
         description: '',
         items: [] as any[]
     })
@@ -66,7 +79,7 @@ export default function DebtsPage() {
         } catch (err) {}
     }
 
-    const addItem = () => {
+    const addItem = (isEdit: boolean = false) => {
         if (!selectedProduct) return
         const prod = products.find(p => p.id.toString() === selectedProduct)
         if (!prod) return
@@ -78,26 +91,30 @@ export default function DebtsPage() {
             price: prod.price
         }
 
-        const updatedItems = [...newEntry.items, newItem]
-        const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-
-        setNewEntry({ 
-            ...newEntry, 
-            items: updatedItems,
-            total_amount: newTotal.toString()
-        })
+        if (isEdit) {
+            const updatedItems = [...editData.items, newItem]
+            const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            setEditData({ ...editData, items: updatedItems, total_amount: newTotal.toString() })
+        } else {
+            const updatedItems = [...newEntry.items, newItem]
+            const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            setNewEntry({ ...newEntry, items: updatedItems, total_amount: newTotal.toString() })
+        }
+        
         setSelectedProduct('')
         setItemQty('1')
     }
 
-    const removeItem = (index: number) => {
-        const updatedItems = newEntry.items.filter((_, i) => i !== index)
-        const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-        setNewEntry({ 
-            ...newEntry, 
-            items: updatedItems,
-            total_amount: newTotal.toString()
-        })
+    const removeItem = (index: number, isEdit: boolean = false) => {
+        if (isEdit) {
+            const updatedItems = editData.items.filter((_, i) => i !== index)
+            const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            setEditData({ ...editData, items: updatedItems, total_amount: newTotal.toString() })
+        } else {
+            const updatedItems = newEntry.items.filter((_, i) => i !== index)
+            const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            setNewEntry({ ...newEntry, items: updatedItems, total_amount: newTotal.toString() })
+        }
     }
 
     const fetchCurrentSession = async () => {
@@ -213,6 +230,56 @@ export default function DebtsPage() {
             showToast(`Erreur : ${err.message || 'Impossible de créer'}`, "error")
         } finally {
             setCreating(false)
+        }
+    }
+
+    const openEditModal = (debt: any) => {
+        setEditingDebt(debt)
+        setEditData({
+            customer_id: debt.customer_id?.toString() || '',
+            creditor_name: debt.creditor_name || '',
+            total_amount: debt.total_amount.toString(),
+            paid_amount: debt.paid_amount.toString(),
+            due_date: debt.due_date || '',
+            description: debt.description || '',
+            items: debt.items || []
+        })
+        setIsEditModalOpen(true)
+    }
+
+    const handleUpdateEntry = async (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!editingDebt) return
+
+        setUpdating(true)
+        try {
+            const total = parseFloat(editData.total_amount)
+            const paid = parseFloat(editData.paid_amount)
+            const remaining = total - paid
+
+            const { error } = await supabase
+                .from('debts')
+                .update({
+                    customer_id: editingDebt.type === 'receivable' ? editData.customer_id : null,
+                    creditor_name: editingDebt.type === 'debt' ? editData.creditor_name : null,
+                    total_amount: total,
+                    remaining_amount: remaining,
+                    paid_amount: paid,
+                    due_date: editData.due_date || null,
+                    status: remaining <= 0 ? 'paid' : (paid > 0 ? 'partial' : 'unpaid'),
+                    items: editData.items || [],
+                    description: editData.description
+                })
+                .eq('id', editingDebt.id)
+
+            if (error) throw error
+            showToast("Dossier mis à jour !", "success")
+            setIsEditModalOpen(false)
+            fetchDebts()
+        } catch (err: any) {
+            showToast(`Erreur : ${err.message || 'Impossible de mettre à jour'}`, "error")
+        } finally {
+            setUpdating(false)
         }
     }
 
@@ -483,6 +550,13 @@ export default function DebtsPage() {
                                     </button>
                                 )}
                                 <button
+                                    onClick={() => openEditModal(debt)}
+                                    className={`p-4 bg-white/5 hover:bg-shop hover:text-white border border-white/10 hover:border-shop rounded-2xl transition-all flex items-center justify-center`}
+                                    title="Modifier"
+                                >
+                                    <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
                                     onClick={() => handleDeleteDebt(debt.id)}
                                     className={`p-4 bg-white/5 hover:bg-red-500 hover:text-white border border-white/10 hover:border-red-500 rounded-2xl transition-all flex items-center justify-center`}
                                     title="Supprimer"
@@ -718,6 +792,169 @@ export default function DebtsPage() {
                                 className={`w-full py-6 ${styles.bg} ${styles.shadow} text-white font-black uppercase tracking-[0.2em] rounded-[28px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl text-xs disabled:opacity-50`}
                             >
                                 {creating ? 'Enregistrement...' : 'Créer le Dossier'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 backdrop-blur-xl bg-background/40 animate-in fade-in duration-300">
+                    <div className="relative glass-card w-full max-w-lg p-10 rounded-[48px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                        <button onClick={() => setIsEditModalOpen(false)} className="absolute top-8 right-8 p-3 bg-white/5 hover:bg-white/10 rounded-full transition-all"><X className="w-6 h-6 text-white" /></button>
+
+                        <div className="flex items-center space-x-5 mb-10">
+                            <div className={`w-16 h-16 ${styles.bgLight} ${styles.text} ${styles.border} rounded-3xl flex items-center justify-center border shadow-2xl`}>
+                                <Edit2 className="w-8 h-8" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-black uppercase tracking-tighter text-white">Modifier Dossier</h2>
+                                <p className="text-[10px] text-muted-foreground font-bold tracking-[0.2em] uppercase mt-1">
+                                    {editingDebt?.type === 'receivable' ? 'Créance Client' : 'Dette Fournisseur'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <form onSubmit={handleUpdateEntry} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                            {editingDebt?.type === 'receivable' ? (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Client</label>
+                                    <CustomDropdown
+                                        options={customers.map(c => ({ label: c.name, value: c.id, icon: <User className="w-3.5 h-3.5" /> }))}
+                                        value={editData.customer_id}
+                                        onChange={val => setEditData({ ...editData, customer_id: val })}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Nom du Créancier</label>
+                                    <div className="relative">
+                                        <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input
+                                            required
+                                            type="text"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                                            placeholder="Ex: Fournisseur XYZ"
+                                            value={editData.creditor_name}
+                                            onChange={e => setEditData({ ...editData, creditor_name: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Product Selection Section */}
+                            <div className="p-6 bg-white/5 rounded-[32px] border border-white/5 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-shop">Modifier les produits</h4>
+                                    <Package className="w-4 h-4 text-shop opacity-30" />
+                                </div>
+                                
+                                <div className="grid grid-cols-5 gap-3">
+                                    <div className="col-span-3">
+                                        <CustomDropdown
+                                            options={products.map(p => ({ 
+                                                label: `${p.name} (${p.price.toLocaleString()} CFA)`, 
+                                                value: p.id.toString(),
+                                                icon: <Package className="w-3.5 h-3.5" />
+                                            }))}
+                                            value={selectedProduct}
+                                            onChange={val => setSelectedProduct(val)}
+                                            placeholder="Choisir un produit"
+                                        />
+                                    </div>
+                                    <input 
+                                        type="number" 
+                                        className="bg-white/5 border border-white/10 rounded-xl px-3 text-xs font-bold outline-none focus:border-shop text-white"
+                                        placeholder="Qté"
+                                        value={itemQty}
+                                        onChange={e => setItemQty(e.target.value)}
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={() => addItem(true)}
+                                        className="bg-shop text-white rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Items Table */}
+                                {editData.items.length > 0 && (
+                                    <div className="mt-4 space-y-2">
+                                        {editData.items.map((item, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-black text-white truncate">{item.name}</p>
+                                                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{item.quantity} x {item.price.toLocaleString()} CFA</p>
+                                                </div>
+                                                <div className="flex items-center space-x-3">
+                                                    <span className="text-[10px] font-black text-shop">{(item.price * item.quantity).toLocaleString()}</span>
+                                                    <button type="button" onClick={() => removeItem(idx, true)} className="text-red-400 hover:text-red-300">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Montant Total</label>
+                                    <div className="relative">
+                                        <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                        <input
+                                            required
+                                            type="number"
+                                            className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                                            value={editData.total_amount}
+                                            onChange={e => setEditData({ ...editData, total_amount: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Acompte payé</label>
+                                    <input
+                                        type="number"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                                        value={editData.paid_amount}
+                                        onChange={e => setEditData({ ...editData, paid_amount: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Note / Description</label>
+                                <textarea
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:border-shop/50 transition-all text-white resize-none"
+                                    placeholder="Détails supplémentaires..."
+                                    rows={2}
+                                    value={editData.description}
+                                    onChange={e => setEditData({ ...editData, description: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Date d'échéance</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                    <input
+                                        type="date"
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
+                                        value={editData.due_date}
+                                        onChange={e => setEditData({ ...editData, due_date: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={updating}
+                                className={`w-full py-6 ${styles.bg} ${styles.shadow} text-white font-black uppercase tracking-[0.2em] rounded-[28px] hover:scale-[1.02] active:scale-95 transition-all shadow-2xl text-xs disabled:opacity-50`}
+                            >
+                                {updating ? 'Mise à jour...' : 'Sauvegarder les modifications'}
                             </button>
                         </form>
                     </div>
