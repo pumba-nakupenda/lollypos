@@ -49,7 +49,6 @@ const navGroups = [
             { name: 'Portfolio', href: '/portfolio', icon: Users, roles: ['admin', 'manager', 'lead'], agencyOnly: true },
             { name: 'Projets', href: '/projects', icon: FolderKanban, roles: ['admin', 'manager', 'lead'], agencyOnly: true },
             { name: 'Clients', href: '/customers', icon: Users, roles: ['admin', 'manager', 'lead'] },
-            { name: 'Dettes', href: '/debts', icon: CreditCard, roles: ['admin', 'manager'] },
         ]
     },
     {
@@ -57,6 +56,7 @@ const navGroups = [
         items: [
             { name: 'Achats', href: '/purchase-orders', icon: FileText, roles: ['admin', 'manager', 'inventory'] },
             { name: 'Inventaire', href: '/inventory', icon: Package, roles: ['admin', 'manager', 'inventory'] },
+            { name: 'Dettes', href: '/debts', icon: CreditCard, roles: ['admin', 'manager'] },
             { name: 'Fournisseurs', href: '/suppliers', icon: Truck, roles: ['admin', 'manager', 'inventory'] },
             { name: 'Inventaire Rapide', href: '/inventory/quick', icon: RefreshCw, roles: ['admin', 'manager', 'inventory'] },
         ]
@@ -114,7 +114,7 @@ export default function Sidebar() {
             <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto custom-scrollbar pb-20">
                 {navGroups.map((group) => {
                     const isAgency = activeShop?.id === 3
-                    const groupTitle = (!isAgency && group.title === "Gestion Stock") ? "Gestion Dettes" : group.title
+                    const groupTitle = (!isAgency && group.title === "Gestion Stock") ? "Gestion de stock" : group.title
 
                     const filteredItems = group.items.filter((item: any) => {
                         if (item.superAdminOnly && !profile?.is_super_admin) return false
@@ -134,7 +134,10 @@ export default function Sidebar() {
                             return { ...item, name: 'Relevés Clients' }
                         }
                         if (item.href === '/inventory' && !isAgency) {
-                            return { ...item, name: 'Gestion Dettes' }
+                            return { ...item, name: 'Inventaire' }
+                        }
+                        if (item.href === '/debts' && !isAgency) {
+                            return { ...item, name: 'Gestion des dettes' }
                         }
                         return item
                     })

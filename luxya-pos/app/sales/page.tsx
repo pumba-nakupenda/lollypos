@@ -114,7 +114,7 @@ export default function SalesTerminal() {
             if (!isAgency) {
                 const saleData = {
                     customer_name: customerName || 'Client Comptant',
-                    customer_id: selectedCustomerId,
+                    customer_id: (selectedCustomerId && selectedCustomerId.length > 20) ? selectedCustomerId : undefined,
                     totalAmount,
                     paymentMethod: paymentMethod.toLowerCase(),
                     shopId: activeShop.id,
@@ -169,8 +169,9 @@ export default function SalesTerminal() {
 
                 const docData = {
                     customer_name: customerName,
-                    customer_id: selectedCustomerId,
+                    customer_id: (selectedCustomerId && selectedCustomerId.length > 20) ? selectedCustomerId : undefined,
                     totalAmount,
+                    paymentMethod: paymentMethod.toLowerCase(),
                     type: docType,
                     status: docType === 'quote' ? 'pending' : 'completed',
                     shopId: activeShop.id,

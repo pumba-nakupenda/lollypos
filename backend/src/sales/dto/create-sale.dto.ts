@@ -7,7 +7,7 @@ import { Type } from 'class-transformer';
 
 class SaleItemDto {
     @IsInt()
-    @Min(1)
+    @Min(0)
     @Type(() => Number)
     productId: number;
 
