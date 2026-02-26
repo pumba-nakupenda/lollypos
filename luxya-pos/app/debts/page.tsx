@@ -18,6 +18,7 @@ export default function DebtsPage() {
 
     const [debts, setDebts] = useState<any[]>([])
     const [customers, setCustomers] = useState<any[]>([])
+    const [products, setProducts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
@@ -39,14 +40,65 @@ export default function DebtsPage() {
         total_amount: '',
         paid_amount: '0',
         due_date: '',
-        type: 'receivable' as 'receivable' | 'debt'
+        type: 'receivable' as 'receivable' | 'debt',
+        description: '',
+        items: [] as any[]
     })
+
+    const [selectedProduct, setSelectedProduct] = useState<string>('')
+    const [itemQty, setItemQty] = useState('1')
 
     useEffect(() => {
         fetchDebts()
         fetchCustomers()
+        fetchProducts()
         fetchCurrentSession()
     }, [activeShop, viewType])
+
+    const fetchProducts = async () => {
+        try {
+            let query = supabase.from('products').select('id, name, price, stock').order('name');
+            if (activeShop && activeShop.id !== 0) {
+                query = query.eq('shop_id', activeShop.id);
+            }
+            const { data } = await query;
+            if (data) setProducts(data);
+        } catch (err) {}
+    }
+
+    const addItem = () => {
+        if (!selectedProduct) return
+        const prod = products.find(p => p.id.toString() === selectedProduct)
+        if (!prod) return
+
+        const newItem = {
+            product_id: prod.id,
+            name: prod.name,
+            quantity: parseFloat(itemQty) || 1,
+            price: prod.price
+        }
+
+        const updatedItems = [...newEntry.items, newItem]
+        const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+
+        setNewEntry({ 
+            ...newEntry, 
+            items: updatedItems,
+            total_amount: newTotal.toString()
+        })
+        setSelectedProduct('')
+        setItemQty('1')
+    }
+
+    const removeItem = (index: number) => {
+        const updatedItems = newEntry.items.filter((_, i) => i !== index)
+        const newTotal = updatedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+        setNewEntry({ 
+            ...newEntry, 
+            items: updatedItems,
+            total_amount: newTotal.toString()
+        })
+    }
 
     const fetchCurrentSession = async () => {
         if (!activeShop) return;
@@ -134,7 +186,9 @@ export default function DebtsPage() {
                 paid_amount: paid,
                 due_date: newEntry.due_date || null,
                 status: remaining <= 0 ? 'paid' : (paid > 0 ? 'partial' : 'unpaid'),
-                shop_id: activeShop?.id
+                shop_id: activeShop?.id,
+                items: newEntry.items || [],
+                description: newEntry.description
             }])
 
             if (error) {
@@ -143,7 +197,16 @@ export default function DebtsPage() {
             }
             showToast(newEntry.type === 'receivable' ? "Créance client ajoutée !" : "Dette fournisseur enregistrée !", "success")
             setIsModalOpen(false)
-            setNewEntry({ customer_id: '', creditor_name: '', total_amount: '', paid_amount: '0', due_date: '', type: 'receivable' })
+            setNewEntry({ 
+                customer_id: '', 
+                creditor_name: '', 
+                total_amount: '', 
+                paid_amount: '0', 
+                due_date: '', 
+                type: 'receivable', 
+                items: [],
+                description: ''
+            })
             fetchDebts()
         } catch (err: any) {
             console.error('Debt Creation Catch:', err);
@@ -362,6 +425,27 @@ export default function DebtsPage() {
                                     <span>Total: {Number(debt.total_amount).toLocaleString()}</span>
                                     <span className="flex items-center"><Clock className="w-2.5 h-2.5 mr-1" /> {debt.due_date ? new Date(debt.due_date).toLocaleDateString() : 'Pas d\'échéance'}</span>
                                 </div>
+
+                                {/* Items List Display */}
+                                {debt.items && debt.items.length > 0 && (
+                                    <div className="pt-4 border-t border-white/5 space-y-1.5">
+                                        <p className="text-[7px] font-black uppercase text-shop tracking-widest mb-2 flex items-center">
+                                            <Package className="w-2.5 h-2.5 mr-1" /> Produits détaillés
+                                        </p>
+                                        {debt.items.map((item: any, i: number) => (
+                                            <div key={i} className="flex justify-between text-[8px] font-bold text-white/80">
+                                                <span>{item.name} <span className="text-muted-foreground text-[7px] font-medium">(x{item.quantity})</span></span>
+                                                <span>{(item.price * item.quantity).toLocaleString()} CFA</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {debt.description && (
+                                    <p className="text-[8px] font-medium text-muted-foreground italic line-clamp-2 pt-2 border-t border-white/5 mt-2">
+                                        "{debt.description}"
+                                    </p>
+                                )}
                             </div>
 
                             {/* Payment History Mini-Section */}
@@ -495,7 +579,7 @@ export default function DebtsPage() {
                             </div>
                         </div>
 
-                        <form onSubmit={handleCreateEntry} className="space-y-6">
+                        <form onSubmit={handleCreateEntry} className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
                             {isReceivable ? (
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Client</label>
@@ -522,6 +606,63 @@ export default function DebtsPage() {
                                 </div>
                             )}
 
+                            {/* Product Selection Section */}
+                            <div className="p-6 bg-white/5 rounded-[32px] border border-white/5 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-shop">Ajouter des produits</h4>
+                                    <Package className="w-4 h-4 text-shop opacity-30" />
+                                </div>
+                                
+                                <div className="grid grid-cols-5 gap-3">
+                                    <div className="col-span-3">
+                                        <CustomDropdown
+                                            options={products.map(p => ({ 
+                                                label: `${p.name} (${p.price.toLocaleString()} CFA)`, 
+                                                value: p.id.toString(),
+                                                icon: <Package className="w-3.5 h-3.5" />
+                                            }))}
+                                            value={selectedProduct}
+                                            onChange={val => setSelectedProduct(val)}
+                                            placeholder="Choisir un produit"
+                                        />
+                                    </div>
+                                    <input 
+                                        type="number" 
+                                        className="bg-white/5 border border-white/10 rounded-xl px-3 text-xs font-bold outline-none focus:border-shop text-white"
+                                        placeholder="Qté"
+                                        value={itemQty}
+                                        onChange={e => setItemQty(e.target.value)}
+                                    />
+                                    <button 
+                                        type="button"
+                                        onClick={addItem}
+                                        className="bg-shop text-white rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+                                    >
+                                        <Plus className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Items Table */}
+                                {newEntry.items.length > 0 && (
+                                    <div className="mt-4 space-y-2">
+                                        {newEntry.items.map((item, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] font-black text-white truncate">{item.name}</p>
+                                                    <p className="text-[8px] font-bold text-muted-foreground uppercase">{item.quantity} x {item.price.toLocaleString()} CFA</p>
+                                                </div>
+                                                <div className="flex items-center space-x-3">
+                                                    <span className="text-[10px] font-black text-shop">{(item.price * item.quantity).toLocaleString()}</span>
+                                                    <button type="button" onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-300">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Montant Total</label>
@@ -545,6 +686,17 @@ export default function DebtsPage() {
                                         onChange={e => setNewEntry({ ...newEntry, paid_amount: e.target.value })}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Note / Description</label>
+                                <textarea
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:border-shop/50 transition-all text-white resize-none"
+                                    placeholder="Détails supplémentaires..."
+                                    rows={2}
+                                    value={newEntry.description}
+                                    onChange={e => setNewEntry({ ...newEntry, description: e.target.value })}
+                                />
                             </div>
 
                             <div className="space-y-2">
