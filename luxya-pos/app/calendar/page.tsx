@@ -49,13 +49,21 @@ export default function CalendarPage() {
     const handleLinkGoogle = async () => {
         try {
             setLinking(true)
+            console.log("Fetching auth URL from:", `${API_URL}/calendar/auth-url`);
             const res = await authFetch(`${API_URL}/calendar/auth-url`)
+            console.log("Auth response status:", res.status);
             if (res.ok) {
                 const { url } = await res.json()
+                console.log("Redirecting to:", url);
                 window.location.href = url
+            } else {
+                const errData = await res.json().catch(() => ({}));
+                console.error("Auth URL fetch failed:", errData);
+                showToast(`Erreur serveur: ${errData.message || res.statusText}`, "error");
             }
-        } catch (err) {
-            showToast("Impossible de contacter Google", "error")
+        } catch (err: any) {
+            console.error("Link Google Catch:", err);
+            showToast(`Erreur connexion: ${err.message}`, "error")
         } finally {
             setLinking(false)
         }
