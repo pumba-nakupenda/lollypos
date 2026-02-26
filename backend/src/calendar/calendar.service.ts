@@ -17,6 +17,7 @@ export class CalendarService {
       this.configService.get('GOOGLE_CLIENT_SECRET'),
       `${this.configService.get('NEXT_PUBLIC_SITE_URL')}/calendar/callback`,
     );
+    this.logger.log(`Google Calendar Service Initialized. ClientID: ${!!this.configService.get('GOOGLE_CLIENT_ID')} Secret: ${!!this.configService.get('GOOGLE_CLIENT_SECRET')}`);
   }
 
   getAuthUrl(userId: string) {

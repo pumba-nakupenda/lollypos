@@ -51,11 +51,16 @@ export async function safeFetch(url: string, options: RequestInit = {}, retries 
             }
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || `Erreur serveur (${response.status})`);
+                let errorMsg = `Erreur serveur (${response.status})`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.message || errorMsg;
+                } catch (e) {}
+                throw new Error(errorMsg);
             }
 
-            return await response.json();
+            const data = await response.json();
+            return data;
         } catch (err: any) {
             lastError = err;
             console.error(`[safeFetch] Attempt ${i + 1} failed for ${url}:`, err.message);
