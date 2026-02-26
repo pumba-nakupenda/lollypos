@@ -1,7 +1,7 @@
 import { createClient } from './supabase/client';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:3005";
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://admin.lolly.sn";
 
 /**
  * Fetch authentifié : injecte automatiquement le token Supabase dans le header Authorization.
