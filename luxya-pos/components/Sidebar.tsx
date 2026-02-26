@@ -20,6 +20,7 @@ import {
     Users,
     Sparkles,
     CreditCard,
+    TrendingUp,
     Truck,
     Tag,
     Lock,
@@ -46,6 +47,7 @@ const navGroups = [
         items: [
             { name: 'Caisse POS', href: '/sales', icon: ShoppingBag, roles: ['admin', 'manager', 'cashier'] },
             { name: 'Ma Caisse', href: '/cash-management', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier'] },
+            { name: 'Pipeline', href: '/customers/pipeline', icon: TrendingUp, roles: ['admin', 'manager', 'lead'] },
             { name: 'Portfolio', href: '/portfolio', icon: Users, roles: ['admin', 'manager', 'lead'], agencyOnly: true },
             { name: 'Projets', href: '/projects', icon: FolderKanban, roles: ['admin', 'manager', 'lead'], agencyOnly: true },
             { name: 'Clients', href: '/customers', icon: Users, roles: ['admin', 'manager', 'lead'] },

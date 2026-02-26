@@ -28,12 +28,12 @@ export default function CustomersPage() {
     const [selectedShopId, setSelectedShopId] = useState<number>(1)
 
     const [newCustomer, setNewCustomer] = useState({
-        name: '', phone: '', email: '', address: '', ninea: '', rc: ''
+        name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'client', lead_source: ''
     })
 
     const [editingCustomer, setEditingCustomer] = useState<any>(null)
     const [editData, setEditData] = useState({
-        name: '', phone: '', email: '', address: '', ninea: '', rc: '', shop_id: 1
+        name: '', phone: '', email: '', address: '', ninea: '', rc: '', shop_id: 1, lead_status: 'client', lead_source: ''
     })
 
     useEffect(() => {
@@ -94,7 +94,9 @@ export default function CustomersPage() {
             address: customer.address || '',
             ninea: customer.ninea || '',
             rc: customer.rc || '',
-            shop_id: customer.shop_id || 1
+            shop_id: customer.shop_id || 1,
+            lead_status: customer.lead_status || 'client',
+            lead_source: customer.lead_source || ''
         })
         setIsEditModalOpen(true)
     }
@@ -184,7 +186,18 @@ export default function CustomersPage() {
                                     <div className="flex items-center space-x-4">
                                         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-shop/20 to-shop/5 border border-shop/20 flex items-center justify-center font-black text-shop text-2xl shadow-inner uppercase">{customer.name.charAt(0)}</div>
                                         <div className="min-w-0">
-                                            <h3 className="font-black text-lg text-white group-hover:text-shop transition-colors truncate">{customer.name}</h3>
+                                            <div className="flex items-center space-x-2">
+                                                <h3 className="font-black text-lg text-white group-hover:text-shop transition-colors truncate">{customer.name}</h3>
+                                                <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border uppercase tracking-widest ${
+                                                    customer.lead_status === 'lead' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' :
+                                                    customer.lead_status === 'prospect' ? 'bg-purple-500/20 border-purple-500/30 text-purple-400' :
+                                                    customer.lead_status === 'qualified' ? 'bg-orange-500/20 border-orange-500/30 text-orange-400' :
+                                                    customer.lead_status === 'customer' ? 'bg-green-500/20 border-green-500/30 text-green-400' :
+                                                    'bg-white/5 border-white/10 text-muted-foreground'
+                                                }`}>
+                                                    {customer.lead_status || 'client'}
+                                                </span>
+                                            </div>
                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{customer.email || "Pas d'email"}</p>
                                         </div>
                                     </div>
@@ -274,6 +287,28 @@ export default function CustomersPage() {
                                 </div>
                             </div>
 
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Statut (Funnel)</label>
+                                    <CustomDropdown 
+                                        options={[
+                                            { label: 'Lead', value: 'lead' },
+                                            { label: 'Prospect', value: 'prospect' },
+                                            { label: 'Qualifié', value: 'qualified' },
+                                            { label: 'Client', value: 'customer' },
+                                            { label: 'Inactif', value: 'inactive' },
+                                            { label: 'Perdu', value: 'lost' }
+                                        ]}
+                                        value={newCustomer.lead_status}
+                                        onChange={val => setNewCustomer({...newCustomer, lead_status: val})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Source</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.lead_source} onChange={e => setNewCustomer({...newCustomer, lead_source: e.target.value})} placeholder="Ex: Facebook, Referral" />
+                                </div>
+                            </div>
+
                             <button type="submit" disabled={creating} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl disabled:opacity-50">
                                 {creating ? 'Enregistrement...' : 'Sauvegarder Client'}
                             </button>
@@ -333,6 +368,28 @@ export default function CustomersPage() {
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">RC</label>
                                     <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.rc} onChange={e => setEditData({...editData, rc: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Statut (Funnel)</label>
+                                    <CustomDropdown 
+                                        options={[
+                                            { label: 'Lead', value: 'lead' },
+                                            { label: 'Prospect', value: 'prospect' },
+                                            { label: 'Qualifié', value: 'qualified' },
+                                            { label: 'Client', value: 'customer' },
+                                            { label: 'Inactif', value: 'inactive' },
+                                            { label: 'Perdu', value: 'lost' }
+                                        ]}
+                                        value={editData.lead_status}
+                                        onChange={val => setEditData({...editData, lead_status: val})}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Source</label>
+                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.lead_source} onChange={e => setEditData({...editData, lead_source: e.target.value})} />
                                 </div>
                             </div>
 
