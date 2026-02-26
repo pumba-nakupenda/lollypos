@@ -9,6 +9,7 @@ import { useToast } from '@/context/ToastContext'
 import { useShop } from '@/context/ShopContext'
 import ShopSelector from '@/components/ShopSelector'
 import CustomDropdown from '@/components/CustomDropdown'
+import { API_URL, authFetch } from '@/utils/api'
 
 export default function CustomersPage() {
     const supabase = createClient()
