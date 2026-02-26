@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calendar as CalendarIcon, Link as LinkIcon, RefreshCw, Plus, CheckCircle2, ChevronLeft, ChevronRight, Loader2, Google } from 'lucide-react'
+import { Calendar as CalendarIcon, Link as LinkIcon, RefreshCw, Plus, CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
 import { useToast } from '@/context/ToastContext'
 import { API_URL, authFetch } from '@/utils/api'
