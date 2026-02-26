@@ -18,6 +18,7 @@ import {
     Menu,
     X,
     Users,
+    Calendar,
     Sparkles,
     CreditCard,
     TrendingUp,
@@ -39,6 +40,7 @@ const navGroups = [
         title: "Pilotage",
         items: [
             { name: 'Tableau de bord', href: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier', 'inventory', 'lead'] },
+            { name: 'Agenda', href: '/calendar', icon: Calendar, roles: ['admin', 'manager', 'lead'] },
             { name: 'Lolly AI', href: '/ai', icon: Sparkles, superAdminOnly: true },
         ]
     },

@@ -28,12 +28,12 @@ export default function CustomersPage() {
     const [selectedShopId, setSelectedShopId] = useState<number>(1)
 
     const [newCustomer, setNewCustomer] = useState({
-        name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: ''
+        name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: '', next_follow_up: ''
     })
 
     const [editingCustomer, setEditingCustomer] = useState<any>(null)
     const [editData, setEditData] = useState({
-        name: '', phone: '', email: '', address: '', ninea: '', rc: '', shop_id: 1, lead_status: 'customer', lead_source: ''
+        name: '', phone: '', email: '', address: '', ninea: '', rc: '', shop_id: 1, lead_status: 'customer', lead_source: '', next_follow_up: ''
     })
 
     useEffect(() => {
@@ -62,6 +62,19 @@ export default function CustomersPage() {
         }
     }
 
+    const syncToCalendar = async (name: string, date: string) => {
+        if (!date) return
+        try {
+            await authFetch(`${API_URL}/calendar/sync-customer`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, date })
+            })
+        } catch (err) {
+            console.error("Sync failed", err)
+        }
+    }
+
     const handleCreateCustomer = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
@@ -74,9 +87,13 @@ export default function CustomersPage() {
             const { error } = await supabase.from('customers').insert([payload])
             if (error) throw error
             
+            if (newCustomer.next_follow_up) {
+                await syncToCalendar(newCustomer.name, newCustomer.next_follow_up)
+            }
+
             showToast("Client enregistré !", "success")
             setIsModalOpen(false)
-            setNewCustomer({ name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: '' })
+            setNewCustomer({ name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: '', next_follow_up: '' })
             fetchCustomers()
         } catch (err: any) {
             console.error("Create error:", err)
@@ -97,7 +114,8 @@ export default function CustomersPage() {
             rc: customer.rc || '',
             shop_id: customer.shop_id || 1,
             lead_status: customer.lead_status || 'customer',
-            lead_source: customer.lead_source || ''
+            lead_source: customer.lead_source || '',
+            next_follow_up: customer.next_follow_up || ''
         })
         setIsEditModalOpen(true)
     }
@@ -113,6 +131,10 @@ export default function CustomersPage() {
 
             if (error) throw error
             
+            if (editData.next_follow_up && editData.next_follow_up !== editingCustomer.next_follow_up) {
+                await syncToCalendar(editData.name, editData.next_follow_up)
+            }
+
             showToast("Client mis à jour !", "success")
             setIsEditModalOpen(false)
             fetchCustomers()
@@ -310,6 +332,11 @@ export default function CustomersPage() {
                                 </div>
                             </div>
 
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Prochaine Relance (Sync Google)</label>
+                                <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.next_follow_up} onChange={e => setNewCustomer({...newCustomer, next_follow_up: e.target.value})} />
+                            </div>
+
                             <button type="submit" disabled={creating} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl disabled:opacity-50">
                                 {creating ? 'Enregistrement...' : 'Sauvegarder Client'}
                             </button>
@@ -392,6 +419,11 @@ export default function CustomersPage() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Source</label>
                                     <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.lead_source} onChange={e => setEditData({...editData, lead_source: e.target.value})} />
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Prochaine Relance (Sync Google)</label>
+                                <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.next_follow_up} onChange={e => setEditData({...editData, next_follow_up: e.target.value})} />
                             </div>
 
                             <button type="submit" disabled={updating} className="w-full py-5 bg-shop text-white font-black uppercase tracking-widest rounded-3xl hover:scale-[1.02] transition-all shadow-xl disabled:opacity-50 flex items-center justify-center space-x-3">
