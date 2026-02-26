@@ -709,7 +709,7 @@ export default function DebtsPage() {
                                     />
                                     <button 
                                         type="button"
-                                        onClick={addItem}
+                                        onClick={() => addItem(false)}
                                         className="bg-shop text-white rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
                                     >
                                         <Plus className="w-4 h-4" />
@@ -727,7 +727,7 @@ export default function DebtsPage() {
                                                 </div>
                                                 <div className="flex items-center space-x-3">
                                                     <span className="text-[10px] font-black text-shop">{(item.price * item.quantity).toLocaleString()}</span>
-                                                    <button type="button" onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-300">
+                                                    <button type="button" onClick={() => removeItem(idx, false)} className="text-red-400 hover:text-red-300">
                                                         <Trash2 className="w-3.5 h-3.5" />
                                                     </button>
                                                 </div>
