@@ -23,6 +23,7 @@ export default function CalendarPage() {
     }, [profile])
 
     const fetchSettings = async () => {
+        if (!profile?.id) return;
         const supabase = createClient()
         const { data } = await supabase
             .from('user_calendar_settings')
