@@ -36,11 +36,10 @@ export default function CalendarPage() {
     const fetchEvents = async () => {
         try {
             setLoading(true)
-            const res = await authFetch(`${API_URL}/calendar/events`)
-            if (res.ok) {
-                const data = await res.json()
-                setEvents(data || [])
-            }
+            const data = await authFetch(`${API_URL}/calendar/events`)
+            setEvents(data || [])
+        } catch (err) {
+            console.error("Fetch events failed", err)
         } finally {
             setLoading(false)
         }
@@ -52,16 +51,12 @@ export default function CalendarPage() {
             setLinking(true)
             const targetUrl = `${API_URL}/calendar/auth-url`;
             console.log("Fetching auth URL from:", targetUrl);
-            const res = await authFetch(targetUrl)
-            console.log("Auth response status:", res.status);
-            if (res.ok) {
-                const { url } = await res.json()
-                console.log("Redirecting to:", url);
-                window.location.href = url
+            const data = await authFetch(targetUrl)
+            if (data && data.url) {
+                console.log("Redirecting to:", data.url);
+                window.location.href = data.url
             } else {
-                const errData = await res.json().catch(() => ({}));
-                console.error("Auth URL fetch failed:", errData);
-                showToast(`Erreur serveur: ${errData.message || res.statusText}`, "error");
+                showToast("Réponse invalide du serveur", "error");
             }
         } catch (err: any) {
             console.error("Link Google Catch:", err);

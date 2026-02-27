@@ -22,19 +22,16 @@ export default function CalendarCallback() {
     const exchangeCode = async (code: string) => {
         if (!profile?.id) return;
         try {
-            const res = await authFetch(`${API_URL}/calendar/callback`, {
+            await authFetch(`${API_URL}/calendar/callback`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ code, userId: profile.id })
             })
 
-            if (res.ok) {
-                setStatus('success')
-                setTimeout(() => router.push('/calendar'), 2000)
-            } else {
-                setStatus('error')
-            }
+            setStatus('success')
+            setTimeout(() => router.push('/calendar'), 2000)
         } catch (err) {
+            console.error("Exchange code failed:", err);
             setStatus('error')
         }
     }
