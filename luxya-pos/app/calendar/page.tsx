@@ -47,10 +47,12 @@ export default function CalendarPage() {
     }
 
     const handleLinkGoogle = async () => {
+        alert("Tentative de liaison lancée...");
         try {
             setLinking(true)
-            console.log("Fetching auth URL from:", `${API_URL}/calendar/auth-url`);
-            const res = await authFetch(`${API_URL}/calendar/auth-url`)
+            const targetUrl = `${API_URL}/calendar/auth-url`;
+            console.log("Fetching auth URL from:", targetUrl);
+            const res = await authFetch(targetUrl)
             console.log("Auth response status:", res.status);
             if (res.ok) {
                 const { url } = await res.json()
