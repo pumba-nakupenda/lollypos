@@ -12,10 +12,11 @@ export class CalendarService {
     private supabase: SupabaseService,
     private configService: ConfigService,
   ) {
+    const siteUrl = this.configService.get('NEXT_PUBLIC_SITE_URL') || 'https://admin.lolly.sn';
     this.oauth2Client = new google.auth.OAuth2(
       this.configService.get('GOOGLE_CLIENT_ID'),
       this.configService.get('GOOGLE_CLIENT_SECRET'),
-      `${this.configService.get('NEXT_PUBLIC_SITE_URL')}/calendar/callback`,
+      `${siteUrl}/calendar/callback`,
     );
     this.logger.log(`Google Calendar Service Initialized. ClientID: ${!!this.configService.get('GOOGLE_CLIENT_ID')} Secret: ${!!this.configService.get('GOOGLE_CLIENT_SECRET')}`);
   }
