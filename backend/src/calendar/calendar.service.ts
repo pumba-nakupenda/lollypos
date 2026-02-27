@@ -33,23 +33,36 @@ export class CalendarService {
   }
 
   async handleCallback(code: string, userId: string) {
-    const { tokens } = await this.oauth2Client.getToken(code);
-    
-    // We strictly need the refresh token for long-term sync
-    if (tokens.refresh_token) {
-      const { error } = await this.supabase.getClient()
-        .from('user_calendar_settings')
-        .upsert({
-          user_id: userId,
-          google_refresh_token: tokens.refresh_token,
-          is_sync_enabled: true,
-          last_sync_at: new Date().toISOString(),
-        });
+    try {
+      this.logger.log(`Handling Google callback for user: ${userId}. Code length: ${code?.length}`);
+      const { tokens } = await this.oauth2Client.getToken(code);
+      this.logger.log(`Tokens received. Refresh token present: ${!!tokens.refresh_token}`);
+      
+      // We strictly need the refresh token for long-term sync
+      if (tokens.refresh_token) {
+        const { error } = await this.supabase.getClient()
+          .from('user_calendar_settings')
+          .upsert({
+            user_id: userId,
+            google_refresh_token: tokens.refresh_token,
+            is_sync_enabled: true,
+            last_sync_at: new Date().toISOString(),
+          });
 
-      if (error) throw new Error(`Database error: ${error.message}`);
+        if (error) {
+          this.logger.error(`Database UPSERT error: ${error.message}`);
+          throw new Error(`Database error: ${error.message}`);
+        }
+        this.logger.log(`Calendar settings updated successfully for user ${userId}`);
+      } else {
+        this.logger.warn(`No refresh token received. User might have already authorized. Force prompt might be needed.`);
+      }
+
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`Callback exchange FAILED: ${err.message}`);
+      throw err;
     }
-
-    return { success: true };
   }
 
   async createEvent(userId: string, eventData: { title: string; description: string; start: string; end: string }) {
