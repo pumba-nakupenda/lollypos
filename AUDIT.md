@@ -151,7 +151,67 @@ alert("Tentative de liaison lancée...");
 
 ---
 
+### 3.6 CRITIQUE — SSRF via Webhook Proxy non sécurisé
+**Fichier :** `luxya-pos/app/api/webhook-proxy/route.ts:5-16`
+
+```typescript
+const { webhookUrl, payload } = body
+if (!webhookUrl) { return ... }
+const response = await fetch(webhookUrl, { method: 'POST', ... })
+```
+
+**Problème :** Aucune validation de `webhookUrl`. N'importe quel utilisateur authentifié peut faire pointer ce proxy vers une URL arbitraire, y compris des IPs internes (`http://169.254.169.254`, `http://localhost`, services internes).
+
+**Risque :** Server-Side Request Forgery (SSRF) — accès aux métadonnées cloud, services internes, exfiltration de données.
+
+**Correction :** Valider que `webhookUrl` appartient à un domaine whitelist (ex : `*.n8n.cloud`, domaine n8n propre).
+
+---
+
+### 3.7 HAUTE — `createAdminClient()` dans Next.js (service-role en frontend)
+**Fichier :** `lollyshop/utils/supabase/server.ts:29-42`
+
+```typescript
+export const createAdminClient = async () => {
+    return createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!, // clé admin dans du code Next.js
+        ...
+    );
+};
+```
+
+**Problème :** La `SUPABASE_SERVICE_ROLE_KEY` est utilisée côté Next.js server. Si des API routes l'utilisent pour des opérations admin, toute faille dans ces routes expose la clé de service (qui bypass la RLS). Elle n'est pas exposée au client, mais le surface d'attaque est plus large qu'avec la RLS.
+
+**Recommandation :** Supprimer `createAdminClient()` des apps Next.js, relayer les opérations admin uniquement via le backend NestJS.
+
+---
+
+### 3.8 HAUTE — Aucune validation du corps sur les routes admin lollyshop
+**Fichier :** `lollyshop/app/api/admin/products/route.ts`
+
+```typescript
+const { id, ...updates } = await req.json();
+await supabaseAdmin.from('products').update(updates).eq('id', id);
+```
+
+**Problème :** Les champs envoyés dans `updates` ne sont pas filtrés ni validés. Un admin peut écrire n'importe quelle colonne (y compris `shop_id`, `embedding`, `is_featured`) sans contrôle.
+
+---
+
 ## 4. Problèmes de Qualité de Code 🟡
+
+### 4.0 Méthodes stub jamais implémentées dans l'IA
+**Fichier :** `backend/src/ai/ai.service.ts:193,210`
+
+```typescript
+async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES ✨" }; }
+async suggestProductPhoto(p: string) { return { urls: [] }; }
+```
+
+Des endpoints (`POST /ai/generate-banner`, `POST /ai/suggest-photo`) existent et sont exposés mais retournent des valeurs hardcodées. Trompeur pour le frontend.
+
+---
 
 ### 4.1 Module Inventory vide
 **Fichiers :** `backend/src/inventory/inventory.controller.ts`, `backend/src/inventory/inventory.service.ts`
@@ -347,13 +407,17 @@ Scripts de dev à la racine du repo — à déplacer dans un dossier `scripts/` 
 |----------|----------|--------|
 | 🔴 P0 | Activer Helmet dans `main.ts` | 2 min |
 | 🔴 P0 | Corriger `calendar/callback` → utiliser `req.user.id` | 5 min |
+| 🔴 P0 | **SSRF** : valider `webhookUrl` dans `webhook-proxy/route.ts` | 15 min |
 | 🔴 P1 | Implémenter isolation shop dans les services (ne pas retourner tous les shops sans auth) | Moyen |
 | 🔴 P1 | Supprimer `alert()` de `calendar/page.tsx` | 1 min |
+| 🔴 P1 | Filtrer les champs dans les routes admin lollyshop (`products`, `orders`) | 30 min |
+| 🟡 P2 | Supprimer `createAdminClient()` des apps Next.js ou restreindre son usage | Moyen |
 | 🟡 P2 | Typer `updateSaleDto: UpdateSaleDto` (pas `any`) | 5 min |
 | 🟡 P2 | Implémenter `findOne()` dans SalesService | 15 min |
 | 🟡 P2 | Corriger le bug `.eq('', '')` dans `getForecast()` | 5 min |
 | 🟡 P2 | Supprimer les fichiers DTO sans extension `.ts` | 2 min |
 | 🟡 P2 | Enlever les `console.log` de production | 10 min |
+| 🟡 P2 | Implémenter ou supprimer les méthodes stub IA | 30 min |
 | 🟠 P3 | Remplacer N+1 par batch dans `bulkUpdateStock` | 1h |
 | 🟠 P3 | Déplacer agrégations analytics en SQL | 2-4h |
 | 🟠 P3 | Créer `.env.example` | 15 min |
