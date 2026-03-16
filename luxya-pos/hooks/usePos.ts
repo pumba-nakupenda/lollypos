@@ -50,6 +50,7 @@ export function usePos(isAgency: boolean, products: any[]) {
                 name: itemName,
                 image: itemImage,
                 price: currentPrice,
+                originalPrice: currentPrice,
                 quantity: 1,
                 variantInfo: variant
             }]);
@@ -58,15 +59,14 @@ export function usePos(isAgency: boolean, products: any[]) {
 
     const updateCartItemPrice = (cartItemId: string | number, newPrice: number) => {
         const item = cart.find(i => i.cartItemId === cartItemId);
-        if (!isAgency && item && (item.cost_price || 0) > 0 && item.type !== 'service') {
-            const margin = newPrice - item.cost_price;
-            const marginPercent = newPrice > 0 ? (margin / newPrice) * 100 : 0;
-            if (marginPercent < 28) {
-                showToast(`Prix trop bas ! Marge: ${marginPercent.toFixed(1)}% (Min: 28%)`, "error");
-                return;
-            }
+        if (!item) return;
+        if (isNaN(newPrice) || newPrice < 0) return;
+        const floor = item.originalPrice ?? 0;
+        if (newPrice < floor) {
+            showToast(`Prix minimum : ${floor.toLocaleString()} FCFA (prix de vente)`, "error");
+            return;
         }
-        setCart(cart.map(item => item.cartItemId === cartItemId ? { ...item, price: newPrice } : item));
+        setCart(cart.map(i => i.cartItemId === cartItemId ? { ...i, price: newPrice } : i));
     };
     
     const resetCart = () => setCart([]);

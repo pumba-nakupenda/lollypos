@@ -9,6 +9,7 @@ import {
 import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
 import { createClient } from '@/utils/supabase/client'
+import { authFetch, API_URL } from '@/utils/api'
 import CustomDropdown from '@/components/CustomDropdown'
 
 export default function DebtsPage() {
@@ -327,7 +328,37 @@ export default function DebtsPage() {
                 }])
             }
 
-            showToast("Paiement enregistré !", "success")
+            // 4. Générer une vente si créance entièrement réglée avec des produits
+            if (newRemaining <= 0 && selectedDebt.type === 'receivable' && selectedDebt.items?.length > 0) {
+                try {
+                    const salePayload = {
+                        customer_name: selectedDebt.customers?.name || 'Client créance',
+                        totalAmount: Number(selectedDebt.total_amount),
+                        paymentMethod: payMethod,
+                        shopId: activeShop?.id,
+                        with_tva: false,
+                        type: 'invoice',
+                        status: 'completed',
+                        paid_amount: Number(selectedDebt.total_amount),
+                        items: selectedDebt.items.map((item: any) => ({
+                            productId: item.product_id,
+                            quantity: item.quantity,
+                            price: item.price,
+                            name: item.name
+                        }))
+                    }
+                    await authFetch(`${API_URL}/sales`, {
+                        method: 'POST',
+                        body: JSON.stringify(salePayload)
+                    })
+                    showToast("Créance réglée — Vente générée et stock mis à jour !", "success")
+                } catch {
+                    showToast("Paiement enregistré. Erreur création vente — vérifiez le stock manuellement.", "warning")
+                }
+            } else {
+                showToast("Paiement enregistré !", "success")
+            }
+
             setIsPaymentModalOpen(false)
             setPaymentAmount('')
             fetchDebts()
