@@ -32,7 +32,14 @@ export async function PATCH(req: Request) {
         const { data: profile } = await supabase.from('profiles').select('role, is_super_admin').eq('id', user?.id).single();
         if (profile?.role !== 'admin' && !profile?.is_super_admin) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 });
 
-        const { id, ...updates } = await req.json();
+        const body = await req.json();
+        const { id } = body;
+        const ALLOWED_FIELDS = ['name', 'description', 'price', 'promo_price', 'cost_price', 'stock',
+            'min_stock', 'category', 'brand', 'image', 'images', 'video_url', 'type',
+            'show_on_pos', 'show_on_website', 'is_featured', 'expiry_date', 'variants', 'status'];
+        const updates = Object.fromEntries(
+            Object.entries(body).filter(([key]) => ALLOWED_FIELDS.includes(key))
+        );
 
         const { error } = await supabaseAdmin
             .from('products')

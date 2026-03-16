@@ -128,11 +128,17 @@ export class SalesService {
         return data;
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} sale`;
+    async findOne(id: string) {
+        const { data, error } = await this.supabase
+            .from('sales')
+            .select('*, sale_items(*)')
+            .eq('id', id)
+            .single();
+        if (error) throw new Error(error.message);
+        return data;
     }
 
-    async update(id: string, updateSaleDto: any) {
+    async update(id: string, updateSaleDto: UpdateSaleDto) {
         this.logger.log(`[SALES] Updating sale ID: ${id}`);
 
         try {

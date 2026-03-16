@@ -12,9 +12,10 @@ export class CalendarController {
     return { url: this.calendarService.getAuthUrl(req.user.id) };
   }
 
+  @UseGuards(AuthGuard)
   @Post('callback')
-  async handleCallback(@Body('code') code: string, @Body('userId') userId: string) {
-    return this.calendarService.handleCallback(code, userId);
+  async handleCallback(@Body('code') code: string, @Req() req) {
+    return this.calendarService.handleCallback(code, req.user.id);
   }
 
   @UseGuards(AuthGuard)

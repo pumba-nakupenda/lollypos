@@ -344,7 +344,6 @@ export async function bulkCreateProducts(products: any[]) {
     }))
 
     try {
-        console.log(`[BULK] Attempting bulk creation of ${products.length} products on ${API_URL}`);
         const response = await authFetchServer(`${API_URL}/products/bulk`, {
             method: 'POST',
             body: JSON.stringify(productsWithMeta),
