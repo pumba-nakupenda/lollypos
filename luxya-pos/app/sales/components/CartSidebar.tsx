@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react';
-import { X, Minus, Plus, Trash2, Banknote, Wallet } from 'lucide-react';
+import { X, Minus, Plus, Trash2, Banknote, Wallet, RefreshCw } from 'lucide-react';
 
 interface CartSidebarProps {
     cart: any[];
