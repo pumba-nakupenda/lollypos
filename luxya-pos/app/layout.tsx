@@ -25,7 +25,6 @@ export const metadata: Metadata = {
 import { ShopProvider } from "@/context/ShopContext";
 import { UserProvider, UserProfile } from "@/context/UserContext";
 import { ToastProvider } from "@/context/ToastContext";
-import { TimeTrackerProvider } from "@/context/TimeTrackerContext";
 import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import Sidebar from "@/components/Sidebar";
@@ -76,8 +75,7 @@ export default async function RootLayout({
     }
   }
 
-    const isSharePage = pathname.includes('/projects/share/');
-    const showAi = initialProfile?.is_super_admin === true && pathname !== '/login' && !isSharePage;
+    const showAi = initialProfile?.is_super_admin === true && pathname !== '/login';
   
     return (
       <html lang="fr" className="dark">
@@ -89,15 +87,13 @@ export default async function RootLayout({
             <ToastProvider>
               <UserProvider initialProfile={initialProfile}>
                 <ShopProvider>
-                  <TimeTrackerProvider>
                     <div className="flex min-h-screen relative">
-                      {!isSharePage && <Sidebar />}
-                      <main className={`flex-1 min-w-0 overflow-y-auto ${isSharePage ? 'w-full' : 'pb-24 lg:pb-0'}`}>
+                      <Sidebar />
+                      <main className="flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-0">
                         {children}
                       </main>
                       {showAi && <AiFloatingButton />}
                     </div>
-                  </TimeTrackerProvider>
                 </ShopProvider>
               </UserProvider>
             </ToastProvider>

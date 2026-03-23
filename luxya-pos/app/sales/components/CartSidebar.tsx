@@ -1,8 +1,7 @@
 'use client'
 
 import React from 'react';
-import { X, Minus, Plus, Trash2, Banknote, Wallet, RefreshCw, LayoutDashboard } from 'lucide-react';
-import CustomDropdown from '@/components/CustomDropdown';
+import { X, Minus, Plus, Trash2, Banknote, Wallet } from 'lucide-react';
 
 interface CartSidebarProps {
     cart: any[];
@@ -19,16 +18,12 @@ interface CartSidebarProps {
     totalAmount: number;
     isCheckingOut: boolean;
     handleCheckout: () => void;
-    projects: any[];
-    selectedProjectId: string | null;
-    setSelectedProjectId: (val: string | null) => void;
 }
 
 export default function CartSidebar({
     cart, setCart, addToCart, updateCartItemPrice, products,
     isCartOpen, setIsCartOpen, paymentMethod, setPaymentMethod,
     receivedAmount, setReceivedAmount, totalAmount, isCheckingOut, handleCheckout,
-    projects, selectedProjectId, setSelectedProjectId
 }: CartSidebarProps) {
     
     return (
@@ -71,23 +66,6 @@ export default function CartSidebar({
                     ))}
                 </div>
                 <div className="p-6 sm:p-8 bg-white/[0.02] border-t border-white/5 space-y-4">
-                    <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Lier à un Projet (Optionnel)</label>
-                        <CustomDropdown
-                            options={[
-                                { label: 'Ne pas lier', value: '' },
-                                ...projects.map(p => ({
-                                    label: p.name,
-                                    value: p.id,
-                                    icon: <LayoutDashboard className="w-4 h-4" />
-                                }))
-                            ]}
-                            value={selectedProjectId || ''}
-                            onChange={val => setSelectedProjectId(val || null)}
-                            placeholder="Lier à un Projet..."
-                            searchable={projects.length > 5}
-                        />
-                    </div>
                     <div className="grid grid-cols-3 gap-2">
                         {(['Cash', 'Wave', 'OM'] as const).map(m => (
                             <button key={m} onClick={() => setPaymentMethod(m)} className={`flex flex-col items-center py-2.5 rounded-2xl border transition-all ${paymentMethod === m ? 'bg-shop text-white border-shop' : 'bg-white/5 border-white/10 text-muted-foreground'}`}>

@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/context/ToastContext';
 import { useShop } from '@/context/ShopContext';
-import { API_URL } from '@/utils/api';
 
 export function useSalesData() {
     const supabase = createClient();
@@ -13,10 +12,8 @@ export function useSalesData() {
     const [categories, setCategories] = useState<string[]>(['Toutes']);
     const [brands, setBrands] = useState<string[]>(['Toutes']);
     const [allCustomers, setAllCustomers] = useState<any[]>([]);
-    const [agencyHistory, setAgencyHistory] = useState<any[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
+    const [salesHistory, setSalesHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [isAgency, setIsAgency] = useState(false);
 
     const fetchProducts = useCallback(async () => {
         if (!activeShop) return;
@@ -54,7 +51,7 @@ export function useSalesData() {
                 .order('created_at', { ascending: false })
                 .limit(50);
             if (error) throw error;
-            if (data) setAgencyHistory(data);
+            if (data) setSalesHistory(data);
         } catch (e) {
             console.error("Failed to fetch sales history:", e);
         }
@@ -69,44 +66,28 @@ export function useSalesData() {
                 .eq('shop_id', activeShop.id);
             if (error) throw error;
             if (data) setAllCustomers(data);
-        } catch (e) { 
-            console.error("Failed to fetch customers:", e)
-        }
-    }, [activeShop, supabase]);
-
-    const fetchProjects = useCallback(async () => {
-        if (!activeShop) return;
-        try {
-            const { data, error } = await supabase.from('agency_projects').select('id, name').eq('shop_id', activeShop?.id).order('name');
-            if (error) throw error;
-            setProjects(data || []);
         } catch (e) {
-            console.error("Error fetching projects:", e);
+            console.error("Failed to fetch customers:", e)
         }
     }, [activeShop, supabase]);
 
     useEffect(() => {
         if (activeShop) {
-            setIsAgency(activeShop.id === 3);
             fetchProducts();
             fetchHistory();
             fetchCustomers();
-            fetchProjects();
         }
-    }, [activeShop, fetchProducts, fetchHistory, fetchCustomers, fetchProjects]);
+    }, [activeShop, fetchProducts, fetchHistory, fetchCustomers]);
 
     return {
         products,
         categories,
         brands,
         allCustomers,
-        agencyHistory,
-        projects,
+        salesHistory,
         loading,
-        isAgency,
         fetchProducts,
         fetchHistory,
         fetchCustomers,
-        fetchProjects,
     };
 }

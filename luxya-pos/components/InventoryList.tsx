@@ -668,15 +668,10 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                     {product.type !== 'service' && (profile?.is_super_admin || profile?.role === 'inventory') && (
                                         <div className="flex flex-col items-end mt-1">
                                             {(() => {
-                                                const isAgency = activeShop?.id === 3
                                                 const sellingPrice = product.promo_price && product.promo_price > 0 ? product.promo_price : product.price
-
-                                                // If Agency, margin is 100% because it's service-based
-                                                const margin = isAgency ? sellingPrice : (sellingPrice - (product.cost_price || 0))
-                                                const marginPercent = isAgency ? 100 : (sellingPrice > 0 ? (margin / sellingPrice) * 100 : 0)
-
-                                                // Threshold for color: 28% for others, 100% (always good) for Agency
-                                                const isGood = isAgency || marginPercent >= 28
+                                                const margin = sellingPrice - (product.cost_price || 0)
+                                                const marginPercent = sellingPrice > 0 ? (margin / sellingPrice) * 100 : 0
+                                                const isGood = marginPercent >= 28
 
                                                 return (
                                                     <div className="flex items-center space-x-2">

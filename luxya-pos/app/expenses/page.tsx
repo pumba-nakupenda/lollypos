@@ -53,7 +53,6 @@ export default function ExpensesPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
-    const [projects, setProjects] = useState<any[]>([])
     const [newExpense, setNewExpense] = useState({
         description: '',
         amount: '',
@@ -61,7 +60,6 @@ export default function ExpensesPage() {
         date: new Date().toISOString().split('T')[0],
         is_recurring: false,
         frequency: 'monthly' as any,
-        project_id: ''
     })
 
     const categories = [
@@ -83,21 +81,14 @@ export default function ExpensesPage() {
         }
         if (profile) {
             fetchExpenses()
-            fetchProjects()
         }
     }, [activeShop, profile, profileLoading])
-
-    const fetchProjects = async () => {
-        const { data } = await supabase.from('agency_projects').select('id, name').order('name');
-        if (data) setProjects(data);
-    }
 
     const fetchExpenses = async () => {
         try {
             setLoading(true)
             const ts = Date.now()
-            const includePersonal = activeShop?.id === 3 ? '&includePersonal=true' : ''
-            const url = activeShop ? `${API_URL}/expenses?shopId=${activeShop.id}${includePersonal}&_=${ts}` : `${API_URL}/expenses?_=${ts}`
+            const url = activeShop ? `${API_URL}/expenses?shopId=${activeShop.id}&_=${ts}` : `${API_URL}/expenses?_=${ts}`
             const res = await authFetch(url)
             setExpenses(res)
         } catch (err) {
@@ -116,7 +107,6 @@ export default function ExpensesPage() {
             date: new Date(exp.date).toISOString().split('T')[0],
             is_recurring: exp.is_recurring,
             frequency: exp.frequency || 'monthly',
-            project_id: exp.project_id || ''
         })
         setIsCreateModalOpen(true)
     }
@@ -156,7 +146,6 @@ export default function ExpensesPage() {
                     created_by: profile?.id,
                     is_recurring: newExpense.is_recurring,
                     frequency: newExpense.is_recurring ? newExpense.frequency : null,
-                    project_id: newExpense.project_id || null
                 })
             })
 
@@ -171,7 +160,6 @@ export default function ExpensesPage() {
                     date: new Date().toISOString().split('T')[0],
                     is_recurring: false,
                     frequency: 'monthly',
-                    project_id: ''
                 })
                 fetchExpenses()
             } else {
@@ -526,23 +514,6 @@ export default function ExpensesPage() {
                                         onChange={e => setNewExpense({ ...newExpense, date: e.target.value })}
                                     />
                                 </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Lier à un Projet (Optionnel)</label>
-                                <CustomDropdown
-                                    options={[
-                                        { label: 'Ne pas lier', value: '', icon: <Tag className="w-4 h-4" /> },
-                                        ...projects.map(p => ({
-                                            label: p.name,
-                                            value: p.id,
-                                            icon: <Receipt className="w-4 h-4" />
-                                        }))
-                                    ]}
-                                    value={newExpense.project_id}
-                                    onChange={val => setNewExpense({ ...newExpense, project_id: val })}
-                                    placeholder="Lier à un Projet..."
-                                />
                             </div>
 
                             <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/5">

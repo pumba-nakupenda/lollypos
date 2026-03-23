@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/context/ToastContext';
 
-export function usePos(isAgency: boolean, products: any[]) {
+export function usePos(_: boolean, products: any[]) {
     const { showToast } = useToast();
     const [cart, setCart] = useState<any[]>([]);
     const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
@@ -20,7 +20,7 @@ export function usePos(isAgency: boolean, products: any[]) {
         const currentPrice = variant ? (variant.price || product.price) : (product.promo_price > 0 ? product.promo_price : product.price);
         const costPrice = product.cost_price || 0;
 
-        if (!isAgency && costPrice > 0 && product.type !== 'service') {
+        if (costPrice > 0 && product.type !== 'service') {
             const margin = currentPrice - costPrice;
             const marginPercent = currentPrice > 0 ? (margin / currentPrice) * 100 : 0;
             if (marginPercent < 28) {
@@ -58,7 +58,7 @@ export function usePos(isAgency: boolean, products: any[]) {
 
     const updateCartItemPrice = (cartItemId: string | number, newPrice: number) => {
         const item = cart.find(i => i.cartItemId === cartItemId);
-        if (!isAgency && item && (item.cost_price || 0) > 0 && item.type !== 'service') {
+        if (item && (item.cost_price || 0) > 0 && item.type !== 'service') {
             const margin = newPrice - item.cost_price;
             const marginPercent = newPrice > 0 ? (margin / newPrice) * 100 : 0;
             if (marginPercent < 28) {
