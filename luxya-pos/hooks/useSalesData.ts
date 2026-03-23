@@ -53,7 +53,7 @@ export function useSalesData() {
             if (error) throw error;
             if (data) setSalesHistory(data);
         } catch (e) {
-            console.error("Failed to fetch sales history:", e);
+            // Sales history fetch failed - non-critical
         }
     }, [activeShop, supabase]);
 
@@ -67,7 +67,7 @@ export function useSalesData() {
             if (error) throw error;
             if (data) setAllCustomers(data);
         } catch (e) {
-            console.error("Failed to fetch customers:", e)
+            // Customers fetch failed - non-critical
         }
     }, [activeShop, supabase]);
 

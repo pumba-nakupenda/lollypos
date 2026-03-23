@@ -34,10 +34,10 @@ export default function CartSidebar({
                         <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter text-white">Panier</h2>
                         <div className="flex items-center space-x-2">
                             <p className="text-[10px] text-muted-foreground uppercase font-black">{cart.length} Articles</p>
-                            <button onClick={() => setCart([])} className="text-[8px] font-black text-red-400 uppercase hover:underline ml-2">Vider</button>
+                            <button onClick={() => setCart([])} aria-label="Vider le panier" className="text-[8px] font-black text-red-400 uppercase hover:underline ml-2">Vider</button>
                         </div>
                     </div>
-                    <button onClick={() => setIsCartOpen(false)} className="lg:hidden p-2 bg-white/5 rounded-xl text-white"><X className="w-5 h-5" /></button>
+                    <button onClick={() => setIsCartOpen(false)} aria-label="Fermer le panier" className="lg:hidden p-2 bg-white/5 rounded-xl text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar">
                     {cart.map(item => (
@@ -52,16 +52,16 @@ export default function CartSidebar({
                             <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-xs sm:text-sm truncate text-white">{item.name}</h4>
                                 <div className="flex items-center">
-                                    <input type="number" inputMode="decimal" value={item.price} onChange={(e) => updateCartItemPrice(item.id, parseFloat(e.target.value))} className="w-16 sm:w-20 bg-black/20 border border-white/5 rounded-lg px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-shop outline-none" />
+                                    <input type="number" inputMode="decimal" min="0" value={item.price} onChange={(e) => updateCartItemPrice(item.id, Math.max(0, parseFloat(e.target.value) || 0))} className="w-16 sm:w-20 bg-black/20 border border-white/5 rounded-lg px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-shop outline-none" />
                                     <span className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase ml-1">CFA</span>
                                 </div>
                             </div>
                             <div className="flex items-center bg-white/5 rounded-xl border border-white/5 p-1">
-                                <button onClick={() => setCart(cart.map(i => i.cartItemId === item.cartItemId && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i))} className="p-1 hover:text-shop transition-colors"><Minus className="w-3 h-3 text-white" /></button>
+                                <button aria-label="Réduire la quantité" onClick={() => setCart(cart.map(i => i.cartItemId === item.cartItemId && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i))} className="p-1 hover:text-shop transition-colors"><Minus className="w-3 h-3 text-white" /></button>
                                 <span className="w-6 sm:w-8 text-center text-[10px] sm:text-xs font-black text-white">{item.quantity}</span>
-                                <button onClick={() => { const p = products.find(p => p.id === item.id); if (p) addToCart(p, item.variantInfo); }} className="p-1 hover:text-shop transition-colors"><Plus className="w-3 h-3 text-white" /></button>
+                                <button aria-label="Augmenter la quantité" onClick={() => { const p = products.find(p => p.id === item.id); if (p) addToCart(p, item.variantInfo); }} className="p-1 hover:text-shop transition-colors"><Plus className="w-3 h-3 text-white" /></button>
                             </div>
-                            <button onClick={() => setCart(cart.filter(i => i.cartItemId !== item.cartItemId))} className="text-muted-foreground hover:text-red-400 p-1"><Trash2 className="w-4 h-4" /></button>
+                            <button aria-label="Supprimer l'article" onClick={() => setCart(cart.filter(i => i.cartItemId !== item.cartItemId))} className="text-muted-foreground hover:text-red-400 p-1"><Trash2 className="w-4 h-4" /></button>
                         </div>
                     ))}
                 </div>
@@ -81,6 +81,7 @@ export default function CartSidebar({
                                 <input
                                     type="number"
                                     inputMode="decimal"
+                                    min="0"
                                     value={receivedAmount}
                                     onChange={(e) => setReceivedAmount(e.target.value)}
                                     placeholder="Montant reçu..."

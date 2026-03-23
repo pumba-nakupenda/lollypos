@@ -41,7 +41,7 @@ export default function ExpiryAlertBanner({ shopId }: ExpiryAlertBannerProps) {
 
             setExpiringProducts(expiring);
         } catch (error) {
-            console.error('Failed to fetch expiring products:', error);
+            // Error handled silently
         } finally {
             setLoading(false);
         }

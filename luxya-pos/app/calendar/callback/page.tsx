@@ -31,7 +31,7 @@ export default function CalendarCallback() {
             setStatus('success')
             setTimeout(() => router.push('/calendar'), 2000)
         } catch (err) {
-            console.error("Exchange code failed:", err);
+            // Error handled silently
             setStatus('error')
         }
     }

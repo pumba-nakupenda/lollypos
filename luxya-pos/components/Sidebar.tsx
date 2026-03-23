@@ -96,7 +96,7 @@ export default function Sidebar() {
                         </div>
                     </div>
                     {/* Close button for mobile */}
-                    <button onClick={() => setIsMobileOpen(false)} className="lg:hidden p-2 glass-card rounded-lg">
+                    <button onClick={() => setIsMobileOpen(false)} aria-label="Fermer le menu" className="lg:hidden p-2 glass-card rounded-lg">
                         <X className="w-5 h-5 text-white" />
                     </button>
                 </div>

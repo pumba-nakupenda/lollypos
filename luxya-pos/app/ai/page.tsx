@@ -85,16 +85,9 @@ export default function AiAssistantPage() {
             } else {
                 const errorData = await res.text();
                 const detail = `Status ${res.status} sur ${url.pathname}`;
-                console.error('AI API Error Details:', {
-                    status: res.status,
-                    statusText: res.statusText,
-                    body: errorData,
-                    url: url.toString()
-                });
                 throw new Error(detail);
             }
         } catch (error: any) {
-            console.error('AI Fetch Catch:', error);
             showToast(`Erreur : ${error.message}`, "error");
         } finally {
             setIsLoading(false);

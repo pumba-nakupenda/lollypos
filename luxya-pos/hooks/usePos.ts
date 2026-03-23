@@ -1,10 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/context/ToastContext';
+
+const CART_STORAGE_KEY = 'lollypos_cart';
+
+function loadCart(): any[] {
+    if (typeof window === 'undefined') return [];
+    try {
+        const saved = localStorage.getItem(CART_STORAGE_KEY);
+        return saved ? JSON.parse(saved) : [];
+    } catch {
+        return [];
+    }
+}
 
 export function usePos(_: boolean, products: any[]) {
     const { showToast } = useToast();
-    const [cart, setCart] = useState<any[]>([]);
+    const [cart, setCart] = useState<any[]>(loadCart);
     const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
+
+    // Persist cart to localStorage
+    useEffect(() => {
+        try {
+            localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        } catch {
+            // Storage full or unavailable - silently ignore
+        }
+    }, [cart]);
 
     const addToCart = (product: any, variant?: any) => {
         if (product.stock <= 0 && product.type !== 'service') {
@@ -35,7 +56,7 @@ export function usePos(_: boolean, products: any[]) {
         }
 
         const cartItemId = variant ? `${product.id}-${variant.color}-${variant.size}` : product.id;
-        const itemName = variant ? `${product.name} (${variant.color}${variant.color && variant.size ? '/' : ''}${variant.size})` : product.name;
+        const itemName = variant ? `${product.name} (${variant.color || ''}${variant.color && variant.size ? '/' : ''}${variant.size || ''})` : product.name;
         const itemImage = variant?.image || product.image;
 
         const existing = cart.find(item => item.cartItemId === cartItemId);
@@ -57,6 +78,7 @@ export function usePos(_: boolean, products: any[]) {
     };
 
     const updateCartItemPrice = (cartItemId: string | number, newPrice: number) => {
+        if (isNaN(newPrice) || newPrice < 0) return;
         const item = cart.find(i => i.cartItemId === cartItemId);
         if (item && (item.cost_price || 0) > 0 && item.type !== 'service') {
             const margin = newPrice - item.cost_price;
@@ -68,8 +90,11 @@ export function usePos(_: boolean, products: any[]) {
         }
         setCart(cart.map(item => item.cartItemId === cartItemId ? { ...item, price: newPrice } : item));
     };
-    
-    const resetCart = () => setCart([]);
+
+    const resetCart = () => {
+        setCart([]);
+        try { localStorage.removeItem(CART_STORAGE_KEY); } catch {}
+    };
 
     return {
         cart,

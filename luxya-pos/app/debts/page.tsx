@@ -211,7 +211,6 @@ export default function DebtsPage() {
             }])
 
             if (error) {
-                console.error('Debt Creation Error:', error);
                 throw error;
             }
             showToast(newEntry.type === 'receivable' ? "Créance client ajoutée !" : "Dette fournisseur enregistrée !", "success")
@@ -228,7 +227,6 @@ export default function DebtsPage() {
             })
             fetchDebts()
         } catch (err: any) {
-            console.error('Debt Creation Catch:', err);
             showToast(`Erreur : ${err.message || 'Impossible de créer'}`, "error")
         } finally {
             setCreating(false)

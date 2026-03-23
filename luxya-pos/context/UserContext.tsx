@@ -38,13 +38,11 @@ export function UserProvider({
 
     const fetchProfile = async () => {
         try {
-            console.log('[UserContext] Fetching profile...')
             const res = await fetch('/api/user/profile', { cache: 'no-store' })
             const contentType = res.headers.get('content-type')
 
             // PROTECTION AGAINST COLD START / HTML REDIRECTS
             if (contentType && contentType.includes('text/html')) {
-                console.warn('[UserContext] Received HTML instead of JSON. Server might be starting or redirecting.')
                 setError("Le serveur de profil est en cours de démarrage. Veuillez patienter...")
                 return
             }
@@ -67,7 +65,6 @@ export function UserProvider({
                 setError(errData.error || `Réponse invalide (${res.status})`)
             }
         } catch (err: any) {
-            console.error('Failed to fetch profile:', err)
             setError(err.message || 'Erreur de connexion au profil')
         } finally {
             setLoading(false)

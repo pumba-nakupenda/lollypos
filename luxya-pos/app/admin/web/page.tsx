@@ -111,7 +111,7 @@ export default function WebManagementPage() {
                 setSettings(fetchedContent);
             }
         } catch (err) {
-            console.error('Fetch error:', err)
+            // Error handled silently
         } finally {
             setLoading(false)
         }
@@ -128,7 +128,7 @@ export default function WebManagementPage() {
                 setCategories(unique)
             }
         } catch (e) {
-            console.error("Error fetching categories", e)
+            // Error handled silently
         }
     }
 

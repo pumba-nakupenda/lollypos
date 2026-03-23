@@ -54,8 +54,8 @@ export default function AnalyticsPage() {
                 const history = await historyRes.json()
                 setHistoryData(history)
             }
-        } catch (err) {
-            console.error('Failed to fetch analytics')
+        } catch {
+            // Analytics fetch failed silently
         } finally {
             setLoading(false)
         }
@@ -116,11 +116,10 @@ export default function AnalyticsPage() {
                                 className="min-w-[140px]"
                             />
                             <CustomDropdown
-                                options={[
-                                    { label: '2024', value: '2024' },
-                                    { label: '2025', value: '2025' },
-                                    { label: '2026', value: '2026' }
-                                ]}
+                                options={Array.from({ length: 5 }, (_, i) => {
+                                    const y = new Date().getFullYear() - 2 + i;
+                                    return { label: y.toString(), value: y.toString() };
+                                })}
                                 value={selectedYear}
                                 onChange={(val) => setSelectedYear(val)}
                                 className="min-w-[100px]"
@@ -150,24 +149,18 @@ export default function AnalyticsPage() {
                         title="Ventes (Période)"
                         value={metrics.totalSales}
                         icon={<DollarSign className="w-6 h-6" />}
-                        trend="+12.5%"
-                        isUp={true}
                         color="shop"
                     />
                     <MetricCard
                         title="Dépenses (Période)"
                         value={metrics.totalExpenses}
                         icon={<TrendingDown className="w-6 h-6" />}
-                        trend="-2.4%"
-                        isUp={true}
                         color="red-500"
                     />
                     <MetricCard
                         title="Bénéfice Net"
                         value={metrics.profit}
                         icon={<TrendingUp className="w-6 h-6" />}
-                        trend="+18.2%"
-                        isUp={true}
                         color="green-400"
                     />
                 </div>
@@ -280,7 +273,7 @@ export default function AnalyticsPage() {
     )
 }
 
-function MetricCard({ title, value, icon, trend, isUp, color }: any) {
+function MetricCard({ title, value, icon, color }: any) {
     // Correct color handling for tailwind classes in template literals
     const colorClass = color === 'shop' ? 'shop' : color;
 
@@ -303,10 +296,6 @@ function MetricCard({ title, value, icon, trend, isUp, color }: any) {
                     </div>
                 </div>
 
-                <div className={`flex items-center text-[10px] font-black uppercase tracking-widest ${isUp ? 'text-green-400' : 'text-red-400'}`}>
-                    {isUp ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
-                    {trend} vs hier
-                </div>
             </div>
         </div>
     )

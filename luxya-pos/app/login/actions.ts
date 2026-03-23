@@ -60,7 +60,6 @@ export async function signup(formData: FormData) {
     const { data: authData, error } = await supabase.auth.signUp(data)
 
     if (error) {
-        console.error('Signup Error:', error.message)
         redirect(`/login?error=${encodeURIComponent(error.message)}`)
     }
 
@@ -77,7 +76,7 @@ export async function signup(formData: FormData) {
                 }
             ])
         if (profileError) {
-            console.error('Profile Creation Error:', profileError.message)
+            // Profile creation error handled silently
         }
     }
 

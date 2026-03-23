@@ -43,7 +43,7 @@ export default function ReportsPage() {
 
     // n8n Integration State
     const [isN8nModalOpen, setIsN8nModalOpen] = useState(false)
-    const [webhookUrl, setWebhookUrl] = useState('https://n8n.srv812544.hstgr.cloud/webhook/b2528518-7230-4dcf-ae8a-8bd241e8cca9')
+    const [webhookUrl, setWebhookUrl] = useState(process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || '')
     const [sendingToN8n, setSendingToN8n] = useState(false)
 
     useEffect(() => {
@@ -249,21 +249,18 @@ export default function ReportsPage() {
                             title="Chiffre d'Affaires"
                             value={stats.revenue}
                             icon={<TrendingUp className="w-6 h-6" />}
-                            trend="+12%"
                             color="shop"
                         />
                         <StatCard
                             title="Total Dépenses"
                             value={stats.expenses}
                             icon={<TrendingDown className="w-6 h-6" />}
-                            trend="-5%"
                             color="red"
                         />
                         <StatCard
                             title="Marge Nette"
                             value={stats.margin}
                             icon={<DollarSign className="w-6 h-6" />}
-                            trend="+24%"
                             color="green"
                             highlight
                         />
@@ -384,7 +381,7 @@ export default function ReportsPage() {
     )
 }
 
-function StatCard({ title, value, icon, trend, color, highlight, subtitle }: any) {
+function StatCard({ title, value, icon, color, highlight, subtitle }: any) {
     const colorClasses: any = {
         shop: 'bg-shop/10 text-shop border-shop/20 shadow-shop/10',
         red: 'bg-red-500/10 text-red-500 border-red-500/20 shadow-red-500/10',
@@ -398,11 +395,6 @@ function StatCard({ title, value, icon, trend, color, highlight, subtitle }: any
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-2xl ${colorClasses[color]}`}>
                     {icon}
                 </div>
-                {trend && (
-                    <div className={`px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase ${trend.startsWith('+') ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                        {trend}
-                    </div>
-                )}
             </div>
             <div>
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.2em] mb-2">{title}</p>

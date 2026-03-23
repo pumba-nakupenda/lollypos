@@ -78,7 +78,6 @@ export default function SalesTerminal() {
                 .maybeSingle();
             setCurrentSession(data);
         } catch (err) {
-            console.error('Session fetch error', err);
         }
     };
 

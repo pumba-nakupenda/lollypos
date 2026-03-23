@@ -72,7 +72,7 @@ export default function CustomersPage() {
                 body: JSON.stringify({ name, date })
             })
         } catch (err) {
-            console.error("Sync failed", err)
+            // Error handled silently
         }
     }
 
@@ -97,7 +97,6 @@ export default function CustomersPage() {
             setNewCustomer({ name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: '', next_follow_up: '' })
             fetchCustomers()
         } catch (err: any) {
-            console.error("Create error:", err)
             showToast(`Erreur : ${err.message || "lors de la création"}`, "error")
         } finally {
             setCreating(false)
@@ -140,7 +139,6 @@ export default function CustomersPage() {
             setIsEditModalOpen(false)
             fetchCustomers()
         } catch (err: any) {
-            console.error("Update error:", err)
             showToast(err.message || "Erreur lors de la mise à jour", "error")
         } finally {
             setUpdating(false)

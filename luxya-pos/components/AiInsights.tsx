@@ -71,7 +71,7 @@ export default function AiInsights() {
                 }
             }
         } catch (error) {
-            console.error('AI Insight failed');
+            // AI insight fetch failed
         } finally {
             setLoading(false);
         }

@@ -162,7 +162,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
             setNewProduct({ ...newProduct, image: publicUrl });
             showToast("Photo chargée", "success");
         } catch (err) {
-            console.error('[Upload] Error:', err);
+            // Upload error handled silently
             showToast("Erreur photo", "error");
         } finally {
             setIsCreating(false);
@@ -400,7 +400,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
 
             const { data: allProducts, error } = await query;
             if (error) {
-                console.error('[Export] Supabase error:', error);
+                // Supabase error handled silently
                 throw error;
             }
 
@@ -418,7 +418,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                             formattedDate = d.toLocaleDateString();
                         }
                     } catch (e) {
-                        console.warn(`[Export] Invalid date for product ${p.name}:`, p.expiry_date);
+                        // Invalid date handled silently
                     }
                 }
 
@@ -450,7 +450,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
             XLSX.writeFile(wb, `Lolly_Export_Inventaire_${new Date().toISOString().split('T')[0]}.xlsx`)
             showToast("Exportation réussie", "success")
         } catch (err: any) {
-            console.error('Export failed:', err);
+            // Export error handled silently
             showToast(`L'exportation a échoué: ${err.message || 'Erreur inconnue'}`, "error");
         } finally {
             setIsResettingStock(false);

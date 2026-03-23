@@ -119,7 +119,7 @@ export default function DashboardContent({ user }: { user: any }) {
             })
             setSales(filteredRecentSales.slice(0, 8))
         } catch (err) {
-            console.error('Failed to fetch dashboard data', err)
+            // Error handled silently
         } finally {
             setLoading(false)
         }

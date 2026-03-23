@@ -42,7 +42,7 @@ export async function safeFetch(url: string, options: RequestInit = {}, retries 
 
             // Critical check: if we get HTML (cold start, Maintenance, or Redirect)
             if (contentType && contentType.includes('text/html')) {
-                console.warn(`[safeFetch] Received HTML instead of JSON from ${url}. Path might be redirected or server starting up.`);
+                // Received HTML instead of JSON - server may be starting up
                 if (i < retries - 1) {
                     await new Promise(r => setTimeout(r, backoff * (i + 1)));
                     continue;
@@ -63,7 +63,7 @@ export async function safeFetch(url: string, options: RequestInit = {}, retries 
             return data;
         } catch (err: any) {
             lastError = err;
-            console.error(`[safeFetch] Attempt ${i + 1} failed for ${url}:`, err.message);
+            // Retry attempt failed
 
             // Don't retry on certain errors (like 401 or 403 if they are final)
             if (err.message?.includes('401') || err.message?.includes('403')) {

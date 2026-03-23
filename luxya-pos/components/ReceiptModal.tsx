@@ -43,8 +43,8 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-        } catch (err) {
-            console.error('PDF generation failed:', err);
+        } catch {
+            // PDF generation failed silently
         } finally {
             setIsGenerating(false);
         }
@@ -62,10 +62,11 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
                 await navigator.share({ files: [file], title: filename });
             } else {
                 const message = `*LOLLY*\nVoici votre ${docTitle.toLowerCase()} n° ${saleData.invoice_number}`;
-                window.open(`https://wa.me/221772354747?text=${encodeURIComponent(message)}`, '_blank');
+                const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '221772354747';
+                window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
             }
-        } catch (err) { 
-            console.error('Share failed:', err); 
+        } catch {
+            // Share failed silently
         } finally {
             setIsGenerating(false);
         }
