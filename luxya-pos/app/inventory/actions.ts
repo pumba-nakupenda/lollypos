@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { supabase } from '@/utils/supabase'
 import { createClient, createAdminClient } from '@/utils/supabase/server'
 import { API_URL } from '@/utils/api'
 import { authFetchServer } from '@/utils/api-server'

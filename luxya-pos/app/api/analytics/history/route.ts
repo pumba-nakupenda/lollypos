@@ -17,7 +17,7 @@ export async function GET(request: Request) {
             { cache: 'no-store' }
         )
         const data = await res.json()
-        return NextResponse.json(data, { status: res.ok ? 200 : 500 })
+        return NextResponse.json(data, { status: res.status })
     } catch (err: any) {
         return NextResponse.json({ error: err.message }, { status: 500 })
     }

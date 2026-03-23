@@ -188,10 +188,12 @@ export default function DebtsPage() {
         if (newEntry.type === 'receivable' && !newEntry.customer_id) return showToast("Sélectionnez un client", "warning")
         if (newEntry.type === 'debt' && !newEntry.creditor_name) return showToast("Saisissez le nom du créancier", "warning")
 
+        const total = parseFloat(newEntry.total_amount)
+        if (!newEntry.total_amount || isNaN(total) || total <= 0) return showToast("Saisissez un montant total valide", "warning")
+
         setCreating(true)
         try {
-            const total = parseFloat(newEntry.total_amount)
-            const paid = parseFloat(newEntry.paid_amount)
+            const paid = parseFloat(newEntry.paid_amount) || 0
             const remaining = total - paid
 
             const { error } = await supabase.from('debts').insert([{
@@ -251,10 +253,12 @@ export default function DebtsPage() {
         e.preventDefault()
         if (!editingDebt) return
 
+        const total = parseFloat(editData.total_amount)
+        if (!editData.total_amount || isNaN(total) || total <= 0) return showToast("Saisissez un montant total valide", "warning")
+
         setUpdating(true)
         try {
-            const total = parseFloat(editData.total_amount)
-            const paid = parseFloat(editData.paid_amount)
+            const paid = parseFloat(editData.paid_amount) || 0
             const remaining = total - paid
 
             const { error } = await supabase
@@ -287,9 +291,12 @@ export default function DebtsPage() {
         e.preventDefault()
         if (!selectedDebt || !paymentAmount) return
 
+        const amount = parseFloat(paymentAmount)
+        if (isNaN(amount) || amount <= 0) return showToast("Saisissez un montant valide", "warning")
+        if (amount > Number(selectedDebt.remaining_amount)) return showToast("Le montant dépasse le solde restant", "warning")
+
         setPaymentProcessing(true)
         try {
-            const amount = parseFloat(paymentAmount)
             const newPaid = Number(selectedDebt.paid_amount) + amount
             const newRemaining = Number(selectedDebt.total_amount) - newPaid
 

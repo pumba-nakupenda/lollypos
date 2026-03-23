@@ -18,8 +18,7 @@ export async function GET(request: Request) {
             .maybeSingle()
 
         if (profileError) {
-            console.error('[API/Profile] DB Error:', profileError)
-            return NextResponse.json({ error: profileError.message }, { status: 500 })
+            return NextResponse.json({ error: 'Erreur lors du chargement du profil' }, { status: 500 })
         }
 
         if (!profile) {
@@ -27,8 +26,7 @@ export async function GET(request: Request) {
         }
 
         return NextResponse.json(profile)
-    } catch (err: any) {
-        console.error('[API/Profile] Unexpected Error:', err)
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+    } catch {
+        return NextResponse.json({ error: 'Erreur interne du serveur' }, { status: 500 })
     }
 }

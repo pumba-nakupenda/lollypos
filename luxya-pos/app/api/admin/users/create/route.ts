@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { createClient as createServerClient } from '@/utils/supabase/server'
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export async function POST(req: Request) {
     const supabaseAdmin = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,11 +32,23 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 2. Extract new user data
+    // 2. Extract and validate new user data
     const { email, password, role, shopId, shopIds, hasStockAccess } = await req.json()
 
     if (!email || !password) {
-        return NextResponse.json({ error: 'Email and password required' }, { status: 400 })
+        return NextResponse.json({ error: 'Email et mot de passe requis' }, { status: 400 })
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+        return NextResponse.json({ error: 'Format d\'email invalide' }, { status: 400 })
+    }
+
+    if (password.length < 6) {
+        return NextResponse.json({ error: 'Le mot de passe doit contenir au moins 6 caractères' }, { status: 400 })
+    }
+
+    if (role && !['admin', 'cashier', 'manager'].includes(role)) {
+        return NextResponse.json({ error: 'Rôle invalide' }, { status: 400 })
     }
 
     try {
@@ -56,14 +70,17 @@ export async function POST(req: Request) {
                 role: role || 'cashier',
                 shop_id: shopId || null,
                 shop_ids: shopIds || [],
-                has_stock_access: hasStockAccess || false
+                has_stock_access: hasStockAccess === true
             })
 
-        if (profileError) throw profileError
+        if (profileError) {
+            // Rollback: delete the auth user if profile creation fails
+            await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
+            throw profileError
+        }
 
         return NextResponse.json({ success: true, user: authUser.user })
-    } catch (err: any) {
-        console.error('[Admin/CreateUser] Error:', err.message)
-        return NextResponse.json({ error: err.message }, { status: 500 })
+    } catch {
+        return NextResponse.json({ error: 'Erreur lors de la création de l\'utilisateur' }, { status: 500 })
     }
 }
