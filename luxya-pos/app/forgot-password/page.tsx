@@ -18,12 +18,19 @@ export default function ForgotPasswordPage() {
         setError(null)
 
         try {
-            const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+            const timeoutPromise = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('La requete a expire. Verifiez votre connexion internet.')), 15000)
+            )
+
+            const resetPromise = supabase.auth.resetPasswordForEmail(email, {
                 redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
             })
 
+            const { error: resetError } = await Promise.race([resetPromise, timeoutPromise])
+
             if (resetError) {
                 setError(resetError.message)
+                setLoading(false)
                 return
             }
 
