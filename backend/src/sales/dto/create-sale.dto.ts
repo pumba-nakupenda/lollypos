@@ -1,7 +1,7 @@
 import {
     IsString, IsNumber, IsOptional, IsBoolean, IsArray,
     IsEnum, IsUUID, Min, MaxLength, IsInt, ValidateNested, IsNotEmpty,
-    IsDateString
+    IsDateString, IsIn
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -65,8 +65,7 @@ export class CreateSaleDto {
     with_tva?: boolean;
 
     @IsOptional()
-    @IsString()
-    @MaxLength(50)
+    @IsIn(['invoice', 'quote', 'delivery_note', 'sale'])
     type?: string;
 
     @IsOptional()
@@ -90,8 +89,7 @@ export class CreateSaleDto {
     linked_doc_number?: string;
 
     @IsOptional()
-    @IsString()
-    @MaxLength(50)
+    @IsIn(['pending', 'completed', 'cancelled', 'shipped', 'processing'])
     status?: string;
 
     @IsOptional()

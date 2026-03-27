@@ -98,7 +98,7 @@ export async function PATCH(req: Request) {
         .select()
 
     if (error) {
-        // silently ignore
+        // return error to client
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -139,7 +139,7 @@ export async function DELETE(req: Request) {
     // Delete from Auth (cascades to profile if FK set, but we delete profile explicitly to be safe)
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (authError) {
-        // silently ignore
+        // return error to client
         return NextResponse.json({ error: authError.message }, { status: 500 })
     }
 

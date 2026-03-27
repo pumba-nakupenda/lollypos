@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ success: true, data })
     } catch (err: any) {
-        // silently ignore
+        // return error to client
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
 }

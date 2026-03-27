@@ -322,7 +322,7 @@ export default function CreateProductButton() {
                                                         const data = await res.json();
                                                         if (descRef.current) descRef.current.value = data.answer.trim().replace(/^"|"$/g, '');
                                                     }
-                                                } catch (e) { }
+                                                } catch (e) { /* silently ignore */ }
                                             }} className="flex items-center space-x-2 px-3 py-1.5 bg-shop/10 text-shop rounded-xl border border-shop/20 text-[9px] font-black uppercase hover:bg-shop/20 transition-all shadow-sm"><Sparkles className="w-3.5 h-3.5" /> <span>IA Assist</span></button>
                                         </div>
                                         <textarea name="description" ref={descRef} rows={3} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-medium focus:border-shop/50 outline-none transition-all text-white resize-none placeholder:text-muted-foreground/20 shadow-inner" placeholder="Détails du produit..." />

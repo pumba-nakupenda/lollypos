@@ -208,7 +208,19 @@ const styles = StyleSheet.create({
   }
 });
 
-export const PDFDocument = ({ saleData, docTitle }: { saleData: any, docTitle: string }) => {
+interface ShopInfo {
+  name: string
+  address: string
+  city?: string
+  email?: string
+}
+
+export const PDFDocument = ({ saleData, docTitle, shopInfo }: { saleData: any, docTitle: string, shopInfo?: ShopInfo }) => {
+  // Shop info with sensible defaults
+  const companyName = shopInfo?.name || 'LOLLY SAS'
+  const companyAddress = shopInfo?.address || 'Fass delorme 13x22'
+  const companyCity = shopInfo?.city || 'Dakar, Sénégal'
+  const companyEmail = shopInfo?.email || 'contact@lolly.sn'
   const formatPrice = (num: number) => {
     return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
   };
@@ -251,10 +263,10 @@ export const PDFDocument = ({ saleData, docTitle }: { saleData: any, docTitle: s
           <View style={styles.addressSection}>
             <View style={styles.addressCard}>
               <Text style={styles.sectionLabel}>Émetteur</Text>
-              <Text style={styles.addressName}>LOLLY SAS</Text>
-              <Text style={styles.addressDetail}>Fass delorme 13x22</Text>
-              <Text style={styles.addressDetail}>Dakar, Sénégal</Text>
-              <Text style={styles.addressDetail}>contact@lolly.sn</Text>
+              <Text style={styles.addressName}>{companyName}</Text>
+              <Text style={styles.addressDetail}>{companyAddress}</Text>
+              <Text style={styles.addressDetail}>{companyCity}</Text>
+              <Text style={styles.addressDetail}>{companyEmail}</Text>
             </View>
             <View style={styles.addressCard}>
               <Text style={styles.sectionLabel}>Destinataire</Text>
@@ -318,7 +330,7 @@ export const PDFDocument = ({ saleData, docTitle }: { saleData: any, docTitle: s
             <View style={styles.signatureBox}>
               <Text style={styles.signatureTitle}>Cachet & Signature</Text>
               <View style={styles.signatureLine}>
-                <Text style={styles.signatureLabel}>Autorisé par LOLLY SAS</Text>
+                <Text style={styles.signatureLabel}>Autorisé par {companyName}</Text>
               </View>
             </View>
           </View>

@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Query, Body, Req, UseGuards } from '@nestjs/common';
 import { CalendarService } from './calendar.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { CreateEventDto } from './dto/create-event.dto';
+import { SyncCustomerDto } from './dto/sync-customer.dto';
 
 @Controller('calendar')
 export class CalendarController {
@@ -30,13 +32,13 @@ export class CalendarController {
 
   @UseGuards(AuthGuard)
   @Post('events')
-  async createEvent(@Req() req, @Body() eventData: any) {
+  async createEvent(@Req() req, @Body() eventData: CreateEventDto) {
     return this.calendarService.createEvent(req.user.id, eventData);
   }
 
   @UseGuards(AuthGuard)
   @Post('sync-customer')
-  async syncCustomer(@Req() req, @Body() data: { name: string; date: string }) {
+  async syncCustomer(@Req() req, @Body() data: SyncCustomerDto) {
     const event = {
       title: `Relance Prospect: ${data.name}`,
       description: `Rappel automatique généré par Lolly POS pour le suivi client.`,

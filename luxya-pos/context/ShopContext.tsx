@@ -91,9 +91,13 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
 
         // If no valid param, try localStorage
         if (!currentShop) {
-            const savedShopId = localStorage.getItem('activeShopId')
-            if (savedShopId !== null) {
-                currentShop = availableShops.find(s => s.id.toString() === savedShopId)
+            try {
+                const savedShopId = localStorage.getItem('activeShopId')
+                if (savedShopId !== null) {
+                    currentShop = availableShops.find(s => s.id.toString() === savedShopId)
+                }
+            } catch {
+                // localStorage unavailable (private browsing / SSR)
             }
         }
 
@@ -121,7 +125,11 @@ export function ShopProvider({ children }: { children: React.ReactNode }) {
         if (!canAccess) return
         
         setActiveShopState(shop)
-        localStorage.setItem('activeShopId', shop.id.toString())
+        try {
+            localStorage.setItem('activeShopId', shop.id.toString())
+        } catch {
+            // localStorage unavailable (private browsing / SSR)
+        }
         const params = new URLSearchParams(searchParams.toString())
         params.set('shopId', shop.id.toString())
         router.push(`${pathname}?${params.toString()}`, { scroll: false })

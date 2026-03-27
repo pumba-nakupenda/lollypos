@@ -183,7 +183,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
                 <div className="relative z-10 min-w-0">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between sm:gap-2">
                     <p className="text-[8px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest mb-1 truncate">Valeur Stock</p>
-                    <span className="bg-green-500/20 text-green-400 text-[7px] sm:text-[8px] font-black px-1.5 py-0.5 rounded-full border border-green-500/20 w-fit mb-1 sm:mb-0">+{marginPercent.toFixed(1)}%</span>
+                    <span className="bg-green-500/20 text-green-400 text-[8px] sm:text-[8px] font-black px-1.5 py-0.5 rounded-full border border-green-500/20 w-fit mb-1 sm:mb-0">+{marginPercent.toFixed(1)}%</span>
                   </div>
                   <h2 className="text-lg sm:text-2xl font-black text-shop-secondary tracking-tight truncate">{totalValue.toLocaleString()} <span className="text-[8px] sm:text-[10px]">CFA</span></h2>
                 </div>

@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -25,7 +25,7 @@ async function bootstrap() {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        console.warn(`[CORS] Blocked request from origin: ${origin}`);
+        new Logger('CORS').warn(`Blocked request from origin: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },

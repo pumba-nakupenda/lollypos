@@ -221,7 +221,7 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
                             <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tight text-white leading-none">Modifier Produit</h2>
                             <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">ID: {product.id}</p>
                         </div>
-                        <button onClick={onClose} className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-white transition-colors"><X className="w-6 h-6" /></button>
+                        <button onClick={onClose} aria-label="Fermer" className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-white transition-colors"><X className="w-6 h-6" /></button>
                     </div>
 
                     <div className="flex p-1 bg-white/5 mx-5 sm:mx-10 mt-4 rounded-2xl border border-white/10 shrink-0 overflow-x-auto no-scrollbar">

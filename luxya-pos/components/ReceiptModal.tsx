@@ -23,6 +23,15 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
 
     if (!isOpen || !saleData) return null
 
+    const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '221772354747'
+
+    const shopInfo = shop ? {
+        name: shop.name,
+        address: shop.address,
+        city: 'Dakar, Sénégal',
+        email: 'contact@lolly.sn',
+    } : undefined
+
     const docLabels: Record<string, string> = {
         'invoice': 'Facture',
         'quote': 'Devis',
@@ -33,7 +42,7 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
     const handleDownloadPDF = async () => {
         try {
             setIsGenerating(true);
-            const doc = <PDFDocument saleData={saleData} docTitle={docTitle} />;
+            const doc = <PDFDocument saleData={saleData} docTitle={docTitle} shopInfo={shopInfo} />;
             const blob = await pdf(doc).toBlob();
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
@@ -53,7 +62,7 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
     const handleSharePDF = async () => {
         try {
             setIsGenerating(true);
-            const doc = <PDFDocument saleData={saleData} docTitle={docTitle} />;
+            const doc = <PDFDocument saleData={saleData} docTitle={docTitle} shopInfo={shopInfo} />;
             const blob = await pdf(doc).toBlob();
             const filename = `${docTitle}-${saleData.invoice_number}.pdf`;
             const file = new File([blob], filename, { type: 'application/pdf' });
@@ -62,7 +71,7 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
                 await navigator.share({ files: [file], title: filename });
             } else {
                 const message = `*LOLLY*\nVoici votre ${docTitle.toLowerCase()} n° ${saleData.invoice_number}`;
-                window.open(`https://wa.me/221772354747?text=${encodeURIComponent(message)}`, '_blank');
+                window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
             }
         } catch (err) {
             // silently ignore
@@ -110,7 +119,7 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
                 <div className="flex-1 overflow-hidden rounded-[32px] shadow-2xl bg-[#1a1a1a] border border-white/10 relative">
                     {isClient ? (
                         <PDFViewer width="100%" height="100%" style={{ border: 'none' }} showToolbar={false}>
-                            <PDFDocument saleData={saleData} docTitle={docTitle} />
+                            <PDFDocument saleData={saleData} docTitle={docTitle} shopInfo={shopInfo} />
                         </PDFViewer>
                     ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20">

@@ -73,9 +73,10 @@ export const updateSession = async (request: NextRequest) => {
 
         return response;
     } catch (e) {
-        // If you are here, a Supabase client could not be created!
-        // This is likely because you have not set up environment variables.
-        // Check out http://localhost:3000 for Next Steps.
+        // Intentionally swallowed: if Supabase is misconfigured or unreachable,
+        // we let the request through unauthenticated rather than crashing the
+        // entire app. Individual pages/API routes will handle auth independently.
+        // Common causes: missing env vars, network issues, Supabase downtime.
         return NextResponse.next({
             request: {
                 headers: request.headers,

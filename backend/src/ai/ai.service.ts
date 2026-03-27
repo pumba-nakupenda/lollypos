@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { GoogleGenerativeAI, GenerativeModel, ChatSession, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { SupabaseService } from '../supabase.service';
 import { ProductsService } from '../products/products.service';
 
@@ -8,8 +8,8 @@ import { ProductsService } from '../products/products.service';
 export class AiService {
     private readonly logger = new Logger(AiService.name);
     private genAI: GoogleGenerativeAI;
-    private model: any;
-    private chatSessions: Map<string, { chat: any; createdAt: number }> = new Map();
+    private model: GenerativeModel;
+    private chatSessions: Map<string, { chat: ChatSession; createdAt: number }> = new Map();
     private readonly SESSION_TTL_MS = 30 * 60 * 1000; // 30 minutes
     private readonly MAX_SESSIONS = 50;
 
@@ -36,7 +36,7 @@ export class AiService {
     }
 
     private get admin() {
-        return (this.supabaseService as any).getAdminClient();
+        return this.supabaseService.getAdminClient();
     }
 
     private cleanupSessions() {
@@ -182,14 +182,21 @@ export class AiService {
         let avgDaily = 10000;
         try {
             const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-            const { data: sales } = await this.admin.from('sales').select('total_amount').gte('created_at', startDate).eq(shopId ? 'shop_id' : '', shopId || '');
+            let query = this.admin.from('sales').select('total_amount').gte('created_at', startDate);
+            if (shopId) query = query.eq('shop_id', shopId);
+            const { data: sales } = await query;
             const total = sales?.reduce((sum: number, s: any) => sum + (Number(s.total_amount) || 0), 0) || 0;
             avgDaily = total / 30;
             const result = await this.model.generateContent(`Prédis le CA pour les 3 prochains jours. CA total 30j: ${total}. Moyenne: ${avgDaily}. Réponds uniquement en JSON: {"predictions": [nb1, nb2, nb3]}`);
-            return JSON.parse((await result.response).text().trim().replace(/```json|```/g, ''));
+            try {
+                return JSON.parse((await result.response).text().trim().replace(/```json|```/g, ''));
+            } catch {
+                return { predictions: [avgDaily, avgDaily * 1.1, avgDaily * 0.9] };
+            }
         } catch (e) { return { predictions: [avgDaily, avgDaily * 1.1, avgDaily * 0.9] }; }
     }
 
+    // TODO: implement
     async generatePromoBanner() { return { slogan: "OFFRES EXCLUSIVES ✨" }; }
 
     async generateDescription(productName: string) {
@@ -207,6 +214,7 @@ export class AiService {
         }
     }
 
+    // TODO: implement
     async suggestProductPhoto(p: string) { return { urls: [] }; }
     async getStatus() { return { status: 'online' }; }
 }

@@ -76,7 +76,7 @@ export default function DebtsPage() {
             }
             const { data } = await query;
             if (data) setProducts(data);
-        } catch (err) {}
+        } catch (err) { /* silently ignore */ }
     }
 
     const addItem = (isEdit: boolean = false) => {
@@ -496,12 +496,12 @@ export default function DebtsPage() {
                                 {/* Items List Display */}
                                 {debt.items && debt.items.length > 0 && (
                                     <div className="pt-4 border-t border-white/5 space-y-1.5">
-                                        <p className="text-[7px] font-black uppercase text-shop tracking-widest mb-2 flex items-center">
+                                        <p className="text-[8px] font-black uppercase text-shop tracking-widest mb-2 flex items-center">
                                             <Package className="w-2.5 h-2.5 mr-1" /> Produits détaillés
                                         </p>
                                         {debt.items.map((item: any, i: number) => (
                                             <div key={i} className="flex justify-between text-[8px] font-bold text-white/80">
-                                                <span>{item.name} <span className="text-muted-foreground text-[7px] font-medium">(x{item.quantity})</span></span>
+                                                <span>{item.name} <span className="text-muted-foreground text-[8px] font-medium">(x{item.quantity})</span></span>
                                                 <span>{(item.price * item.quantity).toLocaleString()} CFA</span>
                                             </div>
                                         ))}
@@ -530,7 +530,7 @@ export default function DebtsPage() {
                                         <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
                                             {debtPayments[debt.id].map((p: any) => (
                                                 <div key={p.id} className="flex justify-between items-center py-2 px-3 bg-white/5 rounded-xl border border-white/5">
-                                                    <span className="text-[7px] font-bold text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</span>
+                                                    <span className="text-[8px] font-bold text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</span>
                                                     <span className="text-[8px] font-black text-white">+{Number(p.amount).toLocaleString()} CFA</span>
                                                 </div>
                                             ))}

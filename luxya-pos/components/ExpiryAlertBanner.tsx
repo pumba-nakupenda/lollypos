@@ -122,7 +122,7 @@ export default function ExpiryAlertBanner({ shopId }: ExpiryAlertBannerProps) {
                 <button
                     onClick={() => setIsDismissed(true)}
                     className="p-2 hover:bg-white/10 rounded-xl transition-colors text-muted-foreground hover:text-white"
-                    title="Masquer"
+                    aria-label="Masquer"
                 >
                     <X className="w-4 h-4" />
                 </button>

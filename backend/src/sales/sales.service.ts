@@ -10,7 +10,7 @@ export class SalesService {
     constructor(private readonly supabaseService: SupabaseService) { }
 
     private get supabase() {
-        return (this.supabaseService as any).getAdminClient();
+        return this.supabaseService.getAdminClient();
     }
 
     async create(createSaleDto: CreateSaleDto) {
@@ -139,7 +139,7 @@ export class SalesService {
         return data;
     }
 
-    async update(id: string, updateSaleDto: any) {
+    async update(id: string, updateSaleDto: Partial<CreateSaleDto>) {
         this.logger.log(`[SALES] Updating sale ID: ${id}`);
 
         try {
@@ -171,7 +171,7 @@ export class SalesService {
 
             if (deleteError) throw new Error(`Delete Items Error: ${deleteError.message}`);
 
-            const saleItems = updateSaleDto.items.map(item => ({
+            const saleItems = (updateSaleDto.items || []).map(item => ({
                 sale_id: id,
                 product_id: item.productId === 0 ? null : item.productId,
                 quantity: item.quantity,

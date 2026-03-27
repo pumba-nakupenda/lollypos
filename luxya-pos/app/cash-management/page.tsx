@@ -358,7 +358,7 @@ export default function CashManagementPage() {
                                 <div key={session.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col space-y-3">
                                     <div className="flex justify-between items-center">
                                         <span className="text-[9px] font-black uppercase text-muted-foreground">{new Date(session.closed_at).toLocaleDateString()}</span>
-                                        <div className={`px-2 py-0.5 rounded-lg text-[7px] font-black uppercase ${parseFloat(session.closing_balance_actual) >= parseFloat(session.closing_balance_theoretical)
+                                        <div className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${parseFloat(session.closing_balance_actual) >= parseFloat(session.closing_balance_theoretical)
                                             ? 'bg-green-500/10 text-green-400'
                                             : 'bg-red-500/10 text-red-400'
                                             }`}>

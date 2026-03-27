@@ -42,7 +42,7 @@ export default function CartSidebar({
                             <button onClick={() => setCart([])} className="text-[8px] font-black text-red-400 uppercase hover:underline ml-2">Vider</button>
                         </div>
                     </div>
-                    <button onClick={() => setIsCartOpen(false)} className="lg:hidden p-2 bg-white/5 rounded-xl text-white"><X className="w-5 h-5" /></button>
+                    <button onClick={() => setIsCartOpen(false)} aria-label="Fermer le panier" className="lg:hidden p-2 bg-white/5 rounded-xl text-white"><X className="w-5 h-5" /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3 custom-scrollbar">
                     {cart.map(item => (
@@ -62,9 +62,9 @@ export default function CartSidebar({
                                 </div>
                             </div>
                             <div className="flex items-center bg-white/5 rounded-xl border border-white/5 p-1">
-                                <button onClick={() => setCart(cart.map(i => i.cartItemId === item.cartItemId && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i))} className="p-1 hover:text-shop transition-colors"><Minus className="w-3 h-3 text-white" /></button>
+                                <button onClick={() => setCart(cart.map(i => i.cartItemId === item.cartItemId && i.quantity > 1 ? { ...i, quantity: i.quantity - 1 } : i))} aria-label="Diminuer la quantité" className="p-1 hover:text-shop transition-colors"><Minus className="w-3 h-3 text-white" /></button>
                                 <span className="w-6 sm:w-8 text-center text-[10px] sm:text-xs font-black text-white">{item.quantity}</span>
-                                <button onClick={() => { const p = products.find(p => p.id === item.id); if (p) addToCart(p, item.variantInfo); }} className="p-1 hover:text-shop transition-colors"><Plus className="w-3 h-3 text-white" /></button>
+                                <button onClick={() => { const p = products.find(p => p.id === item.id); if (p) addToCart(p, item.variantInfo); }} aria-label="Augmenter la quantité" className="p-1 hover:text-shop transition-colors"><Plus className="w-3 h-3 text-white" /></button>
                             </div>
                             <button onClick={() => setCart(cart.filter(i => i.cartItemId !== item.cartItemId))} className="text-muted-foreground hover:text-red-400 p-1"><Trash2 className="w-4 h-4" /></button>
                         </div>
@@ -92,7 +92,7 @@ export default function CartSidebar({
                         {(['Cash', 'Wave', 'OM'] as const).map(m => (
                             <button key={m} onClick={() => setPaymentMethod(m)} className={`flex flex-col items-center py-2.5 rounded-2xl border transition-all ${paymentMethod === m ? 'bg-shop text-white border-shop' : 'bg-white/5 border-white/10 text-muted-foreground'}`}>
                                 {m === 'Cash' ? <Banknote className="w-3.5 h-3.5" /> : <Wallet className="w-3.5 h-3.5" />}
-                                <span className="text-[7px] sm:text-[8px] font-black uppercase mt-1">{m}</span>
+                                <span className="text-[8px] sm:text-[8px] font-black uppercase mt-1">{m}</span>
                             </button>
                         ))}
                     </div>

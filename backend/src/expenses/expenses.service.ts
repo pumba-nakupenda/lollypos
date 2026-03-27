@@ -11,12 +11,16 @@ export class ExpensesService implements OnModuleInit {
   async onModuleInit() {
     this.logger.log('[EXPENSES ROBOT] Initializing automation engine...');
     // Delay first run by 30s to allow network/Supabase client to be fully ready
-    setTimeout(() => this.processRecurringExpenses(), 30000);
-    setInterval(() => this.processRecurringExpenses(), 1000 * 60 * 60 * 6);
+    setTimeout(() => {
+      this.processRecurringExpenses().catch(err => this.logger.error(`[EXPENSES ROBOT] Initial run failed: ${err.message}`));
+    }, 30000);
+    setInterval(() => {
+      this.processRecurringExpenses().catch(err => this.logger.error(`[EXPENSES ROBOT] Scheduled run failed: ${err.message}`));
+    }, 1000 * 60 * 60 * 6);
   }
 
   private get supabase() {
-    return (this.supabaseService as any).getAdminClient();
+    return this.supabaseService.getAdminClient();
   }
   async processRecurringExpenses() {
     this.logger.log('[EXPENSES ROBOT] Checking for due recurring expenses...');

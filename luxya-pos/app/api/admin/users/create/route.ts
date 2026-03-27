@@ -76,7 +76,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true, user: authUser.user })
     } catch (err: any) {
-        console.error('[Admin/CreateUser] Error:', err.message)
+        void err
         return NextResponse.json({ error: err.message }, { status: 500 })
     }
 }

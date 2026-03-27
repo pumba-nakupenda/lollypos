@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/context/ToastContext';
 
-export function usePos(products: any[]) {
+export function usePos() {
     const { showToast } = useToast();
     const [cart, setCart] = useState<any[]>([]);
     const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);

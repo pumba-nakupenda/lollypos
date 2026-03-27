@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Logger, Query, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, BadRequestException } from '@nestjs/common';
 import { ProductsService } from './products.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -6,7 +6,6 @@ import { Public } from '../auth/public.decorator';
 
 @Controller('products')
 export class ProductsController {
-    private readonly logger = new Logger(ProductsController.name);
     constructor(private readonly productsService: ProductsService) { }
 
     @Post()

@@ -331,7 +331,7 @@ export default function WebManagementPage() {
                                         <div className="md:col-span-2 space-y-2">
                                             <div className="flex justify-between items-center ml-2">
                                                 <label className="text-[8px] sm:text-[9px] font-black uppercase text-muted-foreground">Image</label>
-                                                <span className="text-[7px] font-black text-shop uppercase tracking-widest">Recommandé : 3000 x 1200 px</span>
+                                                <span className="text-[8px] font-black text-shop uppercase tracking-widest">Recommandé : 3000 x 1200 px</span>
                                             </div>
                                             <div className="grid grid-cols-4 gap-4">
                                                 <div className="col-span-3">
@@ -374,7 +374,7 @@ export default function WebManagementPage() {
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center ml-2">
                                     <label className="text-[8px] font-black uppercase text-muted-foreground">Grande Image (Accueil)</label>
-                                    <span className="text-[7px] font-black text-shop uppercase tracking-widest">1500 x 600 px</span>
+                                    <span className="text-[8px] font-black text-shop uppercase tracking-widest">1500 x 600 px</span>
                                 </div>
                                 <div className="grid grid-cols-4 gap-4">
                                     <div className="col-span-3">
@@ -391,7 +391,7 @@ export default function WebManagementPage() {
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center ml-2">
                                     <label className="text-[8px] font-black uppercase text-muted-foreground">Mini Image (Barre Amazon)</label>
-                                    <span className="text-[7px] font-black text-shop uppercase tracking-widest">600 x 60 px</span>
+                                    <span className="text-[8px] font-black text-shop uppercase tracking-widest">600 x 60 px</span>
                                 </div>
                                 <div className="grid grid-cols-4 gap-4">
                                     <div className="col-span-3">

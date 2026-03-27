@@ -77,7 +77,7 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
 
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {colors.length === 0 ? (
-                        <p className="text-center py-10 text-muted-foreground font-bold uppercase text-[10px] tracking-widest opacity-30">Aucune couleur définie</p>
+                        <p className="text-center py-10 text-muted-foreground font-bold uppercase text-[10px] tracking-widest opacity-50">Aucune couleur définie</p>
                     ) : (
                         colors.filter(c => c && c !== "").map((color) => (
                             <div key={color} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-purple-500/30 transition-all">

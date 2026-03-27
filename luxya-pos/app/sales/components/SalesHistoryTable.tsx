@@ -47,7 +47,7 @@ export default function SalesHistoryTable({
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-white uppercase text-xs">{sale.customer_name || 'Client Comptant'}</span>
                                                 {sale.profiles?.email && (
-                                                    <span className="text-[7px] text-shop font-black uppercase tracking-widest mt-0.5">Par: {sale.profiles.email.split('@')[0]}</span>
+                                                    <span className="text-[8px] text-shop font-black uppercase tracking-widest mt-0.5">Par: {sale.profiles.email.split('@')[0]}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -55,7 +55,7 @@ export default function SalesHistoryTable({
                                     <td className="px-8 py-6 text-[10px] font-bold text-muted-foreground uppercase">{new Date(sale.created_at).toLocaleDateString()}</td>
                                     <td className="px-8 py-6">
                                         <div className="flex flex-col">
-                                            <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase w-fit ${
+                                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase w-fit ${
                                                 sale.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
                                                 sale.status === 'pending' ? 'bg-orange-500/20 text-orange-400' :
                                                 sale.status === 'shipped' ? 'bg-blue-500/20 text-blue-400' :
@@ -75,15 +75,15 @@ export default function SalesHistoryTable({
                                     <td className={`px-8 py-6 text-right font-black text-sm ${sale.status === 'cancelled' ? 'text-muted-foreground line-through' : 'text-shop'}`}>{Number(sale.total_amount).toLocaleString()}</td>
                                     <td className="px-8 py-6 text-center">
                                         <div className="flex items-center justify-center space-x-2">
-                                            <button onClick={() => handleViewReceipt(sale)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-shop transition-all group-hover:scale-110">
+                                            <button onClick={() => handleViewReceipt(sale)} aria-label="Voir le ticket" className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-shop transition-all group-hover:scale-110">
                                                 <Receipt className="w-4 h-4" />
                                             </button>
                                             {sale.status !== 'cancelled' && (
-                                                <button onClick={() => handleCancelSale(sale)} title="Annuler et Rétablir Stock" className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-orange-400 transition-all opacity-0 group-hover:opacity-100">
+                                                <button onClick={() => handleCancelSale(sale)} aria-label="Annuler la vente" title="Annuler et Rétablir Stock" className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-orange-400 transition-all opacity-0 group-hover:opacity-100">
                                                     <RefreshCw className="w-4 h-4" />
                                                 </button>
                                             )}
-                                            <button onClick={() => handleDeleteSale(sale.id)} className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-red-400 transition-all opacity-0 group-hover:opacity-100">
+                                            <button onClick={() => handleDeleteSale(sale.id)} aria-label="Supprimer" className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-muted-foreground hover:text-red-400 transition-all opacity-0 group-hover:opacity-100">
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>

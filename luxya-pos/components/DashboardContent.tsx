@@ -48,7 +48,7 @@ function SecondaryMiniCard({ title, value, color }: { title: string, value: numb
         <div className="glass-card p-5 rounded-[24px] border-white/5 flex items-center justify-between group">
             <div>
                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mb-1">{title}</p>
-                <h4 className="text-lg font-black text-white italic">{value?.toLocaleString()} <span className="text-[10px] opacity-30">CFA</span></h4>
+                <h4 className="text-lg font-black text-white italic">{value?.toLocaleString()} <span className="text-[10px] opacity-50">CFA</span></h4>
             </div>
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${colorStyles[color] || 'bg-white/10'}`}>
                 <ArrowUpRight className="w-5 h-5" />
@@ -118,7 +118,7 @@ export default function DashboardContent({ user }: { user: any }) {
             })
             setSales(filteredRecentSales.slice(0, 8))
         } catch (err) {
-            console.error('Failed to fetch dashboard data', err)
+            void err
         } finally {
             setLoading(false)
         }
@@ -215,12 +215,12 @@ export default function DashboardContent({ user }: { user: any }) {
                         </div>
                         <div className="hidden sm:flex flex-col items-end mr-2">
                             <span className="text-[10px] font-bold text-white truncate max-w-[100px]">{user.email?.split('@')[0]}</span>
-                            <span className={`text-[7px] font-black uppercase tracking-[0.2em] ${profile?.is_super_admin ? 'text-yellow-400 animate-pulse' : 'text-shop/60'}`}>
+                            <span className={`text-[8px] font-black uppercase tracking-[0.2em] ${profile?.is_super_admin ? 'text-yellow-400 animate-pulse' : 'text-shop/60'}`}>
                                 {profile?.is_super_admin ? 'Super Admin' : profile?.role}
                             </span>
                         </div>
                         <form action="/auth/signout" method="post">
-                            <button className="p-2 sm:p-2.5 glass-card rounded-lg sm:rounded-xl text-muted-foreground hover:text-red-400 transition-all" type="submit">
+                            <button className="p-2 sm:p-2.5 glass-card rounded-lg sm:rounded-xl text-muted-foreground hover:text-red-400 transition-all" type="submit" aria-label="Déconnexion">
                                 <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                         </form>
@@ -281,7 +281,7 @@ export default function DashboardContent({ user }: { user: any }) {
                                                     <ChartTooltip value={day.outcome} label="Sorties" color="bg-red-900/90" />
                                                 </div>
                                             </div>
-                                            <span className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase opacity-30 group-hover:opacity-100 transition-opacity">{day.date.split('-')[2]}</span>
+                                            <span className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase opacity-50 group-hover:opacity-100 transition-opacity">{day.date.split('-')[2]}</span>
                                         </div>
                                     )
                                 })}
@@ -534,7 +534,7 @@ export default function DashboardContent({ user }: { user: any }) {
                                                 </td>
                                             </tr>
                                         )) : (
-                                            <tr><td className="p-12 text-center opacity-30 font-black uppercase text-[10px]">Aucune vente</td></tr>
+                                            <tr><td className="p-12 text-center opacity-50 font-black uppercase text-[10px]">Aucune vente</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -633,7 +633,7 @@ function MetricMiniCard({ title, value, icon, color, trend }: any) {
                     {React.cloneElement(icon as React.ReactElement<any>, { className: "w-5 h-5 sm:w-7 sm:h-7" })}
                 </div>
                 <div className="text-right">
-                    <span className="text-[7px] sm:text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity">{trend}</span>
+                    <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50 group-hover:opacity-100 transition-opacity">{trend}</span>
                 </div>
             </div>
             
@@ -641,7 +641,7 @@ function MetricMiniCard({ title, value, icon, color, trend }: any) {
                 <p className="text-[9px] sm:text-[11px] font-black text-muted-foreground uppercase tracking-[0.2em]">{title}</p>
                 <div className="flex items-baseline space-x-2">
                     <h4 className="text-xl sm:text-3xl font-black tracking-tighter italic">{displayValue}</h4>
-                    <span className="text-[8px] sm:text-[10px] font-bold opacity-30">CFA</span>
+                    <span className="text-[8px] sm:text-[10px] font-bold opacity-50">CFA</span>
                 </div>
             </div>
             

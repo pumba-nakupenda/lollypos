@@ -233,7 +233,7 @@ export default function QuickInventoryPage() {
                         <p className="text-sm font-black text-white">{totalCost.toLocaleString()} CFA</p>
                     </div>
                     <div className="bg-white/5 p-4 rounded-3xl border border-white/5 relative overflow-hidden">
-                        <div className="absolute top-2 right-3 px-1.5 py-0.5 bg-green-500 text-white text-[6px] font-black rounded-full">
+                        <div className="absolute top-2 right-3 px-1.5 py-0.5 bg-green-500 text-white text-[8px] font-black rounded-full">
                             +{marginPercent.toFixed(0)}%
                         </div>
                         <p className="text-[8px] font-black uppercase text-shop-secondary mb-1">Valeur Vente</p>

@@ -6,12 +6,11 @@ export class AnalyticsService {
     constructor(private readonly supabaseService: SupabaseService) {}
 
     private get supabase() {
-        return (this.supabaseService as any).getAdminClient();
+        return this.supabaseService.getAdminClient();
     }
 
     async getAnalytics(shopId?: string, category?: string, month?: string, year?: string) {
         const isGlobal = !shopId || shopId === 'all';
-        const isAgency = shopId === '3';
         const numericShopId = shopId && shopId !== 'all' ? Number(shopId) : undefined;
 
         const [salesResult, expensesResult, saleItemsResult, debtsResult, productsResult, categoriesResult] = await Promise.all([
@@ -48,12 +47,15 @@ export class AnalyticsService {
                 if (numericShopId) q = q.eq('shop_id', numericShopId);
                 return q;
             })(),
-            this.supabase.from('expense_categories').select('name').eq('shop_id', 3).eq('is_personal', true),
+            (() => {
+                let q = this.supabase.from('expense_categories').select('name').eq('is_personal', true);
+                if (numericShopId) q = q.eq('shop_id', numericShopId);
+                return q;
+            })(),
         ]);
 
         let sales = salesResult.data || [];
         let expenses = expensesResult.data || [];
-        const allExpenses = [...expenses];
         let saleItems = saleItemsResult.data || [];
         const debts = debtsResult.data || [];
         const products = productsResult.data || [];
@@ -103,10 +105,9 @@ export class AnalyticsService {
         // 3. Expenses refinement
         const periodExpenses = expenses.filter((e: any) => {
             const catName = (e.category || '').toLowerCase();
-            const isPersonalCategory = e.shop_id === 3 && personalCategoryNames.includes(catName);
+            const isPersonalCategory = personalCategoryNames.includes(catName);
             const isPerso = catName === 'perso' || isPersonalCategory;
-            if (e.shop_id !== 3 && isPerso) return false;
-            return true;
+            return !isPerso;
         });
 
         const operationalVariableCosts = periodExpenses
@@ -117,13 +118,13 @@ export class AnalyticsService {
 
         // Fixed costs (deduped recurring templates)
         const uniqueRecurringTemplates = new Map();
-        allExpenses.forEach((e: any) => {
+        expenses.forEach((e: any) => {
             if (e.is_recurring !== true) return;
             const catName = (e.category || '').toLowerCase();
-            const isPersonalCategory = e.shop_id === 3 && personalCategoryNames.includes(catName);
+            const isPersonalCategory = personalCategoryNames.includes(catName);
             const isPerso = catName === 'perso' || isPersonalCategory;
-            if (e.shop_id !== 3 && isPerso) return;
-            
+            if (isPerso) return;
+
             // Key by shop and description to avoid deduplicating same-named expenses across shops
             const key = `${e.shop_id}-${e.description}`;
             const existing = uniqueRecurringTemplates.get(key);
@@ -144,17 +145,14 @@ export class AnalyticsService {
             return acc;
         }, {});
 
-        const fixedCostsAgency = (recurringByShop['3'] || 0) * timescale;
-        const fixedCostsOthers = Object.entries(recurringByShop)
-            .filter(([id]) => id !== '3')
-            .reduce((sum, [, amt]) => sum + (amt as number), 0) * timescale;
+        const fixedCosts = Object.values(recurringByShop as Record<string, number>)
+            .reduce((sum: number, amt: number) => sum + amt, 0) * timescale;
 
-        const fixedCosts = fixedCostsAgency + fixedCostsOthers;
-        const seuilRentabilite = fixedCostsAgency + (fixedCostsOthers / 0.40);
-        
-        const mcvRatio = isGlobal 
+        const seuilRentabilite = fixedCosts > 0 ? (fixedCosts / 0.40) : 0;
+
+        const mcvRatio = isGlobal
             ? (seuilRentabilite > 0 ? fixedCosts / seuilRentabilite : 0.40)
-            : (isAgency ? 1.0 : 0.40);
+            : 0.40;
         const realMcvRatio = totalSalesHT > 0 ? ((totalSalesHT - totalVariableCosts) / totalSalesHT) : 0;
         const margeBrute = totalSalesHT - totalCOGS;
         const margeNet = totalSalesHT - totalExpenses - totalCOGS;
@@ -262,7 +260,6 @@ export class AnalyticsService {
 
     async getHistory(shopId?: string, year?: string) {
         const currentYear = year || new Date().getFullYear().toString();
-        const isAgency = shopId === '3';
         const numericShopId = shopId && shopId !== 'all' ? Number(shopId) : undefined;
 
         const [salesResult, expensesResult, saleItemsResult, categoriesResult] = await Promise.all([
@@ -289,7 +286,11 @@ export class AnalyticsService {
                 if (numericShopId) q = q.eq('products.shop_id', numericShopId);
                 return q;
             })(),
-            this.supabase.from('expense_categories').select('name').eq('shop_id', 3).eq('is_personal', true),
+            (() => {
+                let q = this.supabase.from('expense_categories').select('name').eq('is_personal', true);
+                if (numericShopId) q = q.eq('shop_id', numericShopId);
+                return q;
+            })(),
         ]);
 
         const allSales = salesResult.data || [];
@@ -310,10 +311,9 @@ export class AnalyticsService {
                 const d = new Date(e.date);
                 if (!((d.getMonth() + 1) === m && d.getFullYear().toString() === currentYear)) return false;
                 const catName = (e.category || '').toLowerCase();
-                const isPersonalCategory = Number(e.shop_id) === 3 && personalCategoryNames.includes(catName);
+                const isPersonalCategory = personalCategoryNames.includes(catName);
                 const isPerso = catName === 'perso' || isPersonalCategory;
-                if (Number(e.shop_id) !== 3 && isPerso) return false;
-                return true;
+                return !isPerso;
             });
 
             const saleIds = new Set(monthlySales.map((s: any) => s.id));
@@ -344,9 +344,9 @@ export class AnalyticsService {
             allExpensesData.forEach((e: any) => {
                 if (e.is_recurring !== true) return;
                 const catName = (e.category || '').toLowerCase();
-                const isPersonalCategory = Number(e.shop_id) === 3 && personalCategoryNames.includes(catName);
+                const isPersonalCategory = personalCategoryNames.includes(catName);
                 const isPerso = catName === 'perso' || isPersonalCategory;
-                if (Number(e.shop_id) !== 3 && isPerso) return;
+                if (isPerso) return;
                 const key = `${e.shop_id}-${e.description}`;
                 const existing = uniqueRecurringTemplates.get(key);
                 if (!existing || new Date(e.date) > new Date(existing.date)) {
@@ -365,12 +365,10 @@ export class AnalyticsService {
                 return acc;
             }, {});
 
-            const fixedAgency = recurringByShop['3'] || 0;
-            const fixedOthers = Object.entries(recurringByShop)
-                .filter(([id]) => id !== '3')
-                .reduce((sum, [, amt]) => sum + (amt as number), 0);
+            const fixedCosts = Object.values(recurringByShop as Record<string, number>)
+                .reduce((sum: number, amt: number) => sum + amt, 0);
 
-            const seuilRentabilite = fixedAgency + (fixedOthers / 0.40);
+            const seuilRentabilite = fixedCosts > 0 ? (fixedCosts / 0.40) : 0;
             const totalVariableCosts = totalCOGS + operationalVariableCosts;
             const realMcvRatio = totalSalesHT > 0 ? ((totalSalesHT - totalVariableCosts) / totalSalesHT) : 0;
 

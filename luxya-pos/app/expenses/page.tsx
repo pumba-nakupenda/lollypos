@@ -226,7 +226,7 @@ export default function ExpensesPage() {
                         <div className="pl-10 lg:pl-0">
                             <h1 className="text-base sm:text-xl font-black shop-gradient-text uppercase tracking-tighter leading-none flex items-center">
                                 Depenses
-                                <span className="ml-2 px-1 py-0.5 bg-shop/20 text-[6px] rounded border border-shop/30 text-shop animate-pulse hidden sm:inline">v1.3</span>
+                                <span className="ml-2 px-1 py-0.5 bg-shop/20 text-[8px] rounded border border-shop/30 text-shop animate-pulse hidden sm:inline">v1.3</span>
                             </h1>
                             <p className="text-[10px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Gestion Flux</p>
                         </div>
@@ -415,7 +415,7 @@ export default function ExpensesPage() {
                                                             <div className="flex items-center space-x-2">
                                                                 <p className="text-[8px] text-muted-foreground uppercase tracking-widest font-black opacity-50">Trans. #{exp.id}</p>
                                                                 {exp.profiles?.email && (
-                                                                    <span className="text-[7px] text-shop font-black uppercase tracking-widest">Saisi par: {exp.profiles.email.split('@')[0]}</span>
+                                                                    <span className="text-[8px] text-shop font-black uppercase tracking-widest">Saisi par: {exp.profiles.email.split('@')[0]}</span>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -441,7 +441,7 @@ export default function ExpensesPage() {
                                                         {exp.is_recurring && (
                                                             <div className="flex items-center bg-blue-500/10 px-2 py-0.5 rounded text-blue-400 border border-blue-500/20">
                                                                 <Repeat className="w-2.5 h-2.5 mr-1" />
-                                                                <span className="text-[7px] font-black uppercase">{exp.frequency}</span>
+                                                                <span className="text-[8px] font-black uppercase">{exp.frequency}</span>
                                                             </div>
                                                         )}
                                                     </div>

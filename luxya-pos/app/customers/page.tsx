@@ -221,7 +221,7 @@ export default function CustomersPage() {
                                         <div className="min-w-0">
                                             <div className="flex items-center space-x-2">
                                                 <h3 className="font-black text-lg text-white group-hover:text-shop transition-colors truncate">{customer.name}</h3>
-                                                <span className={`text-[7px] font-black px-1.5 py-0.5 rounded border uppercase tracking-widest ${
+                                                <span className={`text-[8px] font-black px-1.5 py-0.5 rounded border uppercase tracking-widest ${
                                                     customer.lead_status === 'lead' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' :
                                                     customer.lead_status === 'prospect' ? 'bg-purple-500/20 border-purple-500/30 text-purple-400' :
                                                     customer.lead_status === 'qualified' ? 'bg-orange-500/20 border-orange-500/30 text-orange-400' :

@@ -153,7 +153,7 @@ export class CalendarService {
         orderBy: 'startTime',
       });
 
-      return res.data.items;
+      return res.data?.items || [];
     } catch (err) {
       this.logger.error(`Failed to list events: ${err.message}`);
       return [];

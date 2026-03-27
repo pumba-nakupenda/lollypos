@@ -40,7 +40,7 @@ export default function SalesTerminal() {
     const {
         cart, setCart, addToCart, updateCartItemPrice,
         selectedProductForVariant, setSelectedProductForVariant, resetCart,
-    } = usePos(products);
+    } = usePos();
 
     // Local UI State
     const [searchQuery, setSearchQuery] = useState('');
@@ -206,7 +206,7 @@ export default function SalesTerminal() {
                             <h1 className="text-lg sm:text-2xl font-black uppercase tracking-tighter text-white font-museo">
                                 LOLLY<span className="text-shop">POS</span>
                             </h1>
-                            <p className="text-[7px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">Système de Vente Premium <span className="text-shop/60 ml-2">v1.5 - MODULAR</span></p>
+                            <p className="text-[8px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">Système de Vente Premium <span className="text-shop/60 ml-2">v1.5 - MODULAR</span></p>
                         </div>
                         <div className="h-8 w-[1px] bg-white/10 hidden sm:block" />
                         <div className="scale-90 sm:scale-100 origin-left">

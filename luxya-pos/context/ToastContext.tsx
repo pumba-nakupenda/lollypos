@@ -20,8 +20,15 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
 export function ToastProvider({ children }: { children: ReactNode }) {
     const [toasts, setToasts] = useState<Toast[]>([])
+    const timeoutRefs = React.useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
     const removeToast = useCallback((id: string) => {
+        // Clear the auto-dismiss timeout if the toast is removed manually
+        const existingTimeout = timeoutRefs.current.get(id)
+        if (existingTimeout) {
+            clearTimeout(existingTimeout)
+            timeoutRefs.current.delete(id)
+        }
         setToasts(prev => prev.filter(t => t.id !== id))
     }, [])
 
@@ -30,7 +37,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         setToasts(prev => [...prev, { id, message, type }])
 
         // Auto-remove after 5 seconds
-        setTimeout(() => removeToast(id), 5000)
+        const timeoutId = setTimeout(() => {
+            timeoutRefs.current.delete(id)
+            removeToast(id)
+        }, 5000)
+        timeoutRefs.current.set(id, timeoutId)
     }, [removeToast])
 
     return (

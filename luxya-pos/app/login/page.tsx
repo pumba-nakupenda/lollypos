@@ -167,10 +167,10 @@ export default function LoginPage() {
                 <div className="mt-8 sm:mt-10 flex items-center justify-center space-x-4 sm:space-x-6 opacity-30">
                     <div className="flex items-center space-x-2">
                         <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest">SSL Secured</span>
+                        <span className="text-[8px] sm:text-[8px] font-black uppercase tracking-widest">SSL Secured</span>
                     </div>
                     <div className="w-1 h-1 bg-white/50 rounded-full" />
-                    <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest">v2.0 Premium</span>
+                    <span className="text-[8px] sm:text-[8px] font-black uppercase tracking-widest">v2.0 Premium</span>
                 </div>
             </div>
         </div>

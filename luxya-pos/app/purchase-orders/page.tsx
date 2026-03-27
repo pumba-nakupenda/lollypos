@@ -325,7 +325,7 @@ export default function PurchaseOrdersPage() {
                         <div className="space-y-3 mb-8">
                             <div className="flex justify-between items-end border-b border-white/5 pb-2">
                                 <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Montant Facture</span>
-                                <span className="text-xl font-black text-white tracking-tighter">{Number(order.total_amount).toLocaleString()} <span className="text-[10px] opacity-30">CFA</span></span>
+                                <span className="text-xl font-black text-white tracking-tighter">{Number(order.total_amount).toLocaleString()} <span className="text-[10px] opacity-50">CFA</span></span>
                             </div>
                             <div className="flex justify-between items-center text-[8px] font-black uppercase text-muted-foreground opacity-40">
                                 <span className="flex items-center"><Calendar className="w-3 h-3 mr-1" /> {new Date(order.created_at).toLocaleDateString()}</span>
@@ -462,7 +462,7 @@ export default function PurchaseOrdersPage() {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center space-x-2">
                                                     <p className="text-sm font-black text-white uppercase truncate">{l.name}</p>
-                                                    {l.is_new && <span className="bg-shop/20 text-shop text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">Nouveau</span>}
+                                                    {l.is_new && <span className="bg-shop/20 text-shop text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest">Nouveau</span>}
                                                 </div>
                                                 <div className="flex items-center space-x-4 mt-2">
                                                     <div className="flex items-center space-x-2">
@@ -486,7 +486,7 @@ export default function PurchaseOrdersPage() {
                                         </div>
                                     ))}
                                     {orderLines.length === 0 && (
-                                        <div className="py-12 text-center bg-white/[0.02] border border-dashed border-white/5 rounded-[40px] opacity-30">
+                                        <div className="py-12 text-center bg-white/[0.02] border border-dashed border-white/5 rounded-[40px] opacity-50">
                                             <Package className="w-10 h-10 mx-auto mb-3" />
                                             <p className="text-[10px] font-black uppercase tracking-widest">Votre bon d'achat est vide</p>
                                         </div>
@@ -505,7 +505,7 @@ export default function PurchaseOrdersPage() {
                                 <div className="w-px h-8 bg-white/10" />
                                 <div className="space-y-1">
                                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Total à payer</p>
-                                    <h2 className="text-4xl font-black text-shop tracking-tighter">{totalOrderAmount.toLocaleString()} <span className="text-sm opacity-30">CFA</span></h2>
+                                    <h2 className="text-4xl font-black text-shop tracking-tighter">{totalOrderAmount.toLocaleString()} <span className="text-sm opacity-50">CFA</span></h2>
                                 </div>
                             </div>
                             <button onClick={handleSubmitOrder} disabled={creating || orderLines.length === 0} className="w-full sm:w-auto px-16 py-6 bg-white text-black hover:bg-shop hover:text-white font-black uppercase tracking-[0.3em] rounded-[32px] hover:scale-105 active:scale-95 transition-all shadow-2xl text-[11px] disabled:opacity-20 disabled:grayscale">

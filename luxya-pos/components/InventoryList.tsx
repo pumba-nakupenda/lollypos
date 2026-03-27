@@ -162,7 +162,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
             setNewProduct({ ...newProduct, image: publicUrl });
             showToast("Photo chargée", "success");
         } catch (err) {
-            console.error('[Upload] Error:', err);
+            void err;
             showToast("Erreur photo", "error");
         } finally {
             setIsCreating(false);
@@ -469,7 +469,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                         </div>
                         <button
                             onClick={() => setStockStatus(stockStatus === 'out_of_stock' ? 'all' : 'out_of_stock')}
-                            className={`flex items-center px-2 sm:px-3 py-1 rounded-full text-[7px] sm:text-[8px] font-black uppercase tracking-widest transition-all ${stockStatus === 'out_of_stock'
+                            className={`flex items-center px-2 sm:px-3 py-1 rounded-full text-[8px] sm:text-[8px] font-black uppercase tracking-widest transition-all ${stockStatus === 'out_of_stock'
                                 ? 'bg-red-500 text-white shadow-lg'
                                 : 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20'
                                 }`}
@@ -748,15 +748,15 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                                                 const partiallyOut = hasVariants && outOfStockVariants.length > 0 && outOfStockVariants.length < product.variants.length;
 
                                                 if (allOut || product.stock <= 0) {
-                                                    return <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-full border border-red-500/20">Rupture Totale</span>;
+                                                    return <span className="text-[8px] sm:text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-full border border-red-500/20">Rupture Totale</span>;
                                                 }
                                                 if (partiallyOut) {
-                                                    return <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded-full border border-orange-400/20">Rupture Partielle ({outOfStockVariants.length})</span>;
+                                                    return <span className="text-[8px] sm:text-[8px] font-black uppercase tracking-widest text-orange-400 bg-orange-400/10 px-1.5 py-0.5 rounded-full border border-orange-400/20">Rupture Partielle ({outOfStockVariants.length})</span>;
                                                 }
                                                 if (product.stock <= (product.min_stock || 2)) {
-                                                    return <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-orange-400">Stock Critique</span>;
+                                                    return <span className="text-[8px] sm:text-[8px] font-black uppercase tracking-widest text-orange-400">Stock Critique</span>;
                                                 }
-                                                return <span className="text-[7px] sm:text-[8px] font-black uppercase tracking-widest text-green-400 opacity-60">Optimal</span>;
+                                                return <span className="text-[8px] sm:text-[8px] font-black uppercase tracking-widest text-green-400 opacity-60">Optimal</span>;
                                             })()}
                                         </div>
                                     )}

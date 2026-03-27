@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { supabase } from '@/utils/supabase'
 import { createClient, createAdminClient } from '@/utils/supabase/server'
 import { API_URL } from '@/utils/api'
 import { authFetchServer } from '@/utils/api-server'
@@ -36,7 +35,8 @@ export async function createProduct(formData: FormData) {
     const video_url = (video_url_raw && video_url_raw.trim() !== '') ? video_url_raw : undefined
     const show_on_pos = formData.get('show_on_pos') === 'true'
     const show_on_website = formData.get('show_on_website') === 'true'
-    const variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : []
+    let variants: any[] = []
+    try { variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : [] } catch { variants = [] }
 
     // SECURITY: Force shopId from profile if restricted, otherwise take from form
     let shopId = Number(formData.get('shopId')) || 1
@@ -188,12 +188,14 @@ export async function updateProduct(productId: number, formData: FormData) {
     const video_url = (video_url_raw && video_url_raw.trim() !== '') ? video_url_raw : undefined
     const show_on_pos = formData.get('show_on_pos') === 'true'
     const show_on_website = formData.get('show_on_website') === 'true'
-    const variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : []
+    let variants: any[] = []
+    try { variants = formData.get('variants') ? JSON.parse(formData.get('variants') as string) : [] } catch { variants = [] }
     const imageFile = formData.get('image') as File | null
     const aiImageUrl = formData.get('ai_image_url') as string | null
     const galleryFiles = formData.getAll('gallery') as File[]
     const currentImageUrl = formData.get('currentImageUrl') as string
-    const existingGallery = formData.get('existingGallery') ? JSON.parse(formData.get('existingGallery') as string) : []
+    let existingGallery: any[] = []
+    try { existingGallery = formData.get('existingGallery') ? JSON.parse(formData.get('existingGallery') as string) : [] } catch { existingGallery = [] }
     const isImageDeleted = formData.get('isImageDeleted') === 'true'
 
     // Logic: Ensure new URLs or files override current ones

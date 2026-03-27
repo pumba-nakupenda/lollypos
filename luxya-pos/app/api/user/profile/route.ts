@@ -1,7 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
-export async function GET(request: Request) {
+export async function GET(_request: Request) {
     const supabase = await createClient()
 
     try {
@@ -18,7 +18,7 @@ export async function GET(request: Request) {
             .maybeSingle()
 
         if (profileError) {
-            // silently ignore
+            // return error to client
             return NextResponse.json({ error: profileError.message }, { status: 500 })
         }
 
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json(profile)
     } catch (err: any) {
-        // silently ignore
+        // return error to client
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }

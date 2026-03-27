@@ -64,7 +64,7 @@ export default function AdminDashboard() {
                 const data = await res.json()
                 setConnectionLogs(data)
             }
-        } catch (e) { }
+        } catch (e) { /* silently ignore */ }
     }
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ userId, shopId })
             })
             if (res.ok) fetchUsers()
-        } catch (err) { }
+        } catch (err) { /* silently ignore */ }
     }
 
     const toggleStockAccess = async (userId: string, currentStatus: boolean) => {
@@ -250,7 +250,7 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ userId, hasStockAccess: !currentStatus })
             })
             if (res.ok) fetchUsers()
-        } catch (err) { }
+        } catch (err) { /* silently ignore */ }
     }
 
     if (userLoading || loading) return (
@@ -386,16 +386,16 @@ export default function AdminDashboard() {
                                                         {shops.find(s => s.id === id)?.name || id}
                                                     </span>
                                                 )) : (
-                                                    <span className="text-[8px] font-black uppercase text-muted-foreground opacity-30 italic">Global</span>
+                                                    <span className="text-[8px] font-black uppercase text-muted-foreground opacity-50 italic">Global</span>
                                                 )}
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex items-center space-x-2">
-                                                <button onClick={() => openEditModal(u)} className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-shop transition-all">
+                                                <button onClick={() => openEditModal(u)} aria-label="Modifier l'utilisateur" className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-shop transition-all">
                                                     <Edit className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => handleDeleteUser(u.id)} disabled={u.id === profile?.id} className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-red-400 transition-all disabled:opacity-20">
+                                                <button onClick={() => handleDeleteUser(u.id)} disabled={u.id === profile?.id} aria-label="Supprimer l'utilisateur" className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-red-400 transition-all disabled:opacity-20">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
@@ -422,10 +422,10 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                     <div className="flex space-x-2">
-                                        <button onClick={() => openEditModal(u)} className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-shop">
+                                        <button onClick={() => openEditModal(u)} aria-label="Modifier l'utilisateur" className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-shop">
                                             <Edit className="w-4 h-4" />
                                         </button>
-                                        <button onClick={() => handleDeleteUser(u.id)} disabled={u.id === profile?.id} className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-red-400 disabled:opacity-20">
+                                        <button onClick={() => handleDeleteUser(u.id)} disabled={u.id === profile?.id} aria-label="Supprimer l'utilisateur" className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-red-400 disabled:opacity-20">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -451,7 +451,7 @@ export default function AdminDashboard() {
                                                     {shops.find(s => s.id === id)?.name || id}
                                                 </span>
                                             )) : (
-                                                <span className="text-[9px] font-black uppercase text-muted-foreground opacity-30 italic">Accès Global</span>
+                                                <span className="text-[9px] font-black uppercase text-muted-foreground opacity-50 italic">Accès Global</span>
                                             )}
                                         </div>
                                     </div>
@@ -556,7 +556,7 @@ export default function AdminDashboard() {
                                                 </td>
                                             </tr>
                                         )) : (
-                                            <tr><td colSpan={3} className="p-12 text-center opacity-30 font-black uppercase text-[10px]">Aucun log récent</td></tr>
+                                            <tr><td colSpan={3} className="p-12 text-center opacity-50 font-black uppercase text-[10px]">Aucun log récent</td></tr>
                                         )}
                                     </tbody>
                                 </table>
@@ -601,7 +601,7 @@ export default function AdminDashboard() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setIsCreateModalOpen(false)} />
                     <div className="relative glass-card w-full max-w-md p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
-                        <button onClick={() => setIsCreateModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                        <button onClick={() => setIsCreateModalOpen(false)} aria-label="Fermer" className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                         <div className="flex items-center space-x-4 mb-8">
                             <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center"><UserPlus className="w-6 h-6 text-shop" /></div>
                             <div>
@@ -675,7 +675,7 @@ export default function AdminDashboard() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={() => setIsEditModalOpen(false)} />
                     <div className="relative glass-card w-full max-w-md p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
-                        <button onClick={() => setIsEditModalOpen(false)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
+                        <button onClick={() => setIsEditModalOpen(false)} aria-label="Fermer" className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                         <div className="flex items-center space-x-4 mb-8">
                             <div className="w-12 h-12 bg-shop/20 rounded-2xl flex items-center justify-center"><Edit className="w-6 h-6 text-shop" /></div>
                             <div>
