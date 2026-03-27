@@ -33,14 +33,14 @@ export default function SalesTerminal() {
 
     // Logic extracted to Hooks
     const {
-        products, categories, brands, allCustomers, salesHistory, projects,
+        products, categories, brands, allCustomers, salesHistory,
         loading, fetchProducts, fetchHistory, fetchCustomers,
     } = useSalesData();
 
     const {
         cart, setCart, addToCart, updateCartItemPrice,
         selectedProductForVariant, setSelectedProductForVariant, resetCart,
-    } = usePos(false, products);
+    } = usePos(products);
 
     // Local UI State
     const [searchQuery, setSearchQuery] = useState('');
@@ -79,7 +79,7 @@ export default function SalesTerminal() {
                 .maybeSingle();
             setCurrentSession(data);
         } catch (err) {
-            console.error('Session fetch error', err);
+            // silently ignore
         }
     };
 
@@ -275,7 +275,7 @@ export default function SalesTerminal() {
                     products={products} isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen}
                     paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} receivedAmount={receivedAmount}
                     setReceivedAmount={setReceivedAmount} totalAmount={totalAmount} isCheckingOut={isCheckingOut}
-                    handleCheckout={handleCheckout} projects={projects} selectedProjectId={selectedProjectId}
+                    handleCheckout={handleCheckout} projects={[]} selectedProjectId={selectedProjectId}
                     setSelectedProjectId={setSelectedProjectId}
                 />
 

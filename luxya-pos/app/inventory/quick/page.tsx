@@ -88,7 +88,7 @@ export default function QuickInventoryPage() {
         try {
             let query = supabase
                 .from('products')
-                .select('*')
+                .select('id, name, price, cost_price, stock, category, brand, image, variants, shop_id')
                 .order('name', { ascending: true });
 
             if (activeShop && activeShop.id !== 0) {

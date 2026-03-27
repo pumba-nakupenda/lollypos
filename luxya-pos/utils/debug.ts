@@ -9,6 +9,6 @@ export function logDebug(message: string) {
     try {
         fs.appendFileSync(LOG_FILE, logMessage)
     } catch (e) {
-        console.error('Failed to write to debug log:', e)
+        // silently ignore
     }
 }

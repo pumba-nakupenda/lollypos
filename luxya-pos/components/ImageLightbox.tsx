@@ -23,6 +23,7 @@ export default function ImageLightbox({ src, isOpen, onClose, alt }: ImageLightb
                 <button
                     onClick={onClose}
                     className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all z-[1001]"
+                    aria-label="Fermer"
                 >
                     <X className="w-8 h-8" />
                 </button>

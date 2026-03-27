@@ -293,8 +293,8 @@ export default function ExcelImportModal({ isOpen, onClose, onSuccess }: ExcelIm
         <Portal>
             <div className="fixed inset-0 z-[250] flex items-center justify-center p-4">
                 <div className="absolute inset-0 bg-background/80 backdrop-blur-md" onClick={onClose} />
-                <div className="relative glass-card w-full max-w-4xl p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-                    <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors">
+                <div role="dialog" aria-modal="true" className="relative glass-card w-full max-w-4xl p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                    <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors" aria-label="Fermer">
                         <X className="w-5 h-5" />
                     </button>
 

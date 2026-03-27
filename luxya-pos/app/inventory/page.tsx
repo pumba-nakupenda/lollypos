@@ -36,7 +36,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
     .maybeSingle();
 
   if (profileError) {
-    console.error('[InventoryPage] Profile error:', profileError);
+    // silently ignore
   }
 
   // Permissions check: STRICT ERP ACCESS
@@ -106,7 +106,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
 
     allProductsForStats = statsData || [];
   } catch (e) {
-    console.error('Failed to fetch products', e)
+    // silently ignore
   }
 
   const allCategories = Array.from(new Set(allProductsForStats.map(p => p.category || 'Général'))).sort();

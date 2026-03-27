@@ -18,7 +18,7 @@ export async function GET(request: Request) {
             .maybeSingle()
 
         if (profileError) {
-            console.error('[API/Profile] DB Error:', profileError)
+            // silently ignore
             return NextResponse.json({ error: profileError.message }, { status: 500 })
         }
 
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json(profile)
     } catch (err: any) {
-        console.error('[API/Profile] Unexpected Error:', err)
+        // silently ignore
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
 }

@@ -1,4 +1,5 @@
 import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AnalyticsService } from './analytics.service';
 
 const MONTH_RE = /^(0[1-9]|1[0-2])$/;
@@ -8,6 +9,7 @@ const YEAR_RE = /^\d{4}$/;
 export class AnalyticsController {
     constructor(private readonly analyticsService: AnalyticsService) {}
 
+    @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Get()
     getAnalytics(
         @Query('shopId') shopId?: string,
@@ -21,6 +23,7 @@ export class AnalyticsController {
         return this.analyticsService.getAnalytics(shopId, category, month, year);
     }
 
+    @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Get('history')
     getHistory(
         @Query('shopId') shopId?: string,

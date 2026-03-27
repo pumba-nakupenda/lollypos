@@ -121,7 +121,7 @@ export default function DebtsPage() {
         if (!activeShop) return;
         const { data } = await supabase
             .from('cash_sessions')
-            .select('*')
+            .select('id, status, opening_balance')
             .eq('shop_id', activeShop.id)
             .eq('status', 'open')
             .maybeSingle();
@@ -143,7 +143,7 @@ export default function DebtsPage() {
             let query = supabase
                 .from('debts')
                 .select(`
-                    *,
+                    id, type, customer_id, creditor_name, total_amount, paid_amount, remaining_amount, status, due_date, items, description, created_at, shop_id,
                     customers (name, phone)
                 `)
                 .eq('type', viewType)
@@ -168,7 +168,7 @@ export default function DebtsPage() {
         if (debtIds.length === 0) return
         const { data } = await supabase
             .from('debt_payments')
-            .select('*')
+            .select('id, debt_id, amount, payment_method, created_at')
             .in('debt_id', debtIds)
             .order('created_at', { ascending: false })
 
@@ -209,7 +209,7 @@ export default function DebtsPage() {
             }])
 
             if (error) {
-                console.error('Debt Creation Error:', error);
+
                 throw error;
             }
             showToast(newEntry.type === 'receivable' ? "Créance client ajoutée !" : "Dette fournisseur enregistrée !", "success")
@@ -226,7 +226,7 @@ export default function DebtsPage() {
             })
             fetchDebts()
         } catch (err: any) {
-            console.error('Debt Creation Catch:', err);
+
             showToast(`Erreur : ${err.message || 'Impossible de créer'}`, "error")
         } finally {
             setCreating(false)

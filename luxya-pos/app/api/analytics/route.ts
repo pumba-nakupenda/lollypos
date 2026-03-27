@@ -5,11 +5,21 @@ import { authFetchServer } from '@/utils/api-server'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
+// Whitelist of allowed query parameters
+const ALLOWED_PARAMS = ['startDate', 'endDate', 'shopId', 'limit']
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
-    // Remove internal cache-busting param before forwarding
-    searchParams.delete('_')
-    const params = searchParams.toString()
+
+    // Filter to only allowed parameters
+    const filteredParams = new URLSearchParams()
+    for (const key of ALLOWED_PARAMS) {
+        const value = searchParams.get(key)
+        if (value !== null) {
+            filteredParams.set(key, value)
+        }
+    }
+    const params = filteredParams.toString()
 
     try {
         const res = await authFetchServer(

@@ -1,6 +1,8 @@
 import { Controller, Post, Body, Query, UseGuards, Get, BadRequestException, Logger } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AiService } from './ai.service';
 
+@Throttle({ default: { limit: 10, ttl: 60000 } })
 @Controller('ai')
 export class AiController {
     private readonly logger = new Logger(AiController.name);

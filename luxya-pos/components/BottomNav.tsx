@@ -42,7 +42,7 @@ export default function BottomNav({ onMenuClick }: { onMenuClick: () => void }) 
                             }`}
                         >
                             <item.icon className="w-4.5 h-4.5" />
-                            <span className="text-[8px] font-black uppercase tracking-tighter mt-1">{item.name}</span>
+                            <span className="text-[9px] font-black uppercase tracking-tighter mt-1">{item.name}</span>
                         </Link>
                     )
                 })}
@@ -53,7 +53,7 @@ export default function BottomNav({ onMenuClick }: { onMenuClick: () => void }) 
                     className="flex flex-col items-center justify-center w-12 h-12 rounded-xl text-muted-foreground active:scale-90 transition-all"
                 >
                     <Menu className="w-4.5 h-4.5" />
-                    <span className="text-[8px] font-black uppercase tracking-tighter mt-1">Menu</span>
+                    <span className="text-[9px] font-black uppercase tracking-tighter mt-1">Menu</span>
                 </button>
             </div>
         </nav>

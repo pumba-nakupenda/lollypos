@@ -65,7 +65,7 @@ export default function PurchaseOrdersPage() {
             setLoading(true)
             let query = supabase
                 .from('purchase_orders')
-                .select(`*, suppliers (name)`)
+                .select(`id, supplier_id, shop_id, total_amount, status, created_at, received_at, suppliers (name)`)
                 .order('created_at', { ascending: false });
 
             if (activeShop && activeShop.id !== 0) {
@@ -182,13 +182,12 @@ export default function PurchaseOrdersPage() {
 
             // If received, reverse stock
             if (order.status === 'received') {
-                const { data: items } = await supabase.from('purchase_order_items').select('*').eq('purchase_order_id', order.id)
+                const { data: items } = await supabase.from('purchase_order_items').select('product_id, quantity').eq('purchase_order_id', order.id)
                 if (items) {
-                    for (const item of items) {
-                        if (item.product_id) {
-                            await supabase.rpc('increment_stock', { row_id: item.product_id, amount: -item.quantity })
-                        }
-                    }
+                    const stockUpdates = items
+                        .filter(item => item.product_id)
+                        .map(item => supabase.rpc('increment_stock', { row_id: item.product_id, amount: -item.quantity }))
+                    await Promise.all(stockUpdates)
                 }
             }
 
@@ -243,29 +242,34 @@ export default function PurchaseOrdersPage() {
         try {
             setLoading(true)
             // 1. Get items
-            const { data: items } = await supabase.from('purchase_order_items').select('*').eq('purchase_order_id', orderId)
+            const { data: items } = await supabase.from('purchase_order_items').select('product_id, quantity, cost_price, temp_product_data').eq('purchase_order_id', orderId)
 
             if (items) {
-                for (const item of items) {
-                    let targetProductId = item.product_id
+                // Separate new products (need sequential creation) from existing ones (can be batched)
+                const newProductItems = items.filter(item => !item.product_id && item.temp_product_data)
+                const existingProductItems = items.filter(item => item.product_id)
 
-                    // 2. If it's a NEW product, create it first
-                    if (!targetProductId && item.temp_product_data) {
-                        const { data: newProd } = await supabase.from('products').insert([{
-                            name: item.temp_product_data.name,
-                            price: item.temp_product_data.price,
-                            cost_price: item.cost_price,
-                            category: item.temp_product_data.category,
-                            stock: item.quantity,
-                            shop_id: activeShop?.id || 1
-                        }]).select().single()
-                        targetProductId = newProd?.id
-                    } else {
-                        // 3. Update existing product stock
-                        await supabase.rpc('increment_stock', { row_id: targetProductId, amount: item.quantity })
-                        // Optionally update cost price to latest
-                        await supabase.from('products').update({ cost_price: item.cost_price }).eq('id', targetProductId)
-                    }
+                // 2. Create new products sequentially (need IDs back)
+                for (const item of newProductItems) {
+                    await supabase.from('products').insert([{
+                        name: item.temp_product_data.name,
+                        price: item.temp_product_data.price,
+                        cost_price: item.cost_price,
+                        category: item.temp_product_data.category,
+                        stock: item.quantity,
+                        shop_id: activeShop?.id || 1
+                    }]).select().single()
+                }
+
+                // 3. Batch update existing product stock and cost prices
+                if (existingProductItems.length > 0) {
+                    const stockUpdates = existingProductItems.map(item =>
+                        supabase.rpc('increment_stock', { row_id: item.product_id, amount: item.quantity })
+                    )
+                    const costUpdates = existingProductItems.map(item =>
+                        supabase.from('products').update({ cost_price: item.cost_price }).eq('id', item.product_id)
+                    )
+                    await Promise.all([...stockUpdates, ...costUpdates])
                 }
             }
 

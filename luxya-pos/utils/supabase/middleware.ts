@@ -58,6 +58,19 @@ export const updateSession = async (request: NextRequest) => {
             return NextResponse.redirect(new URL("/", request.url));
         }
 
+        // Admin route protection: verify admin role
+        if (request.nextUrl.pathname.startsWith("/admin") && user) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role, is_super_admin')
+                .eq('id', user.id)
+                .single();
+
+            if (!profile || (profile.role !== 'admin' && !profile.is_super_admin)) {
+                return NextResponse.redirect(new URL("/", request.url));
+            }
+        }
+
         return response;
     } catch (e) {
         // If you are here, a Supabase client could not be created!

@@ -81,7 +81,7 @@ export default function ReportsPage() {
             // 1. Fetch Sales
             const { data: sales, error: sErr } = await supabase
                 .from('sales')
-                .select('*')
+                .select('id, totalAmount, paymentMethod, customer_name, invoice_number, status, created_at')
                 .eq('shop_id', activeShop?.id)
                 .gte('created_at', isoStart)
                 .lte('created_at', isoEnd)
@@ -91,7 +91,7 @@ export default function ReportsPage() {
             // 2. Fetch Expenses
             const { data: expenses, error: eErr } = await supabase
                 .from('expenses')
-                .select('*')
+                .select('id, amount, date')
                 .eq('shop_id', activeShop?.id)
                 .gte('date', isoStart)
                 .lte('date', isoEnd)

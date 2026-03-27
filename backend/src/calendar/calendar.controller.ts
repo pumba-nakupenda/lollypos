@@ -13,7 +13,12 @@ export class CalendarController {
   }
 
   @Post('callback')
-  async handleCallback(@Body('code') code: string, @Body('userId') userId: string) {
+  async handleCallback(
+    @Body('code') code: string,
+    @Body('state') state: string,
+  ) {
+    // Validate the CSRF state token and retrieve the associated userId
+    const userId = this.calendarService.validateState(state);
     return this.calendarService.handleCallback(code, userId);
   }
 

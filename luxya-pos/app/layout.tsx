@@ -48,7 +48,7 @@ export default async function RootLayout({
         user = data.user;
      }
   } catch (e) {
-     console.error('[RootLayout] Auth check crashed');
+     // silently ignore
   }
 
   let initialProfile: UserProfile | null = null;
@@ -71,7 +71,7 @@ export default async function RootLayout({
         initialProfile = newProfile;
       }
     } catch (err) {
-      console.error('[RootLayout] Profile logic crashed');
+      // silently ignore
     }
   }
 

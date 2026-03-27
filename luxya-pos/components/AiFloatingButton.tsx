@@ -125,6 +125,7 @@ export default function AiFloatingButton() {
                         w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 hover:scale-110 active:scale-95
                         ${isOpen ? 'bg-red-500 rotate-90' : 'bg-shop animate-float'}
                     `}
+                    aria-label={isOpen ? "Fermer l'assistant IA" : "Ouvrir l'assistant IA"}
                 >
                     {isOpen ? <X className="w-6 h-6 text-white" /> : <Sparkles className="w-6 h-6 text-white" />}
                 </button>
@@ -146,10 +147,10 @@ export default function AiFloatingButton() {
                                 <span className="text-xs font-black uppercase tracking-widest text-white">Lolly AI</span>
                             </div>
                             <div className="flex items-center space-x-1">
-                                <button onClick={() => setIsMinimized(!isMinimized)} className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground transition-colors">
+                                <button onClick={() => setIsMinimized(!isMinimized)} className="p-2 hover:bg-white/5 rounded-lg text-muted-foreground transition-colors" aria-label={isMinimized ? "Agrandir" : "Réduire"}>
                                     {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minus className="w-4 h-4" />}
                                 </button>
-                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-muted-foreground transition-colors">
+                                <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-red-500/20 hover:text-red-400 rounded-lg text-muted-foreground transition-colors" aria-label="Fermer">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>

@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
                 setHistoryData(history)
             }
         } catch (err) {
-            console.error('Failed to fetch analytics')
+            // silently ignore
         } finally {
             setLoading(false)
         }

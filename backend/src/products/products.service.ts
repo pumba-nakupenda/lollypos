@@ -259,7 +259,7 @@ export class ProductsService {
         }
 
         // Fetch all products that have this color in variants
-        let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', `[{"color": "${oldColor}"}]`);
+        let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', JSON.stringify([{ color: oldColor }]));
         if (shopId) query = query.eq('shop_id', shopId);
 
         const { data: products, error: fetchError } = await query;
@@ -284,7 +284,7 @@ export class ProductsService {
             throw new Error('Nom de couleur invalide.');
         }
 
-        let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', `[{"color": "${color}"}]`);
+        let query = this.supabase.from('products').select('id, variants').filter('variants', 'cs', JSON.stringify([{ color: color }]));
         if (shopId) query = query.eq('shop_id', shopId);
 
         const { data: products, error: fetchError } = await query;

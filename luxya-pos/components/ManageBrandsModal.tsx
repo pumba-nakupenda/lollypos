@@ -65,8 +65,8 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
 
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 backdrop-blur-xl bg-black/40">
-            <div className="relative glass-card w-full max-w-md p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
-                <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full"><X className="w-5 h-5" /></button>
+            <div role="dialog" aria-modal="true" className="relative glass-card w-full max-w-md p-8 rounded-[40px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200">
+                <button onClick={onClose} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full" aria-label="Fermer"><X className="w-5 h-5" /></button>
 
                 <div className="flex items-center space-x-3 mb-8">
                     <div className="w-10 h-10 bg-shop/20 rounded-xl flex items-center justify-center">
@@ -77,7 +77,7 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
 
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {brands.length === 0 ? (
-                        <p className="text-center py-10 text-muted-foreground font-bold uppercase text-[10px] tracking-widest opacity-30">Aucune marque trouvée</p>
+                        <p className="text-center py-10 text-muted-foreground font-bold uppercase text-[10px] tracking-widest opacity-60">Aucune marque trouvée</p>
                     ) : (
                         brands.filter(b => b && b !== "").map((brand) => (
                             <div key={brand} className="group flex items-center justify-between p-4 bg-white/5 border border-white/5 rounded-2xl hover:border-shop/30 transition-all">

@@ -44,7 +44,7 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         } catch (err) {
-            console.error('PDF generation failed:', err);
+            // silently ignore
         } finally {
             setIsGenerating(false);
         }
@@ -64,8 +64,8 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
                 const message = `*LOLLY*\nVoici votre ${docTitle.toLowerCase()} n° ${saleData.invoice_number}`;
                 window.open(`https://wa.me/221772354747?text=${encodeURIComponent(message)}`, '_blank');
             }
-        } catch (err) { 
-            console.error('Share failed:', err); 
+        } catch (err) {
+            // silently ignore
         } finally {
             setIsGenerating(false);
         }
@@ -74,7 +74,7 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-8">
             <div className="absolute inset-0 bg-black/95 backdrop-blur-3xl animate-in fade-in duration-700" onClick={onClose} />
-            <div className="relative w-full max-w-6xl h-[90vh] flex flex-col animate-in zoom-in-95 duration-500">
+            <div role="dialog" aria-modal="true" className="relative w-full max-w-6xl h-[90vh] flex flex-col animate-in zoom-in-95 duration-500">
                 
                 <div className="flex justify-between items-center mb-6 px-4">
                     <div className="flex items-center space-x-4">
@@ -103,7 +103,7 @@ export default function InvoiceModal({ isOpen, onClose, saleData, shop }: Invoic
                             {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-2" /> : <Download className="w-3.5 h-3.5 mr-2 text-[#fde700]" />} 
                             Télécharger
                         </button>
-                        <button onClick={onClose} className="p-3 bg-white/5 text-white rounded-full hover:bg-red-500/20 hover:text-red-400 transition-all"><X className="w-5 h-5" /></button>
+                        <button onClick={onClose} className="p-3 bg-white/5 text-white rounded-full hover:bg-red-500/20 hover:text-red-400 transition-all" aria-label="Fermer"><X className="w-5 h-5" /></button>
                     </div>
                 </div>
 

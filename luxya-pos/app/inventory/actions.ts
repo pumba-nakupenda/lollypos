@@ -295,7 +295,7 @@ export async function updateProduct(productId: number, formData: FormData) {
                 
                 parsedVariants[i].image = publicUrl
             } else {
-                console.error(`[UPDATE_PRODUCT] Variant ${variant.id} upload error:`, uploadError);
+                // silently ignore
             }
         }
     }
@@ -309,7 +309,7 @@ export async function updateProduct(productId: number, formData: FormData) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error(`[UPDATE_PRODUCT] Backend Error (${response.status}):`, errorText);
+
             return { error: `Erreur lors de la mise à jour (${response.status})` }
         }
 
@@ -321,7 +321,7 @@ export async function updateProduct(productId: number, formData: FormData) {
         // Client handles refresh
         return { success: true }
     } catch (error) {
-        console.error('[UPDATE_PRODUCT] Connection Error:', error);
+        // silently ignore
         return { error: 'Erreur de connexion' }
     }
 }
@@ -344,7 +344,7 @@ export async function bulkCreateProducts(products: any[]) {
     }))
 
     try {
-        console.log(`[BULK] Attempting bulk creation of ${products.length} products on ${API_URL}`);
+
         const response = await authFetchServer(`${API_URL}/products/bulk`, {
             method: 'POST',
             body: JSON.stringify(productsWithMeta),
@@ -356,7 +356,7 @@ export async function bulkCreateProducts(products: any[]) {
         }
 
         // FALLBACK: If bulk fails (e.g. 404 not deployed, or 504 timeout), try one by one
-        console.warn(`[BULK] Bulk endpoint failed (${response.status}). Falling back to individual creation.`);
+
 
         let successCount = 0;
         let errors = [];
@@ -387,7 +387,7 @@ export async function bulkCreateProducts(products: any[]) {
 
         return { error: errors[0] || 'Échec de l\'importation' }
     } catch (error) {
-        console.error('[BULK] Connection error:', error);
+        // silently ignore
         return { error: 'Erreur de connexion au serveur Render' }
     }
 }
@@ -407,7 +407,7 @@ export async function bulkUpdateStock(updates: any[]) {
         const errData = await response.json().catch(() => ({}));
         return { error: errData.message || 'Échec de la mise à jour massive' }
     } catch (error) {
-        console.error('[BULK_STOCK] Connection error:', error);
+        // silently ignore
         return { error: 'Erreur de connexion au serveur' }
     }
 }

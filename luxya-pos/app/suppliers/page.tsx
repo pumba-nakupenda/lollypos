@@ -18,6 +18,9 @@ export default function SuppliersPage() {
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
+    const [page, setPage] = useState(0)
+    const PAGE_SIZE = 100
+    const [hasMore, setHasMore] = useState(true)
     const [creating, setCreating] = useState(false)
 
     const [newSupplier, setNewSupplier] = useState({
@@ -33,14 +36,17 @@ export default function SuppliersPage() {
         if (activeShop) fetchSuppliers()
     }, [activeShop])
 
-    const fetchSuppliers = async () => {
+    const fetchSuppliers = async (pageNum: number = page) => {
         try {
             setLoading(true)
+            const from = pageNum * PAGE_SIZE
+            const to = from + PAGE_SIZE - 1
             let query = supabase
                 .from('suppliers')
-                .select('*')
+                .select('id, name, contact_name, phone, email, address, category, shop_id')
                 .order('name')
-            
+                .range(from, to)
+
             if (activeShop && activeShop.id !== 0) {
                 query = query.eq('shop_id', activeShop.id)
             }
@@ -48,6 +54,7 @@ export default function SuppliersPage() {
             const { data, error } = await query
             if (error) throw error
             setSuppliers(data || [])
+            setHasMore((data || []).length === PAGE_SIZE)
         } catch (err) {
             showToast("Erreur de chargement", "error")
         } finally {
@@ -120,6 +127,7 @@ export default function SuppliersPage() {
                 <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-blue-500 opacity-20" /></div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filtered.length === 0 && <div className="col-span-full py-20 text-center opacity-20 font-black uppercase text-xs text-white">Aucun fournisseur trouvé</div>}
                     {filtered.map(s => (
                         <div key={s.id} className="glass-panel p-6 rounded-[32px] border-white/5 hover:border-blue-500/30 transition-all group relative overflow-hidden">
                             <div className="flex items-start justify-between mb-6">
@@ -160,6 +168,29 @@ export default function SuppliersPage() {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* Pagination */}
+            {!loading && (
+                <div className="flex items-center justify-center space-x-4 pt-4 pb-8">
+                    <button
+                        onClick={() => { const p = page - 1; setPage(p); fetchSuppliers(p); }}
+                        disabled={page === 0}
+                        className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-20 hover:bg-white/10 transition-all"
+                    >
+                        Précédent
+                    </button>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        Page {page + 1}
+                    </span>
+                    <button
+                        onClick={() => { const p = page + 1; setPage(p); fetchSuppliers(p); }}
+                        disabled={!hasMore}
+                        className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-20 hover:bg-white/10 transition-all"
+                    >
+                        Suivant
+                    </button>
                 </div>
             )}
 

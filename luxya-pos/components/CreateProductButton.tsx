@@ -223,7 +223,7 @@ export default function CreateProductButton() {
             {isOpen && (
                 <Portal>
                     <div className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4 backdrop-blur-md bg-background/40">
-                        <div className="glass-panel w-full max-w-xl lg:max-w-3xl rounded-[24px] sm:rounded-[32px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col overflow-hidden">
+                        <div role="dialog" aria-modal="true" className="glass-panel w-full max-w-xl lg:max-w-3xl rounded-[24px] sm:rounded-[32px] shadow-2xl border-white/10 animate-in zoom-in-95 duration-200 max-h-[92vh] flex flex-col overflow-hidden">
                             {/* Modal Header */}
                             <div className="p-5 sm:p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02] flex-shrink-0">
                                 <div>

@@ -29,8 +29,13 @@ export async function safeFetch(url: string, options: RequestInit = {}, retries 
 
     for (let i = 0; i < retries; i++) {
         try {
+            // AbortController with 15s timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
+
             const response = await fetch(url, {
                 ...options,
+                signal: options.signal || controller.signal,
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
@@ -38,11 +43,13 @@ export async function safeFetch(url: string, options: RequestInit = {}, retries 
                 },
             });
 
+            clearTimeout(timeoutId);
+
             const contentType = response.headers.get('content-type');
 
             // Critical check: if we get HTML (cold start, Maintenance, or Redirect)
             if (contentType && contentType.includes('text/html')) {
-                console.warn(`[safeFetch] Received HTML instead of JSON from ${url}. Path might be redirected or server starting up.`);
+
                 if (i < retries - 1) {
                     await new Promise(r => setTimeout(r, backoff * (i + 1)));
                     continue;
@@ -63,7 +70,7 @@ export async function safeFetch(url: string, options: RequestInit = {}, retries 
             return data;
         } catch (err: any) {
             lastError = err;
-            console.error(`[safeFetch] Attempt ${i + 1} failed for ${url}:`, err.message);
+
 
             // Don't retry on certain errors (like 401 or 403 if they are final)
             if (err.message?.includes('401') || err.message?.includes('403')) {

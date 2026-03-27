@@ -137,7 +137,7 @@ export default function AdminDashboard() {
                 showToast(data.error || 'Erreur lors de la création', "error")
             }
         } catch (err) {
-            console.error('Create failed')
+            // silently ignore
         } finally {
             setCreating(false)
         }
@@ -177,7 +177,7 @@ export default function AdminDashboard() {
                 showToast(data.error || 'Erreur lors de la mise à jour', "error")
             }
         } catch (err) {
-            console.error('Update failed')
+            // silently ignore
         } finally {
             setUpdating(false)
         }
@@ -195,7 +195,7 @@ export default function AdminDashboard() {
                 showToast(data.error || 'Erreur lors de la suppression', "error")
             }
         } catch (err) {
-            console.error('Delete failed')
+            // silently ignore
         }
     }
 

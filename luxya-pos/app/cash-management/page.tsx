@@ -54,7 +54,7 @@ export default function CashManagementPage() {
             setLoading(true)
             const { data, error } = await supabase
                 .from('cash_sessions')
-                .select('*')
+                .select('id, status, opening_balance, closed_at, closing_balance_actual, closing_balance_theoretical')
                 .eq('shop_id', activeShop?.id)
                 .eq('status', 'open')
                 .maybeSingle()
@@ -67,7 +67,7 @@ export default function CashManagementPage() {
                 setMovements([])
             }
         } catch (err) {
-            console.error('Session fetch error:', err)
+            // silently ignore
         } finally {
             setLoading(false)
         }
@@ -76,7 +76,7 @@ export default function CashManagementPage() {
     const fetchHistory = async () => {
         const { data } = await supabase
             .from('cash_sessions')
-            .select('*')
+            .select('id, status, opening_balance, closed_at, closing_balance_actual, closing_balance_theoretical')
             .eq('shop_id', activeShop?.id)
             .eq('status', 'closed')
             .order('closed_at', { ascending: false })
@@ -87,7 +87,7 @@ export default function CashManagementPage() {
     const fetchMovements = async (sessionId: number) => {
         const { data } = await supabase
             .from('cash_movements')
-            .select('*')
+            .select('id, type, amount, description, source, payment_method, created_at')
             .eq('session_id', sessionId)
             .order('created_at', { ascending: false })
         if (data) setMovements(data)

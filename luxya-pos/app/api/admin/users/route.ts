@@ -1,6 +1,18 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient, createAdminClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+// Zod schemas for input validation
+const patchUserSchema = z.object({
+    userId: z.string().uuid(),
+    email: z.string().email().optional(),
+    password: z.string().min(6).optional(),
+    role: z.enum(['admin', 'cashier', 'manager']).optional(),
+    shopId: z.number().int().positive().nullable().optional(),
+    shopIds: z.array(z.number().int().positive()).optional(),
+    hasStockAccess: z.boolean().optional(),
+}).strict()
 
 export async function GET() {
     const supabase = await createClient()
@@ -46,11 +58,18 @@ export async function PATCH(req: Request) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { userId, role, shopId, shopIds, hasStockAccess, password, email } = await req.json()
+    // Validate input with Zod
+    const rawBody = await req.json()
+    const parsed = patchUserSchema.safeParse(rawBody)
+    if (!parsed.success) {
+        return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    const { userId, role, shopId, shopIds, hasStockAccess, password, email } = parsed.data
 
     // 1. Update Auth if password or email is provided
     if (password || email) {
-        const updateAuthData: any = {}
+        const updateAuthData: Record<string, string> = {}
         if (password) updateAuthData.password = password
         if (email) updateAuthData.email = email
 
@@ -59,13 +78,13 @@ export async function PATCH(req: Request) {
             updateAuthData
         )
         if (authError) {
-            console.error('[Admin/Users] Auth Update Error:', authError)
+            // silently ignore
             return NextResponse.json({ error: authError.message }, { status: 500 })
         }
     }
 
-    // 2. Update Profile using Admin Client to bypass RLS
-    const updateData: any = {}
+    // 2. Update Profile using Admin Client to bypass RLS — only allowed fields
+    const updateData: Record<string, unknown> = {}
     if (role !== undefined) updateData.role = role
     if (shopId !== undefined) updateData.shop_id = shopId
     if (shopIds !== undefined) updateData.shop_ids = shopIds
@@ -79,7 +98,7 @@ export async function PATCH(req: Request) {
         .select()
 
     if (error) {
-        console.error('[Admin/Users] Profile Update Error:', error)
+        // silently ignore
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
@@ -110,10 +129,17 @@ export async function DELETE(req: Request) {
     if (!userId) return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     if (userId === user.id) return NextResponse.json({ error: 'Cannot delete yourself' }, { status: 400 })
 
+    // Validate userId is a UUID
+    const uuidSchema = z.string().uuid()
+    const uuidResult = uuidSchema.safeParse(userId)
+    if (!uuidResult.success) {
+        return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 })
+    }
+
     // Delete from Auth (cascades to profile if FK set, but we delete profile explicitly to be safe)
     const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId)
     if (authError) {
-        console.error('[Admin/Users] Auth Delete Error:', authError)
+        // silently ignore
         return NextResponse.json({ error: authError.message }, { status: 500 })
     }
 

@@ -83,18 +83,12 @@ export default function AiAssistantPage() {
                 };
                 setMessages(prev => [...prev, assistantMessage]);
             } else {
-                const errorData = await res.text();
+                await res.text();
                 const detail = `Status ${res.status} sur ${url.pathname}`;
-                console.error('AI API Error Details:', {
-                    status: res.status,
-                    statusText: res.statusText,
-                    body: errorData,
-                    url: url.toString()
-                });
                 throw new Error(detail);
             }
         } catch (error: any) {
-            console.error('AI Fetch Catch:', error);
+
             showToast(`Erreur : ${error.message}`, "error");
         } finally {
             setIsLoading(false);
@@ -146,7 +140,16 @@ export default function AiAssistantPage() {
                                     : 'bg-shop text-white font-medium shadow-lg shadow-shop/10'
                                 }`}>
                                     <div className="prose prose-invert prose-xs max-w-none">
-                                        <ReactMarkdown>{m.content}</ReactMarkdown>
+                                        <ReactMarkdown
+                                            allowedElements={[
+                                                'p', 'br', 'strong', 'em', 'b', 'i', 'u',
+                                                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                                                'ul', 'ol', 'li',
+                                                'blockquote', 'code', 'pre',
+                                                'a', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+                                                'span', 'del', 'sup', 'sub',
+                                            ]}
+                                        >{m.content}</ReactMarkdown>
                                     </div>
                                     <p className={`text-[8px] mt-2 opacity-40 uppercase font-black ${m.role === 'user' ? 'text-right' : ''}`}>
                                         {m.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

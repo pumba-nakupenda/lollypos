@@ -53,7 +53,6 @@ export default function ExpensesPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
     const [editingId, setEditingId] = useState<number | null>(null)
-    const [projects, setProjects] = useState<any[]>([])
     const [newExpense, setNewExpense] = useState({
         description: '',
         amount: '',
@@ -83,13 +82,8 @@ export default function ExpensesPage() {
         }
         if (profile) {
             fetchExpenses()
-            fetchProjects()
         }
     }, [activeShop, profile, profileLoading])
-
-    const fetchProjects = async () => {
-        setProjects([]);
-    }
 
     const fetchExpenses = async () => {
         try {
@@ -525,23 +519,6 @@ export default function ExpensesPage() {
                                         onChange={e => setNewExpense({ ...newExpense, date: e.target.value })}
                                     />
                                 </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Lier à un Projet (Optionnel)</label>
-                                <CustomDropdown
-                                    options={[
-                                        { label: 'Ne pas lier', value: '', icon: <Tag className="w-4 h-4" /> },
-                                        ...projects.map(p => ({
-                                            label: p.name,
-                                            value: p.id,
-                                            icon: <Receipt className="w-4 h-4" />
-                                        }))
-                                    ]}
-                                    value={newExpense.project_id}
-                                    onChange={val => setNewExpense({ ...newExpense, project_id: val })}
-                                    placeholder="Lier à un Projet..."
-                                />
                             </div>
 
                             <div className="space-y-4 p-4 bg-white/5 rounded-2xl border border-white/5">

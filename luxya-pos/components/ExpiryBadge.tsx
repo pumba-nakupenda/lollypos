@@ -84,7 +84,7 @@ export default function ExpiryBadge({ expiryDate, className = '', showIcon = tru
             </div>
         );
     } catch (error) {
-        console.error('ExpiryBadge error:', error, 'expiryDate:', expiryDate);
+        // silently ignore
         return null;
     }
 }

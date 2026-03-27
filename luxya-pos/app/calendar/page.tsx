@@ -39,7 +39,7 @@ export default function CalendarPage() {
             const data = await authFetch(`${API_URL}/calendar/events`)
             setEvents(data || [])
         } catch (err) {
-            console.error("Fetch events failed", err)
+            // silently ignore
         } finally {
             setLoading(false)
         }
@@ -50,16 +50,16 @@ export default function CalendarPage() {
         try {
             setLinking(true)
             const targetUrl = `${API_URL}/calendar/auth-url`;
-            console.log("Fetching auth URL from:", targetUrl);
+
             const data = await authFetch(targetUrl)
             if (data && data.url) {
-                console.log("Redirecting to:", data.url);
+
                 window.location.href = data.url
             } else {
                 showToast("Réponse invalide du serveur", "error");
             }
         } catch (err: any) {
-            console.error("Link Google Catch:", err);
+
             showToast(`Erreur connexion: ${err.message}`, "error")
         } finally {
             setLinking(false)

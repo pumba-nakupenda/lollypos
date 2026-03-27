@@ -1,5 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { google } from 'googleapis';
+import { randomUUID } from 'crypto';
 import { SupabaseService } from '../supabase.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -7,6 +8,8 @@ import { ConfigService } from '@nestjs/config';
 export class CalendarService {
   private readonly logger = new Logger(CalendarService.name);
   private oauth2Client;
+  // In-memory store for CSRF state tokens (maps state -> { userId, expiresAt })
+  private stateTokens = new Map<string, { userId: string; expiresAt: number }>();
 
   constructor(
     private supabase: SupabaseService,
@@ -22,6 +25,16 @@ export class CalendarService {
   }
 
   getAuthUrl(userId: string) {
+    // Generate a CSRF state token and store it with the associated userId
+    const stateToken = randomUUID();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+    this.stateTokens.set(stateToken, { userId, expiresAt });
+
+    // Cleanup expired tokens
+    for (const [key, value] of this.stateTokens.entries()) {
+      if (value.expiresAt < Date.now()) this.stateTokens.delete(key);
+    }
+
     return this.oauth2Client.generateAuthUrl({
       access_type: 'offline',
       prompt: 'consent',
@@ -29,8 +42,22 @@ export class CalendarService {
         'https://www.googleapis.com/auth/calendar.events',
         'https://www.googleapis.com/auth/calendar.readonly',
       ],
-      state: userId,
+      state: stateToken,
     });
+  }
+
+  validateState(state: string): string {
+    const entry = this.stateTokens.get(state);
+    if (!entry) {
+      throw new BadRequestException('Invalid or missing OAuth state token (possible CSRF).');
+    }
+    if (entry.expiresAt < Date.now()) {
+      this.stateTokens.delete(state);
+      throw new BadRequestException('OAuth state token has expired. Please try again.');
+    }
+    // Consume the token (one-time use)
+    this.stateTokens.delete(state);
+    return entry.userId;
   }
 
   async handleCallback(code: string, userId: string) {

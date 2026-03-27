@@ -13,7 +13,6 @@ export function useSalesData() {
     const [brands, setBrands] = useState<string[]>(['Toutes']);
     const [allCustomers, setAllCustomers] = useState<any[]>([]);
     const [salesHistory, setSalesHistory] = useState<any[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchProducts = useCallback(async () => {
@@ -54,7 +53,7 @@ export function useSalesData() {
             if (error) throw error;
             if (data) setSalesHistory(data);
         } catch (e) {
-            console.error("Failed to fetch sales history:", e);
+            // silently ignore
         }
     }, [activeShop, supabase]);
 
@@ -68,7 +67,7 @@ export function useSalesData() {
             if (error) throw error;
             if (data) setAllCustomers(data);
         } catch (e) {
-            console.error("Failed to fetch customers:", e)
+            // silently ignore
         }
     }, [activeShop, supabase]);
 
@@ -86,7 +85,6 @@ export function useSalesData() {
         brands,
         allCustomers,
         salesHistory,
-        projects,
         loading,
         fetchProducts,
         fetchHistory,

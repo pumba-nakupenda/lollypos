@@ -19,6 +19,9 @@ export default function CustomersPage() {
     const [customers, setCustomers] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
+    const [page, setPage] = useState(0)
+    const PAGE_SIZE = 100
+    const [hasMore, setHasMore] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
@@ -44,11 +47,16 @@ export default function CustomersPage() {
         }
     }, [activeShop])
 
-    const fetchCustomers = async () => {
+    const fetchCustomers = async (pageNum: number = page) => {
         try {
             setLoading(true)
-            let query = supabase.from('customers').select('*').order('name')
-            
+            const from = pageNum * PAGE_SIZE
+            const to = from + PAGE_SIZE - 1
+            let query = supabase.from('customers')
+                .select('id, name, phone, email, address, ninea, rc, shop_id, lead_status, lead_source, next_follow_up, created_at')
+                .order('name')
+                .range(from, to)
+
             if (activeShop && activeShop.id !== 0) {
                 query = query.eq('shop_id', activeShop.id)
             }
@@ -56,6 +64,7 @@ export default function CustomersPage() {
             const { data, error } = await query
             if (error) throw error
             setCustomers(data || [])
+            setHasMore((data || []).length === PAGE_SIZE)
         } catch (err) {
             showToast("Erreur de chargement", "error")
         } finally {
@@ -72,7 +81,7 @@ export default function CustomersPage() {
                 body: JSON.stringify({ name, date })
             })
         } catch (err) {
-            console.error("Sync failed", err)
+            // silently ignore
         }
     }
 
@@ -97,7 +106,7 @@ export default function CustomersPage() {
             setNewCustomer({ name: '', phone: '', email: '', address: '', ninea: '', rc: '', lead_status: 'customer', lead_source: '', next_follow_up: '' })
             fetchCustomers()
         } catch (err: any) {
-            console.error("Create error:", err)
+            
             showToast(`Erreur : ${err.message || "lors de la création"}`, "error")
         } finally {
             setCreating(false)
@@ -140,7 +149,7 @@ export default function CustomersPage() {
             setIsEditModalOpen(false)
             fetchCustomers()
         } catch (err: any) {
-            console.error("Update error:", err)
+            
             showToast(err.message || "Erreur lors de la mise à jour", "error")
         } finally {
             setUpdating(false)
@@ -253,6 +262,29 @@ export default function CustomersPage() {
                             </div>
                         ))}
                         {filteredCustomers.length === 0 && <div className="col-span-full py-20 text-center opacity-20 font-black uppercase text-xs text-white">Aucun client trouvé</div>}
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {!loading && (
+                    <div className="flex items-center justify-center space-x-4 pt-4 pb-8">
+                        <button
+                            onClick={() => { const p = page - 1; setPage(p); fetchCustomers(p); }}
+                            disabled={page === 0}
+                            className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-20 hover:bg-white/10 transition-all"
+                        >
+                            Précédent
+                        </button>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            Page {page + 1}
+                        </span>
+                        <button
+                            onClick={() => { const p = page + 1; setPage(p); fetchCustomers(p); }}
+                            disabled={!hasMore}
+                            className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white disabled:opacity-20 hover:bg-white/10 transition-all"
+                        >
+                            Suivant
+                        </button>
                     </div>
                 )}
             </main>

@@ -6,8 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow if no origin (like mobile apps or curl) or if it's from our domains
-      const allowedOrigins = [
+      const defaultOrigins = [
         'https://shop.lolly.sn',
         'https://admin.lolly.sn',
         'http://localhost:3000',
@@ -16,11 +15,14 @@ async function bootstrap() {
         'http://127.0.0.1:3001',
       ];
 
-      const isVercel = origin && (origin.endsWith('.vercel.app') || origin.includes('vercel.app'));
-      const isRender = origin && (origin.endsWith('.onrender.com'));
-      const isLolly = origin && (origin.includes('lolly.sn'));
+      // Allow extra origins from environment variable (comma-separated)
+      const envOrigins = process.env.ALLOWED_ORIGINS
+        ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+        : [];
 
-      if (!origin || allowedOrigins.includes(origin) || isVercel || isRender || isLolly) {
+      const allowedOrigins = [...defaultOrigins, ...envOrigins];
+
+      if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         console.warn(`[CORS] Blocked request from origin: ${origin}`);

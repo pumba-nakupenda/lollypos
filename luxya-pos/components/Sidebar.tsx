@@ -94,7 +94,7 @@ export default function Sidebar() {
                         </div>
                     </div>
                     {/* Close button for mobile */}
-                    <button onClick={() => setIsMobileOpen(false)} className="lg:hidden p-2 glass-card rounded-lg">
+                    <button onClick={() => setIsMobileOpen(false)} className="lg:hidden p-2 glass-card rounded-lg" aria-label="Fermer le menu">
                         <X className="w-5 h-5 text-white" />
                     </button>
                 </div>
@@ -158,7 +158,7 @@ export default function Sidebar() {
                             <p className="text-[10px] font-black uppercase tracking-tight truncate text-white">
                                 {profile?.email?.split('@')[0]}
                             </p>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-shop/60 px-2 py-0.5 bg-shop/5 rounded-full border border-shop/10">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-shop/80 px-2 py-0.5 bg-shop/5 rounded-full border border-shop/10">
                                 {profile?.role || 'User'}
                             </span>
                         </div>

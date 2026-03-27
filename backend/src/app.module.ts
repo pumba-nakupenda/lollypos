@@ -7,7 +7,6 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ProductsModule } from './products/products.module';
 import { SalesModule } from './sales/sales.module';
-import { InventoryModule } from './inventory/inventory.module';
 import { SupabaseModule } from './supabase.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { AiModule } from './ai/ai.module';
@@ -25,8 +24,7 @@ import { AuthGuard } from './auth/auth.guard';
     AuthModule,
     ProductsModule,
     SalesModule,
-    InventoryModule,
-    ExpensesModule,
+ExpensesModule,
     AiModule,
     AnalyticsModule,
     CalendarModule,
