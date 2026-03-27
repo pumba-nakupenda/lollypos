@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
 import { Mail, Lock, LogIn, Store, ShieldCheck, Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
@@ -133,6 +134,15 @@ export default function LoginPage() {
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl py-4 sm:py-5 pl-12 sm:pl-14 pr-6 text-sm focus:ring-2 focus:ring-shop/50 focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30"
                                 />
                             </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <Link
+                                href="/forgot-password"
+                                className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-shop transition-colors mr-4"
+                            >
+                                Mot de passe oublie ?
+                            </Link>
                         </div>
 
                         <div className="pt-2 sm:pt-4">
