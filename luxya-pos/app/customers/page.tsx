@@ -9,6 +9,7 @@ import { useToast } from '@/context/ToastContext'
 import { useShop } from '@/context/ShopContext'
 import ShopSelector from '@/components/ShopSelector'
 import CustomDropdown from '@/components/CustomDropdown'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { API_URL, authFetch } from '@/utils/api'
 
 export default function CustomersPage() {
@@ -26,6 +27,7 @@ export default function CustomersPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
     const [updating, setUpdating] = useState(false)
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     // Shop selection logic for creation/edit
     const isGlobalView = !activeShop || activeShop.id === 0
@@ -157,15 +159,23 @@ export default function CustomersPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Supprimer ce client ?")) return
-        try {
-            const { error } = await supabase.from('customers').delete().eq('id', id)
-            if (error) throw error
-            showToast("Client supprimé", "success")
-            fetchCustomers()
-        } catch (err) {
-            showToast("Erreur suppression", "error")
-        }
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer le client',
+            message: 'Supprimer ce client ?',
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                try {
+                    const { error } = await supabase.from('customers').delete().eq('id', id)
+                    if (error) throw error
+                    showToast("Client supprimé", "success")
+                    fetchCustomers()
+                } catch (err) {
+                    showToast("Erreur suppression", "error")
+                }
+            }
+        })
+        return
     }
 
     const filteredCustomers = customers.filter(c => 
@@ -203,7 +213,7 @@ export default function CustomersPage() {
             <main className="max-w-7xl mx-auto w-full px-8 py-8 space-y-8 animate-in fade-in duration-500">
                 <div className="relative group max-w-xl">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-shop transition-colors" />
-                    <input type="text" placeholder="Rechercher un client..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 backdrop-blur-sm text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                    <input type="text" placeholder="Rechercher un client..." aria-label="Rechercher un client" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:border-shop/50 outline-none transition-all placeholder:text-muted-foreground/30 backdrop-blur-sm text-white" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                 </div>
 
                 {loading ? (
@@ -313,33 +323,33 @@ export default function CustomersPage() {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nom Complet / Entreprise</label>
-                                <input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} placeholder="Ex: Jean Dupont" />
+                                <input required aria-label="Nom complet" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.name} onChange={e => setNewCustomer({...newCustomer, name: e.target.value})} placeholder="Ex: Jean Dupont" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Téléphone</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} placeholder="+221 ..." />
+                                    <input aria-label="Téléphone" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.phone} onChange={e => setNewCustomer({...newCustomer, phone: e.target.value})} placeholder="+221 ..." />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Email</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} placeholder="client@email.com" />
+                                    <input aria-label="Email" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.email} onChange={e => setNewCustomer({...newCustomer, email: e.target.value})} placeholder="client@email.com" />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Adresse</label>
-                                <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.address} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} placeholder="Dakar, Sénégal" />
+                                <input aria-label="Adresse" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.address} onChange={e => setNewCustomer({...newCustomer, address: e.target.value})} placeholder="Dakar, Sénégal" />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">NINEA</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.ninea} onChange={e => setNewCustomer({...newCustomer, ninea: e.target.value})} />
+                                    <input aria-label="NINEA" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.ninea} onChange={e => setNewCustomer({...newCustomer, ninea: e.target.value})} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">RC</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.rc} onChange={e => setNewCustomer({...newCustomer, rc: e.target.value})} />
+                                    <input aria-label="RC" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.rc} onChange={e => setNewCustomer({...newCustomer, rc: e.target.value})} />
                                 </div>
                             </div>
 
@@ -361,13 +371,13 @@ export default function CustomersPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Source</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.lead_source} onChange={e => setNewCustomer({...newCustomer, lead_source: e.target.value})} placeholder="Ex: Facebook, Referral" />
+                                    <input aria-label="Source" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.lead_source} onChange={e => setNewCustomer({...newCustomer, lead_source: e.target.value})} placeholder="Ex: Facebook, Referral" />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Prochaine Relance (Sync Google)</label>
-                                <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.next_follow_up} onChange={e => setNewCustomer({...newCustomer, next_follow_up: e.target.value})} />
+                                <input type="date" aria-label="Prochaine relance" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={newCustomer.next_follow_up} onChange={e => setNewCustomer({...newCustomer, next_follow_up: e.target.value})} />
                             </div>
 
                             <button type="submit" disabled={creating} className="w-full py-5 bg-white text-black font-black uppercase tracking-widest rounded-3xl hover:bg-shop hover:text-white transition-all shadow-xl disabled:opacity-50">
@@ -402,33 +412,33 @@ export default function CustomersPage() {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nom Complet / Entreprise</label>
-                                <input required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
+                                <input required aria-label="Nom complet" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Téléphone</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
+                                    <input aria-label="Téléphone" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Email</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />
+                                    <input aria-label="Email" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.email} onChange={e => setEditData({...editData, email: e.target.value})} />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Adresse</label>
-                                <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.address} onChange={e => setEditData({...editData, address: e.target.value})} />
+                                <input aria-label="Adresse" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.address} onChange={e => setEditData({...editData, address: e.target.value})} />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">NINEA</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.ninea} onChange={e => setEditData({...editData, ninea: e.target.value})} />
+                                    <input aria-label="NINEA" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.ninea} onChange={e => setEditData({...editData, ninea: e.target.value})} />
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">RC</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.rc} onChange={e => setEditData({...editData, rc: e.target.value})} />
+                                    <input aria-label="RC" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.rc} onChange={e => setEditData({...editData, rc: e.target.value})} />
                                 </div>
                             </div>
 
@@ -450,13 +460,13 @@ export default function CustomersPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Source</label>
-                                    <input className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.lead_source} onChange={e => setEditData({...editData, lead_source: e.target.value})} />
+                                    <input aria-label="Source" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.lead_source} onChange={e => setEditData({...editData, lead_source: e.target.value})} />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Prochaine Relance (Sync Google)</label>
-                                <input type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.next_follow_up} onChange={e => setEditData({...editData, next_follow_up: e.target.value})} />
+                                <input type="date" aria-label="Prochaine relance" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 text-white" value={editData.next_follow_up} onChange={e => setEditData({...editData, next_follow_up: e.target.value})} />
                             </div>
 
                             <button type="submit" disabled={updating} className="w-full py-5 bg-shop text-white font-black uppercase tracking-widest rounded-3xl hover:scale-[1.02] transition-all shadow-xl disabled:opacity-50 flex items-center justify-center space-x-3">
@@ -467,6 +477,7 @@ export default function CustomersPage() {
                     </div>
                 </div>
             )}
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

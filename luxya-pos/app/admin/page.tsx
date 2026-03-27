@@ -31,6 +31,7 @@ import {
 import Link from 'next/link'
 import { shops, Shop } from '@/types/shop'
 import CustomDropdown from '@/components/CustomDropdown'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { API_URL, authFetch } from '@/utils/api'
 
 export default function AdminDashboard() {
@@ -41,6 +42,7 @@ export default function AdminDashboard() {
     const [connectionLogs, setConnectionLogs] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     useEffect(() => {
         if (!userLoading && (!profile || profile.role !== 'admin')) {
@@ -184,19 +186,27 @@ export default function AdminDashboard() {
     }
 
     const handleDeleteUser = async (userId: string) => {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer cet utilisateur ?')) return
-        try {
-            const res = await fetch(`/api/admin/users?userId=${userId}`, { method: 'DELETE' })
-            if (res.ok) {
-                showToast("Utilisateur supprimé", "success")
-                fetchUsers()
-            } else {
-                const data = await res.json()
-                showToast(data.error || 'Erreur lors de la suppression', "error")
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer l\'utilisateur',
+            message: 'Êtes-vous sûr de vouloir supprimer cet utilisateur ?',
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                try {
+                    const res = await fetch(`/api/admin/users?userId=${userId}`, { method: 'DELETE' })
+                    if (res.ok) {
+                        showToast("Utilisateur supprimé", "success")
+                        fetchUsers()
+                    } else {
+                        const data = await res.json()
+                        showToast(data.error || 'Erreur lors de la suppression', "error")
+                    }
+                } catch (err) {
+                    // silently ignore
+                }
             }
-        } catch (err) {
-            // silently ignore
-        }
+        })
+        return
     }
 
     const fetchUsers = async () => {
@@ -614,14 +624,14 @@ export default function AdminDashboard() {
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Email</label>
                                 <div className="relative">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <input type="email" required className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={newUserData.email} onChange={e => setNewUserData({ ...newUserData, email: e.target.value })} />
+                                    <input type="email" required aria-label="Email" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={newUserData.email} onChange={e => setNewUserData({ ...newUserData, email: e.target.value })} />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Mot de passe</label>
                                 <div className="relative">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <input type="password" required className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={newUserData.password} onChange={e => setNewUserData({ ...newUserData, password: e.target.value })} />
+                                    <input type="password" required aria-label="Mot de passe" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={newUserData.password} onChange={e => setNewUserData({ ...newUserData, password: e.target.value })} />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -688,14 +698,14 @@ export default function AdminDashboard() {
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nouvel Email (Optionnel)</label>
                                 <div className="relative">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <input type="email" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })} />
+                                    <input type="email" aria-label="Email" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={editData.email} onChange={e => setEditData({ ...editData, email: e.target.value })} />
                                 </div>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Nouveau Mot de passe (Laisser vide si inchangé)</label>
                                 <div className="relative">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                                    <input type="password" placeholder="••••••••" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={editData.password} onChange={e => setEditData({ ...editData, password: e.target.value })} />
+                                    <input type="password" placeholder="••••••••" aria-label="Mot de passe" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:border-shop/50 transition-all" value={editData.password} onChange={e => setEditData({ ...editData, password: e.target.value })} />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -743,6 +753,7 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             )}
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

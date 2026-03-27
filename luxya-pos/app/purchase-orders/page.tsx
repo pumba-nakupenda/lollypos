@@ -10,6 +10,7 @@ import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
 import { createClient } from '@/utils/supabase/client'
 import CustomDropdown from '@/components/CustomDropdown'
+import ConfirmDialog from '@/components/ConfirmDialog'
 import { API_URL } from '@/utils/api'
 
 export default function PurchaseOrdersPage() {
@@ -24,6 +25,7 @@ export default function PurchaseOrdersPage() {
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
     const [editingOrder, setEditingOrder] = useState<any>(null)
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     // New Order State
     const [selectedSupplier, setSelectedSupplier] = useState('')
@@ -175,32 +177,39 @@ export default function PurchaseOrdersPage() {
     }
 
     const handleDeleteOrder = async (order: any) => {
-        if (!confirm(`Supprimer définitivement cet achat #${order.id.slice(0, 8)} ?`)) return
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer l\'achat',
+            message: `Supprimer définitivement cet achat #${order.id.slice(0, 8)} ?`,
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                try {
+                    setLoading(true)
 
-        try {
-            setLoading(true)
+                    // If received, reverse stock
+                    if (order.status === 'received') {
+                        const { data: items } = await supabase.from('purchase_order_items').select('product_id, quantity').eq('purchase_order_id', order.id)
+                        if (items) {
+                            const stockUpdates = items
+                                .filter(item => item.product_id)
+                                .map(item => supabase.rpc('increment_stock', { row_id: item.product_id, amount: -item.quantity }))
+                            await Promise.all(stockUpdates)
+                        }
+                    }
 
-            // If received, reverse stock
-            if (order.status === 'received') {
-                const { data: items } = await supabase.from('purchase_order_items').select('product_id, quantity').eq('purchase_order_id', order.id)
-                if (items) {
-                    const stockUpdates = items
-                        .filter(item => item.product_id)
-                        .map(item => supabase.rpc('increment_stock', { row_id: item.product_id, amount: -item.quantity }))
-                    await Promise.all(stockUpdates)
+                    const { error } = await supabase.from('purchase_orders').delete().eq('id', order.id)
+                    if (error) throw error
+
+                    showToast("Achat supprimé", "success")
+                    setOrders(prev => prev.filter(o => o.id !== order.id))
+                } catch (err) {
+                    showToast("Erreur de suppression", "error")
+                } finally {
+                    setLoading(false)
                 }
             }
-
-            const { error } = await supabase.from('purchase_orders').delete().eq('id', order.id)
-            if (error) throw error
-
-            showToast("Achat supprimé", "success")
-            setOrders(prev => prev.filter(o => o.id !== order.id))
-        } catch (err) {
-            showToast("Erreur de suppression", "error")
-        } finally {
-            setLoading(false)
-        }
+        })
+        return
     }
 
     const handleEditOrder = async (order: any) => {
@@ -237,53 +246,60 @@ export default function PurchaseOrdersPage() {
     }
 
     const handleReceiveOrder = async (orderId: string) => {
-        if (!confirm("Réceptionner cette commande ? Les produits seront créés ou mis à jour dans votre inventaire.")) return
+        setConfirmState({
+            isOpen: true,
+            title: 'Réceptionner la commande',
+            message: 'Réceptionner cette commande ? Les produits seront créés ou mis à jour dans votre inventaire.',
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                try {
+                    setLoading(true)
+                    // 1. Get items
+                    const { data: items } = await supabase.from('purchase_order_items').select('product_id, quantity, cost_price, temp_product_data').eq('purchase_order_id', orderId)
 
-        try {
-            setLoading(true)
-            // 1. Get items
-            const { data: items } = await supabase.from('purchase_order_items').select('product_id, quantity, cost_price, temp_product_data').eq('purchase_order_id', orderId)
+                    if (items) {
+                        // Separate new products (need sequential creation) from existing ones (can be batched)
+                        const newProductItems = items.filter(item => !item.product_id && item.temp_product_data)
+                        const existingProductItems = items.filter(item => item.product_id)
 
-            if (items) {
-                // Separate new products (need sequential creation) from existing ones (can be batched)
-                const newProductItems = items.filter(item => !item.product_id && item.temp_product_data)
-                const existingProductItems = items.filter(item => item.product_id)
+                        // 2. Create new products sequentially (need IDs back)
+                        for (const item of newProductItems) {
+                            await supabase.from('products').insert([{
+                                name: item.temp_product_data.name,
+                                price: item.temp_product_data.price,
+                                cost_price: item.cost_price,
+                                category: item.temp_product_data.category,
+                                stock: item.quantity,
+                                shop_id: activeShop?.id || 1
+                            }]).select().single()
+                        }
 
-                // 2. Create new products sequentially (need IDs back)
-                for (const item of newProductItems) {
-                    await supabase.from('products').insert([{
-                        name: item.temp_product_data.name,
-                        price: item.temp_product_data.price,
-                        cost_price: item.cost_price,
-                        category: item.temp_product_data.category,
-                        stock: item.quantity,
-                        shop_id: activeShop?.id || 1
-                    }]).select().single()
-                }
+                        // 3. Batch update existing product stock and cost prices
+                        if (existingProductItems.length > 0) {
+                            const stockUpdates = existingProductItems.map(item =>
+                                supabase.rpc('increment_stock', { row_id: item.product_id, amount: item.quantity })
+                            )
+                            const costUpdates = existingProductItems.map(item =>
+                                supabase.from('products').update({ cost_price: item.cost_price }).eq('id', item.product_id)
+                            )
+                            await Promise.all([...stockUpdates, ...costUpdates])
+                        }
+                    }
 
-                // 3. Batch update existing product stock and cost prices
-                if (existingProductItems.length > 0) {
-                    const stockUpdates = existingProductItems.map(item =>
-                        supabase.rpc('increment_stock', { row_id: item.product_id, amount: item.quantity })
-                    )
-                    const costUpdates = existingProductItems.map(item =>
-                        supabase.from('products').update({ cost_price: item.cost_price }).eq('id', item.product_id)
-                    )
-                    await Promise.all([...stockUpdates, ...costUpdates])
+                    // 4. Close Order
+                    await supabase.from('purchase_orders').update({ status: 'received', received_at: new Date().toISOString() }).eq('id', orderId)
+
+                    showToast("Inventaire mis à jour avec succès !", "success")
+                    fetchOrders()
+                    fetchProducts()
+                } catch (err) {
+                    showToast("Erreur lors de la réception", "error")
+                } finally {
+                    setLoading(false)
                 }
             }
-
-            // 4. Close Order
-            await supabase.from('purchase_orders').update({ status: 'received', received_at: new Date().toISOString() }).eq('id', orderId)
-
-            showToast("Inventaire mis à jour avec succès !", "success")
-            fetchOrders()
-            fetchProducts()
-        } catch (err) {
-            showToast("Erreur lors de la réception", "error")
-        } finally {
-            setLoading(false)
-        }
+        })
+        return
     }
 
     const totalOrderAmount = orderLines.reduce((sum, l) => sum + (l.cost_price * l.quantity), 0)
@@ -414,6 +430,7 @@ export default function PurchaseOrdersPage() {
                                         <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                                         <input
                                             list="order-product-list"
+                                            aria-label="Rechercher un produit"
                                             value={productSearch}
                                             onChange={e => setProductSearch(e.target.value)}
                                             onKeyDown={e => {
@@ -446,10 +463,10 @@ export default function PurchaseOrdersPage() {
                                             <p className="text-[10px] font-black uppercase tracking-widest">Informations du nouvel article</p>
                                         </div>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <input placeholder="Nom du produit" className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white outline-none focus:border-shop/50" value={newQuickProduct.name} onChange={e => setNewQuickProduct({ ...newQuickProduct, name: e.target.value })} />
-                                            <input placeholder="Catégorie" className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white outline-none focus:border-shop/50" value={newQuickProduct.category} onChange={e => setNewQuickProduct({ ...newQuickProduct, category: e.target.value })} />
-                                            <input type="number" placeholder="Coût d'achat" className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white outline-none focus:border-shop/50" value={newQuickProduct.cost_price} onChange={e => setNewQuickProduct({ ...newQuickProduct, cost_price: e.target.value })} />
-                                            <input type="number" placeholder="Futur Prix Vente" className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white outline-none focus:border-shop/50" value={newQuickProduct.price} onChange={e => setNewQuickProduct({ ...newQuickProduct, price: e.target.value })} />
+                                            <input placeholder="Nom du produit" aria-label="Nom du produit" className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white outline-none focus:border-shop/50" value={newQuickProduct.name} onChange={e => setNewQuickProduct({ ...newQuickProduct, name: e.target.value })} />
+                                            <input placeholder="Catégorie" aria-label="Catégorie" className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white outline-none focus:border-shop/50" value={newQuickProduct.category} onChange={e => setNewQuickProduct({ ...newQuickProduct, category: e.target.value })} />
+                                            <input type="number" placeholder="Coût d'achat" aria-label="Coût d'achat" className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white outline-none focus:border-shop/50" value={newQuickProduct.cost_price} onChange={e => setNewQuickProduct({ ...newQuickProduct, cost_price: e.target.value })} />
+                                            <input type="number" placeholder="Futur Prix Vente" aria-label="Prix de vente" className="w-full bg-black/20 border border-white/10 rounded-xl py-3 px-4 text-sm font-bold text-white outline-none focus:border-shop/50" value={newQuickProduct.price} onChange={e => setNewQuickProduct({ ...newQuickProduct, price: e.target.value })} />
                                         </div>
                                         <button onClick={addNewProductLine} type="button" className="w-full py-3 bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg">Ajouter cette ligne</button>
                                     </div>
@@ -467,7 +484,7 @@ export default function PurchaseOrdersPage() {
                                                 <div className="flex items-center space-x-4 mt-2">
                                                     <div className="flex items-center space-x-2">
                                                         <span className="text-[8px] font-black text-muted-foreground uppercase opacity-50">Coût:</span>
-                                                        <input type="number" value={l.cost_price} onChange={e => setOrderLines(orderLines.map((line, i) => i === idx ? { ...line, cost_price: parseFloat(e.target.value) } : line))} className="w-24 bg-black/40 border border-white/5 rounded-lg px-2.5 py-1 text-[10px] font-black text-shop outline-none focus:border-shop/50" />
+                                                        <input type="number" aria-label="Coût unitaire" value={l.cost_price} onChange={e => setOrderLines(orderLines.map((line, i) => i === idx ? { ...line, cost_price: parseFloat(e.target.value) } : line))} className="w-24 bg-black/40 border border-white/5 rounded-lg px-2.5 py-1 text-[10px] font-black text-shop outline-none focus:border-shop/50" />
                                                     </div>
                                                     {l.is_new && (
                                                         <div className="flex items-center space-x-2 border-l border-white/10 pl-4">
@@ -479,7 +496,7 @@ export default function PurchaseOrdersPage() {
                                             </div>
                                             <div className="flex items-center space-x-2 bg-black/40 rounded-2xl px-3 py-2 border border-white/5">
                                                 <button type="button" onClick={() => setOrderLines(orderLines.map((line, i) => i === idx ? { ...line, quantity: Math.max(1, line.quantity - 1) } : line))} className="p-1 hover:text-shop text-muted-foreground"><Minus className="w-4 h-4" /></button>
-                                                <input type="number" value={l.quantity} onChange={e => setOrderLines(orderLines.map((line, i) => i === idx ? { ...line, quantity: parseInt(e.target.value) } : line))} className="w-12 bg-transparent text-center text-xs font-black text-white outline-none" />
+                                                <input type="number" aria-label="Quantité" value={l.quantity} onChange={e => setOrderLines(orderLines.map((line, i) => i === idx ? { ...line, quantity: parseInt(e.target.value) } : line))} className="w-12 bg-transparent text-center text-xs font-black text-white outline-none" />
                                                 <button type="button" onClick={() => setOrderLines(orderLines.map((line, i) => i === idx ? { ...line, quantity: line.quantity + 1 } : line))} className="p-1 hover:text-shop text-muted-foreground"><Plus className="w-4 h-4" /></button>
                                             </div>
                                             <button type="button" onClick={() => setOrderLines(orderLines.filter((_, i) => i !== idx))} className="text-muted-foreground hover:text-red-400 p-2"><Trash2 className="w-5 h-5" /></button>
@@ -515,6 +532,7 @@ export default function PurchaseOrdersPage() {
                     </div>
                 </div>
             )}
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

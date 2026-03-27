@@ -273,7 +273,7 @@ export default function CreateProductButton() {
                                             <label className="text-[10px] sm:text-[11px] font-black uppercase text-muted-foreground tracking-widest">Désignation du Produit</label>
                                             <button type="button" onClick={focusSearch} className="text-[8px] sm:text-[9px] font-black uppercase text-shop hover:underline flex items-center bg-shop/5 px-3 py-1 rounded-lg border border-shop/10 transition-all hover:bg-shop/10"><Globe className="w-3.5 h-3.5 mr-1.5" /> Google Images</button>
                                         </div>
-                                        <input name="name" ref={nameRef} required onPaste={async (e) => {
+                                        <input name="name" ref={nameRef} required aria-label="Nom du produit" onPaste={async (e) => {
                                             const item = e.clipboardData.items[0];
                                             if (item?.type.includes('image')) {
                                                 const file = item.getAsFile();
@@ -296,14 +296,14 @@ export default function CreateProductButton() {
                                                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-muted-foreground tracking-widest">Catégorie</label>
                                                 <button type="button" onClick={() => setNewCategoryMode(!newCategoryMode)} className="text-[8px] sm:text-[9px] font-black uppercase text-shop hover:underline">{newCategoryMode ? 'Annuler' : '+ Nouveau'}</button>
                                             </div>
-                                            {newCategoryMode ? <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-6 text-sm font-bold outline-none text-white shadow-inner" placeholder="Nom de catégorie..." autoFocus /> : <CustomDropdown options={categoryOptions} value={selectedCategory} onChange={setSelectedCategory} />}
+                                            {newCategoryMode ? <input value={customCategory} onChange={(e) => setCustomCategory(e.target.value)} aria-label="Nouvelle catégorie" className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-6 text-sm font-bold outline-none text-white shadow-inner" placeholder="Nom de catégorie..." autoFocus /> : <CustomDropdown options={categoryOptions} value={selectedCategory} onChange={setSelectedCategory} />}
                                         </div>
                                         <div className="space-y-2">
                                             <div className="flex justify-between items-center ml-1">
                                                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-muted-foreground tracking-widest">Marque</label>
                                                 <button type="button" onClick={() => setNewBrandMode(!newBrandMode)} className="text-[8px] sm:text-[9px] font-black uppercase text-shop hover:underline">{newBrandMode ? 'Annuler' : '+ Nouveau'}</button>
                                             </div>
-                                            {newBrandMode ? <input value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-6 text-sm font-bold outline-none text-white shadow-inner" placeholder="Nom de marque..." autoFocus /> : <CustomDropdown options={[{ label: 'Aucune marque', value: '', icon: <Tag className="w-3.5 h-3.5" /> }, ...existingBrands.map(b => ({ label: b, value: b, icon: <Tag className="w-3.5 h-3.5" /> }))]} value={selectedBrand} onChange={setSelectedBrand} />}
+                                            {newBrandMode ? <input value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} aria-label="Nouvelle marque" className="w-full bg-white/5 border border-shop/30 rounded-2xl py-3.5 px-6 text-sm font-bold outline-none text-white shadow-inner" placeholder="Nom de marque..." autoFocus /> : <CustomDropdown options={[{ label: 'Aucune marque', value: '', icon: <Tag className="w-3.5 h-3.5" /> }, ...existingBrands.map(b => ({ label: b, value: b, icon: <Tag className="w-3.5 h-3.5" /> }))]} value={selectedBrand} onChange={setSelectedBrand} />}
                                         </div>
                                     </div>
 
@@ -325,7 +325,7 @@ export default function CreateProductButton() {
                                                 } catch (e) { /* silently ignore */ }
                                             }} className="flex items-center space-x-2 px-3 py-1.5 bg-shop/10 text-shop rounded-xl border border-shop/20 text-[9px] font-black uppercase hover:bg-shop/20 transition-all shadow-sm"><Sparkles className="w-3.5 h-3.5" /> <span>IA Assist</span></button>
                                         </div>
-                                        <textarea name="description" ref={descRef} rows={3} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-medium focus:border-shop/50 outline-none transition-all text-white resize-none placeholder:text-muted-foreground/20 shadow-inner" placeholder="Détails du produit..." />
+                                        <textarea name="description" ref={descRef} rows={3} aria-label="Description du produit" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-medium focus:border-shop/50 outline-none transition-all text-white resize-none placeholder:text-muted-foreground/20 shadow-inner" placeholder="Détails du produit..." />
                                     </div>
                                 </div>
 
@@ -372,7 +372,7 @@ export default function CreateProductButton() {
 
                                     <div className="space-y-2">
                                         <label className="text-[10px] sm:text-[11px] font-black uppercase text-muted-foreground tracking-widest ml-1">Vidéo URL (YouTube / MP4)</label>
-                                        <input name="video_url" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-shop/50 outline-none transition-all text-white placeholder:text-muted-foreground/20" placeholder="Lien vers la vidéo..." />
+                                        <input name="video_url" aria-label="URL vidéo" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-shop/50 outline-none transition-all text-white placeholder:text-muted-foreground/20" placeholder="Lien vers la vidéo..." />
                                     </div>
                                 </div>
 
@@ -382,21 +382,21 @@ export default function CreateProductButton() {
                                         <div className="space-y-2">
                                             <label className="text-[10px] sm:text-[11px] font-black uppercase text-muted-foreground tracking-widest ml-1">Prix Vente</label>
                                             <div className="relative group">
-                                                <input name="price" type="number" required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-black focus:border-shop/50 outline-none text-white pr-14 shadow-sm" placeholder="0" />
+                                                <input name="price" type="number" required aria-label="Prix de vente" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-black focus:border-shop/50 outline-none text-white pr-14 shadow-sm" placeholder="0" />
                                                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-muted-foreground">CFA</span>
                                             </div>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] sm:text-[11px] font-black uppercase text-blue-400 tracking-widest ml-1">Prix Promo</label>
                                             <div className="relative group">
-                                                <input name="promo_price" type="number" className="w-full bg-blue-500/5 border border-blue-500/20 rounded-2xl py-4 px-6 text-base font-black focus:border-blue-500 outline-none text-white pr-14 shadow-sm" placeholder="-" />
+                                                <input name="promo_price" type="number" aria-label="Prix promo" className="w-full bg-blue-500/5 border border-blue-500/20 rounded-2xl py-4 px-6 text-base font-black focus:border-blue-500 outline-none text-white pr-14 shadow-sm" placeholder="-" />
                                                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-400">CFA</span>
                                             </div>
                                         </div>
                                         <div className="space-y-2 col-span-2 sm:col-span-1">
                                             <label className="text-[10px] sm:text-[11px] font-black uppercase text-red-400 tracking-widest ml-1">Prix Revient</label>
                                             <div className="relative group">
-                                                <input name="cost_price" type="number" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-black focus:border-shop/50 outline-none text-white pr-14 shadow-sm" placeholder="0" />
+                                                <input name="cost_price" type="number" aria-label="Prix de revient" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-black focus:border-shop/50 outline-none text-white pr-14 shadow-sm" placeholder="0" />
                                                 <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-black text-red-400/50">CFA</span>
                                             </div>
                                         </div>
@@ -406,17 +406,17 @@ export default function CreateProductButton() {
                                         <div className="grid grid-cols-2 gap-6">
                                             <div className="space-y-2">
                                                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-muted-foreground tracking-widest ml-1">Stock Initial {variants.length > 0 && <span className="text-shop animate-pulse">(Auto)</span>}</label>
-                                                <input name="stock" type="number" value={globalStock} onChange={(e) => setGlobalStock(e.target.value)} readOnly={variants.length > 0} required className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-black outline-none transition-all text-white shadow-sm ${variants.length > 0 ? 'opacity-50 bg-shop/5 border-shop/20' : 'focus:border-shop/50'}`} />
+                                                <input name="stock" type="number" aria-label="Stock initial" value={globalStock} onChange={(e) => setGlobalStock(e.target.value)} readOnly={variants.length > 0} required className={`w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-black outline-none transition-all text-white shadow-sm ${variants.length > 0 ? 'opacity-50 bg-shop/5 border-shop/20' : 'focus:border-shop/50'}`} />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] sm:text-[11px] font-black uppercase text-orange-400 tracking-widest ml-1">Stock Minimal Alerte</label>
-                                                <input name="minStock" type="number" defaultValue={2} required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-black focus:border-shop/50 outline-none text-white shadow-sm" />
+                                                <input name="minStock" type="number" aria-label="Stock minimal alerte" defaultValue={2} required className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-base font-black focus:border-shop/50 outline-none text-white shadow-sm" />
                                             </div>
                                         </div>
 
                                         <div className="space-y-2">
                                             <label className="text-[10px] sm:text-[11px] font-black uppercase text-muted-foreground tracking-widest ml-1">Date de Péremption</label>
-                                            <input name="expiry_date" type="date" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-shop/50 outline-none transition-all text-white shadow-sm" />
+                                            <input name="expiry_date" type="date" aria-label="Date de péremption" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold focus:border-shop/50 outline-none transition-all text-white shadow-sm" />
                                         </div>
 
                                         <div className="space-y-4 p-6 glass-panel rounded-[32px] border border-white/10 bg-white/[0.01] shadow-xl">
@@ -442,18 +442,20 @@ export default function CreateProductButton() {
                                                         >
                                                             {v.image ? <img src={v.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><ImageIcon className="w-4 h-4" /></div>}
                                                         </div>
-                                                        <input 
-                                                            value={v.color || ''} 
+                                                        <input
+                                                            value={v.color || ''}
                                                             onChange={(e) => setVariants(variants.map(varItem => varItem.id === v.id ? { ...varItem, color: e.target.value } : varItem))}
                                                             onPaste={(e) => handleVariantPaste(e, v.id)}
                                                             placeholder="Couleur"
+                                                            aria-label="Couleur de la variante"
                                                             className="bg-transparent border-none text-[10px] font-bold text-white uppercase truncate outline-none focus:ring-1 focus:ring-shop/30 rounded"
                                                         />
-                                                        <input 
-                                                            value={v.size || ''} 
+                                                        <input
+                                                            value={v.size || ''}
                                                             onChange={(e) => setVariants(variants.map(varItem => varItem.id === v.id ? { ...varItem, size: e.target.value } : varItem))}
                                                             onPaste={(e) => handleVariantPaste(e, v.id)}
                                                             placeholder="Taille"
+                                                            aria-label="Taille de la variante"
                                                             className="bg-transparent border-none text-[10px] font-bold text-white uppercase truncate outline-none focus:ring-1 focus:ring-shop/30 rounded"
                                                         />
                                                         <div className="flex items-center bg-black/40 rounded-lg px-2 py-1 border border-white/5 shadow-inner">
@@ -462,6 +464,7 @@ export default function CreateProductButton() {
                                                                 value={v.stock || 0}
                                                                 onPaste={(e) => handleVariantPaste(e, v.id)}
                                                                 onChange={(e) => updateVariantStock(v.id, e.target.value)}
+                                                                aria-label="Stock de la variante"
                                                                 className="w-full bg-transparent border-none text-[10px] font-black text-white text-center outline-none"
                                                             />
                                                         </div>
@@ -476,9 +479,9 @@ export default function CreateProductButton() {
                                             <div className="pt-4 mt-2 border-t border-white/5">
                                                 <div className="grid grid-cols-[44px_1fr_1fr_80px_auto] gap-2 items-center">
                                                     <button type="button" onClick={() => { setActiveVariantId(newVariant.id); variantFileInputRef.current?.click() }} className={`w-11 h-11 flex items-center justify-center rounded-xl border-2 border-dashed transition-all ${variantFiles[newVariant.id] ? 'bg-shop text-white border-shop shadow-lg' : 'bg-white/5 border-white/10 text-muted-foreground hover:border-shop/50'}`}><Upload className="w-5 h-5" /></button>
-                                                    <input value={newVariant.color} onPaste={(e) => handleVariantPaste(e, newVariant.id)} onChange={e => setNewVariant({ ...newVariant, color: e.target.value })} placeholder="Couleur" className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs outline-none focus:border-shop/50 text-white shadow-sm" />
-                                                    <input value={newVariant.size} onPaste={(e) => handleVariantPaste(e, newVariant.id)} onChange={e => setNewVariant({ ...newVariant, size: e.target.value })} placeholder="Taille" className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-shop/50 text-white shadow-sm" />
-                                                    <input type="number" value={newVariant.stock} onPaste={(e) => handleVariantPaste(e, newVariant.id)} onChange={e => setNewVariant({ ...newVariant, stock: e.target.value })} placeholder="Qté" className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm font-black outline-none focus:border-shop/50 text-white text-center shadow-sm" />
+                                                    <input value={newVariant.color} onPaste={(e) => handleVariantPaste(e, newVariant.id)} onChange={e => setNewVariant({ ...newVariant, color: e.target.value })} placeholder="Couleur" aria-label="Couleur nouvelle variante" className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-xs outline-none focus:border-shop/50 text-white shadow-sm" />
+                                                    <input value={newVariant.size} onPaste={(e) => handleVariantPaste(e, newVariant.id)} onChange={e => setNewVariant({ ...newVariant, size: e.target.value })} placeholder="Taille" aria-label="Taille nouvelle variante" className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm outline-none focus:border-shop/50 text-white shadow-sm" />
+                                                    <input type="number" value={newVariant.stock} onPaste={(e) => handleVariantPaste(e, newVariant.id)} onChange={e => setNewVariant({ ...newVariant, stock: e.target.value })} placeholder="Qté" aria-label="Stock nouvelle variante" className="bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm font-black outline-none focus:border-shop/50 text-white text-center shadow-sm" />
                                                     <button type="button" onClick={addVariant} className="w-11 h-11 bg-white text-black flex items-center justify-center rounded-xl transition-all hover:scale-105 active:scale-95 shadow-lg"><Plus className="w-6 h-6" /></button>
                                                 </div>
                                             </div>

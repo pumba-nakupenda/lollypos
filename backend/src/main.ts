@@ -9,10 +9,12 @@ async function bootstrap() {
       const defaultOrigins = [
         'https://shop.lolly.sn',
         'https://admin.lolly.sn',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001',
+        ...(process.env.NODE_ENV !== 'production' ? [
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001',
+        ] : []),
       ];
 
       // Allow extra origins from environment variable (comma-separated)

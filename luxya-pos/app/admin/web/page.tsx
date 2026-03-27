@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { API_URL, authFetch } from '@/utils/api'
 import CustomDropdown from '@/components/CustomDropdown'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 const DEFAULT_GROUPS = [
     {
@@ -47,6 +48,7 @@ export default function WebManagementPage() {
     const [generatingBanner, setGeneratingBanner] = useState(false)
     const [categories, setCategories] = useState<string[]>([]) // Available categories from DB
     const [collapsedGroups, setCollapsedGroups] = useState<number[]>([]);
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
     const toggleGroupCollapse = (index: number) => {
         setCollapsedGroups(prev =>
@@ -230,9 +232,16 @@ export default function WebManagementPage() {
     };
 
     const loadDefaultGroups = () => {
-        if (confirm("Attention: Cela va remplacer la configuration actuelle des univers. Continuer ?")) {
-            setSettings({ ...settings, category_groups: DEFAULT_GROUPS });
-        }
+        setConfirmState({
+            isOpen: true,
+            title: 'Charger les univers par défaut',
+            message: 'Attention: Cela va remplacer la configuration actuelle des univers. Continuer ?',
+            onConfirm: () => {
+                setSettings({ ...settings, category_groups: DEFAULT_GROUPS });
+                setConfirmState(prev => ({...prev, isOpen: false}));
+            }
+        });
+        return;
     };
 
     const removeGroup = (index: number) => {
@@ -544,6 +553,7 @@ export default function WebManagementPage() {
                     </div>
                 </div>
             </div>
+            <ConfirmDialog {...confirmState} variant="warning" onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

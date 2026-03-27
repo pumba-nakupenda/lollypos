@@ -5,6 +5,7 @@ import React, { useState } from 'react'
 import { X, Tag, Edit2, Trash2, Check, RefreshCw, Plus, Sparkles } from 'lucide-react'
 import { API_URL, authFetch } from '@/utils/api'
 import { useToast } from '@/context/ToastContext'
+import ConfirmDialog from './ConfirmDialog'
 
 interface ManageBrandsModalProps {
     isOpen: boolean
@@ -19,6 +20,7 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
     const [editingBrand, setEditingBrand] = useState<string | null>(null)
     const [newName, setNewName] = useState('')
     const [loading, setLoading] = useState(false)
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     if (!isOpen) return null
 
@@ -44,23 +46,30 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
     }
 
     const handleDelete = async (name: string) => {
-        if (!confirm(`Supprimer la marque "${name}" de tous les produits ?`)) return
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer la marque',
+            message: `Supprimer la marque "${name}" de tous les produits ?`,
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                setLoading(true)
+                try {
+                    await authFetch(`${API_URL}/products/brands/delete`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, shopId })
+                    })
 
-        setLoading(true)
-        try {
-            await authFetch(`${API_URL}/products/brands/delete`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, shopId })
-            })
-
-            showToast("Marque supprimée", "success")
-            onRefresh()
-        } catch (err) {
-            showToast("Erreur lors de la suppression", "error")
-        } finally {
-            setLoading(false)
-        }
+                    showToast("Marque supprimée", "success")
+                    onRefresh()
+                } catch (err) {
+                    showToast("Erreur lors de la suppression", "error")
+                } finally {
+                    setLoading(false)
+                }
+            }
+        })
+        return
     }
 
     return (
@@ -120,6 +129,7 @@ export default function ManageBrandsModal({ isOpen, onClose, brands, shopId, onR
                     <p className="text-[8px] font-black uppercase text-muted-foreground text-center tracking-widest">Modifier une marque impactera tous ses produits</p>
                 </div>
             </div>
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

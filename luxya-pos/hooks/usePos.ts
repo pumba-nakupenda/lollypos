@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { useToast } from '@/context/ToastContext';
+import { Product, Variant } from '@/types/models';
+
+export interface CartItem extends Product {
+    cartItemId: string | number
+    quantity: number
+    variantInfo?: Variant
+}
 
 export function usePos() {
     const { showToast } = useToast();
-    const [cart, setCart] = useState<any[]>([]);
-    const [selectedProductForVariant, setSelectedProductForVariant] = useState<any | null>(null);
+    const [cart, setCart] = useState<CartItem[]>([]);
+    const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
 
-    const addToCart = (product: any, variant?: any) => {
+    const addToCart = (product: Product, variant?: Variant) => {
         if (product.stock <= 0 && product.type !== 'service') {
             showToast("Produit épuisé !", "warning");
             return;
@@ -17,7 +24,7 @@ export function usePos() {
             return;
         }
 
-        const currentPrice = variant ? (variant.price || product.price) : (product.promo_price > 0 ? product.promo_price : product.price);
+        const currentPrice = variant ? (variant.price || product.price) : ((product.promo_price ?? 0) > 0 ? product.promo_price! : product.price);
         const costPrice = product.cost_price || 0;
 
         if (costPrice > 0 && product.type !== 'service') {

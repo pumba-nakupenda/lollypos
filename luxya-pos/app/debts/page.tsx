@@ -10,15 +10,17 @@ import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
 import { createClient } from '@/utils/supabase/client'
 import CustomDropdown from '@/components/CustomDropdown'
+import ConfirmDialog from '@/components/ConfirmDialog'
+import { Debt, DebtItem, DebtPayment, CashSession } from '@/types/models'
 
 export default function DebtsPage() {
     const { activeShop } = useShop()
     const { showToast } = useToast()
     const supabase = createClient()
 
-    const [debts, setDebts] = useState<any[]>([])
-    const [customers, setCustomers] = useState<any[]>([])
-    const [products, setProducts] = useState<any[]>([])
+    const [debts, setDebts] = useState<Debt[]>([])
+    const [customers, setCustomers] = useState<{ id: string; name: string }[]>([])
+    const [products, setProducts] = useState<{ id: number; name: string; price: number; stock: number }[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
@@ -27,15 +29,16 @@ export default function DebtsPage() {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false)
     const [creating, setCreating] = useState(false)
     const [updating, setUpdating] = useState(false)
-    const [currentSession, setCurrentSession] = useState<any>(null)
+    const [currentSession, setCurrentSession] = useState<Pick<CashSession, 'id' | 'status' | 'opening_balance'> | null>(null)
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-    const [selectedDebt, setSelectedDebt] = useState<any>(null)
-    const [editingDebt, setEditingDebt] = useState<any>(null)
+    const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null)
+    const [editingDebt, setEditingDebt] = useState<Debt | null>(null)
     const [paymentAmount, setPaymentAmount] = useState('')
     const [paymentProcessing, setPaymentProcessing] = useState(false)
     const [payMethod, setPayMethod] = useState<'cash' | 'wave' | 'om'>('cash')
     const [expandedDebtId, setExpandedDebtId] = useState<string | null>(null)
-    const [debtPayments, setDebtPayments] = useState<Record<string, any[]>>({})
+    const [debtPayments, setDebtPayments] = useState<Record<string, DebtPayment[]>>({})
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     const [newEntry, setNewEntry] = useState({
         customer_id: '',
@@ -45,7 +48,7 @@ export default function DebtsPage() {
         due_date: '',
         type: 'receivable' as 'receivable' | 'debt',
         description: '',
-        items: [] as any[]
+        items: [] as DebtItem[]
     })
 
     const [editData, setEditData] = useState({
@@ -55,7 +58,7 @@ export default function DebtsPage() {
         paid_amount: '0',
         due_date: '',
         description: '',
-        items: [] as any[]
+        items: [] as DebtItem[]
     })
 
     const [selectedProduct, setSelectedProduct] = useState<string>('')
@@ -155,7 +158,7 @@ export default function DebtsPage() {
 
             const { data, error } = await query.order('created_at', { ascending: false })
             if (error) throw error
-            setDebts(data || [])
+            setDebts((data || []) as unknown as Debt[])
             if (data) fetchAllPayments(data.map(d => d.id))
         } catch (err) {
             showToast("Erreur de chargement", "error")
@@ -173,7 +176,7 @@ export default function DebtsPage() {
             .order('created_at', { ascending: false })
 
         if (data) {
-            const grouped = data.reduce((acc: any, p: any) => {
+            const grouped = data.reduce((acc: Record<string, DebtPayment[]>, p: DebtPayment) => {
                 if (!acc[p.debt_id]) acc[p.debt_id] = []
                 acc[p.debt_id].push(p)
                 return acc
@@ -225,15 +228,15 @@ export default function DebtsPage() {
                 description: ''
             })
             fetchDebts()
-        } catch (err: any) {
+        } catch (err: unknown) {
 
-            showToast(`Erreur : ${err.message || 'Impossible de créer'}`, "error")
+            showToast(`Erreur : ${err instanceof Error ? err.message : 'Impossible de créer'}`, "error")
         } finally {
             setCreating(false)
         }
     }
 
-    const openEditModal = (debt: any) => {
+    const openEditModal = (debt: Debt) => {
         setEditingDebt(debt)
         setEditData({
             customer_id: debt.customer_id?.toString() || '',
@@ -276,8 +279,8 @@ export default function DebtsPage() {
             showToast("Dossier mis à jour !", "success")
             setIsEditModalOpen(false)
             fetchDebts()
-        } catch (err: any) {
-            showToast(`Erreur : ${err.message || 'Impossible de mettre à jour'}`, "error")
+        } catch (err: unknown) {
+            showToast(`Erreur : ${err instanceof Error ? err.message : 'Impossible de mettre à jour'}`, "error")
         } finally {
             setUpdating(false)
         }
@@ -339,18 +342,26 @@ export default function DebtsPage() {
     }
 
     const handleDeleteDebt = async (id: string) => {
-        if (!confirm("Supprimer définitivement ce dossier ? Cette action est irréversible.")) return
-        try {
-            const { error } = await supabase
-                .from('debts')
-                .delete()
-                .eq('id', id)
-            if (error) throw error
-            showToast("Dossier supprimé !", "success")
-            fetchDebts()
-        } catch (err) {
-            showToast("Erreur lors de la suppression", "error")
-        }
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer le dossier',
+            message: 'Supprimer définitivement ce dossier ? Cette action est irréversible.',
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                try {
+                    const { error } = await supabase
+                        .from('debts')
+                        .delete()
+                        .eq('id', id)
+                    if (error) throw error
+                    showToast("Dossier supprimé !", "success")
+                    fetchDebts()
+                } catch (err) {
+                    showToast("Erreur lors de la suppression", "error")
+                }
+            }
+        })
+        return
     }
 
     const filtered = debts.filter(d => {
@@ -448,7 +459,7 @@ export default function DebtsPage() {
                     </div>
                     <div className="relative group">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-white transition-colors" />
-                        <input type="text" placeholder="Rechercher un nom..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold outline-none focus:border-white/20 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                        <input type="text" placeholder="Rechercher un nom..." aria-label="Rechercher une dette" className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-xs font-bold outline-none focus:border-white/20 transition-all" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                     </div>
                 </div>
             </div>
@@ -499,7 +510,7 @@ export default function DebtsPage() {
                                         <p className="text-[8px] font-black uppercase text-shop tracking-widest mb-2 flex items-center">
                                             <Package className="w-2.5 h-2.5 mr-1" /> Produits détaillés
                                         </p>
-                                        {debt.items.map((item: any, i: number) => (
+                                        {debt.items.map((item: DebtItem, i: number) => (
                                             <div key={i} className="flex justify-between text-[8px] font-bold text-white/80">
                                                 <span>{item.name} <span className="text-muted-foreground text-[8px] font-medium">(x{item.quantity})</span></span>
                                                 <span>{(item.price * item.quantity).toLocaleString()} CFA</span>
@@ -528,7 +539,7 @@ export default function DebtsPage() {
 
                                     {expandedDebtId === debt.id && (
                                         <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
-                                            {debtPayments[debt.id].map((p: any) => (
+                                            {debtPayments[debt.id].map((p: DebtPayment) => (
                                                 <div key={p.id} className="flex justify-between items-center py-2 px-3 bg-white/5 rounded-xl border border-white/5">
                                                     <span className="text-[8px] font-bold text-muted-foreground">{new Date(p.created_at).toLocaleDateString()}</span>
                                                     <span className="text-[8px] font-black text-white">+{Number(p.amount).toLocaleString()} CFA</span>
@@ -592,6 +603,7 @@ export default function DebtsPage() {
                                     <input
                                         required
                                         type="number"
+                                        aria-label="Montant du versement"
                                         className="w-full bg-white/5 border border-white/10 rounded-[24px] py-5 pl-14 pr-6 text-2xl font-black outline-none focus:border-green-500/50 transition-all text-white"
                                         value={paymentAmount}
                                         onChange={e => setPaymentAmount(e.target.value)}
@@ -608,7 +620,7 @@ export default function DebtsPage() {
                                         <button
                                             key={m}
                                             type="button"
-                                            onClick={() => setPayMethod(m as any)}
+                                            onClick={() => setPayMethod(m as 'cash' | 'wave' | 'om')}
                                             className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${payMethod === m
                                                     ? 'bg-shop text-white border-shop'
                                                     : 'bg-white/5 text-muted-foreground border-white/10 hover:border-white/20'
@@ -671,6 +683,7 @@ export default function DebtsPage() {
                                         <input
                                             required
                                             type="text"
+                                            aria-label="Nom du créancier"
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                             placeholder="Ex: Fournisseur XYZ"
                                             value={newEntry.creditor_name}
@@ -700,14 +713,15 @@ export default function DebtsPage() {
                                             placeholder="Choisir un produit"
                                         />
                                     </div>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
+                                        aria-label="Quantité"
                                         className="bg-white/5 border border-white/10 rounded-xl px-3 text-xs font-bold outline-none focus:border-shop text-white"
                                         placeholder="Qté"
                                         value={itemQty}
                                         onChange={e => setItemQty(e.target.value)}
                                     />
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => addItem(false)}
                                         className="bg-shop text-white rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
@@ -745,6 +759,7 @@ export default function DebtsPage() {
                                         <input
                                             required
                                             type="number"
+                                            aria-label="Montant total"
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                             value={newEntry.total_amount}
                                             onChange={e => setNewEntry({ ...newEntry, total_amount: e.target.value })}
@@ -755,6 +770,7 @@ export default function DebtsPage() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Acompte déjà payé</label>
                                     <input
                                         type="number"
+                                        aria-label="Acompte déjà payé"
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                         value={newEntry.paid_amount}
                                         onChange={e => setNewEntry({ ...newEntry, paid_amount: e.target.value })}
@@ -765,6 +781,7 @@ export default function DebtsPage() {
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Note / Description</label>
                                 <textarea
+                                    aria-label="Description"
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:border-shop/50 transition-all text-white resize-none"
                                     placeholder="Détails supplémentaires..."
                                     rows={2}
@@ -779,6 +796,7 @@ export default function DebtsPage() {
                                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <input
                                         type="date"
+                                        aria-label="Date d'échéance"
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                         value={newEntry.due_date}
                                         onChange={e => setNewEntry({ ...newEntry, due_date: e.target.value })}
@@ -834,6 +852,7 @@ export default function DebtsPage() {
                                         <input
                                             required
                                             type="text"
+                                            aria-label="Nom du créancier"
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                             placeholder="Ex: Fournisseur XYZ"
                                             value={editData.creditor_name}
@@ -863,14 +882,15 @@ export default function DebtsPage() {
                                             placeholder="Choisir un produit"
                                         />
                                     </div>
-                                    <input 
-                                        type="number" 
+                                    <input
+                                        type="number"
+                                        aria-label="Quantité"
                                         className="bg-white/5 border border-white/10 rounded-xl px-3 text-xs font-bold outline-none focus:border-shop text-white"
                                         placeholder="Qté"
                                         value={itemQty}
                                         onChange={e => setItemQty(e.target.value)}
                                     />
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => addItem(true)}
                                         className="bg-shop text-white rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
@@ -908,6 +928,7 @@ export default function DebtsPage() {
                                         <input
                                             required
                                             type="number"
+                                            aria-label="Montant total"
                                             className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                             value={editData.total_amount}
                                             onChange={e => setEditData({ ...editData, total_amount: e.target.value })}
@@ -918,6 +939,7 @@ export default function DebtsPage() {
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Acompte payé</label>
                                     <input
                                         type="number"
+                                        aria-label="Acompte payé"
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                         value={editData.paid_amount}
                                         onChange={e => setEditData({ ...editData, paid_amount: e.target.value })}
@@ -928,6 +950,7 @@ export default function DebtsPage() {
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Note / Description</label>
                                 <textarea
+                                    aria-label="Description"
                                     className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-xs font-bold outline-none focus:border-shop/50 transition-all text-white resize-none"
                                     placeholder="Détails supplémentaires..."
                                     rows={2}
@@ -942,6 +965,7 @@ export default function DebtsPage() {
                                     <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                     <input
                                         type="date"
+                                        aria-label="Date d'échéance"
                                         className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none focus:border-shop/50 transition-all text-white"
                                         value={editData.due_date}
                                         onChange={e => setEditData({ ...editData, due_date: e.target.value })}
@@ -960,6 +984,7 @@ export default function DebtsPage() {
                     </div>
                 </div>
             )}
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

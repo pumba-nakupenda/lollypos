@@ -5,6 +5,7 @@ import React, { useState } from 'react'
 import { X, Palette, Edit2, Trash2, Check, RefreshCw, Sparkles } from 'lucide-react'
 import { API_URL, authFetch } from '@/utils/api'
 import { useToast } from '@/context/ToastContext'
+import ConfirmDialog from './ConfirmDialog'
 
 interface ManageColorsModalProps {
     isOpen: boolean
@@ -19,6 +20,7 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
     const [editingColor, setEditingColor] = useState<string | null>(null)
     const [newName, setNewName] = useState('')
     const [loading, setLoading] = useState(false)
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     if (!isOpen) return null
 
@@ -44,23 +46,30 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
     }
 
     const handleDelete = async (name: string) => {
-        if (!confirm(`Supprimer la couleur "${name}" de tous les produits ?`)) return
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer la couleur',
+            message: `Supprimer la couleur "${name}" de tous les produits ?`,
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                setLoading(true)
+                try {
+                    await authFetch(`${API_URL}/products/colors/delete`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, shopId })
+                    })
 
-        setLoading(true)
-        try {
-            await authFetch(`${API_URL}/products/colors/delete`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, shopId })
-            })
-
-            showToast("Couleur supprimée de l'inventaire", "success")
-            onRefresh()
-        } catch (err) {
-            showToast("Erreur lors de la suppression", "error")
-        } finally {
-            setLoading(false)
-        }
+                    showToast("Couleur supprimée de l'inventaire", "success")
+                    onRefresh()
+                } catch (err) {
+                    showToast("Erreur lors de la suppression", "error")
+                } finally {
+                    setLoading(false)
+                }
+            }
+        })
+        return
     }
 
     return (
@@ -127,6 +136,7 @@ export default function ManageColorsModal({ isOpen, onClose, colors, shopId, onR
                     </p>
                 </div>
             </div>
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

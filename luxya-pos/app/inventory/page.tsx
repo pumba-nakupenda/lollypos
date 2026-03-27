@@ -61,7 +61,7 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
     // Build query for current page
     let query = supabase
       .from('products')
-      .select('*', { count: 'exact' });
+      .select('id, name, price, cost_price, stock, category, brand, image_url, barcode, shop_id, show_on_pos, min_stock, created_at', { count: 'exact' });
 
     if (+effectiveShopId !== 0) {
       query = query.eq('shop_id', +effectiveShopId);

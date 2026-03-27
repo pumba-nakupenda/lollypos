@@ -33,13 +33,13 @@ export default function PipelinePage() {
     const fetchCustomers = async () => {
         try {
             setLoading(true)
-            let query = supabase.from('customers').select('*').order('created_at', { ascending: false })
+            let query = supabase.from('customers').select('id, name, email, phone, lead_status, created_at, shop_id').order('created_at', { ascending: false })
             
             if (activeShop && activeShop.id !== 0) {
                 query = query.eq('shop_id', activeShop.id)
             }
 
-            const { data, error } = await query
+            const { data, error } = await query.limit(200)
             if (error) throw error
             setCustomers(data || [])
         } catch (err) {

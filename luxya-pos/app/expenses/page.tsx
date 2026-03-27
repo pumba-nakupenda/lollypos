@@ -31,6 +31,7 @@ import CustomDropdown from '@/components/CustomDropdown'
 import { redirect } from 'next/navigation'
 import { API_URL, authFetch } from '@/utils/api'
 import { createClient } from '@/utils/supabase/client'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 export default function ExpensesPage() {
     const { activeShop, shops } = useShop()
@@ -38,6 +39,7 @@ export default function ExpensesPage() {
     const { showToast } = useToast()
     const supabase = createClient()
     const [expenses, setExpenses] = useState<any[]>([])
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     const [selectedShopId, setSelectedShopId] = useState<number>(1)
     const isGlobalView = !activeShop || activeShop.id === 0
@@ -115,14 +117,22 @@ export default function ExpensesPage() {
     }
 
     const handleDelete = async (id: number) => {
-        if (!confirm("Supprimer cette dépense ?")) return
-        try {
-            const res = await authFetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' })
-            if (res.ok) {
-                showToast("Dépense supprimée", "success")
-                fetchExpenses()
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer la dépense',
+            message: 'Supprimer cette dépense ?',
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                try {
+                    const res = await authFetch(`${API_URL}/expenses/${id}`, { method: 'DELETE' })
+                    if (res.ok) {
+                        showToast("Dépense supprimée", "success")
+                        fetchExpenses()
+                    }
+                } catch (e) { showToast("Erreur lors de la suppression", "error") }
             }
-        } catch (e) { showToast("Erreur lors de la suppression", "error") }
+        })
+        return
     }
 
     const handleCreateExpense = async (e: React.FormEvent) => {
@@ -491,6 +501,7 @@ export default function ExpensesPage() {
                                 <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Description</label>
                                 <input
                                     type="text" required placeholder="ex: Facture d'électricité"
+                                    aria-label="Description"
                                     className="w-full bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-5 sm:px-6 text-sm focus:border-shop/50 outline-none transition-all text-white"
                                     value={newExpense.description}
                                     onChange={e => setNewExpense({ ...newExpense, description: e.target.value })}
@@ -503,6 +514,7 @@ export default function ExpensesPage() {
                                     <div className="relative">
                                         <input
                                             type="number" required placeholder="0"
+                                            aria-label="Montant"
                                             className="w-full bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-5 sm:px-6 text-sm focus:border-shop/50 outline-none transition-all pl-10 text-white"
                                             value={newExpense.amount}
                                             onChange={e => setNewExpense({ ...newExpense, amount: e.target.value })}
@@ -514,6 +526,7 @@ export default function ExpensesPage() {
                                     <label className="text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Date</label>
                                     <input
                                         type="date" required
+                                        aria-label="Date"
                                         className="w-full bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl py-3 sm:py-4 px-5 sm:px-6 text-sm focus:border-shop/50 outline-none transition-all appearance-none uppercase text-[10px] font-black text-white"
                                         value={newExpense.date}
                                         onChange={e => setNewExpense({ ...newExpense, date: e.target.value })}
@@ -596,6 +609,7 @@ export default function ExpensesPage() {
                     </div>
                 </div>
             )}
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

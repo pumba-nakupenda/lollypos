@@ -1,22 +1,36 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 import { SupabaseService } from '../supabase.service';
 
 @Injectable()
-export class ExpensesService implements OnModuleInit {
+export class ExpensesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(ExpensesService.name);
+  private recurringInterval: ReturnType<typeof setInterval> | null = null;
+  private initialTimeout: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly supabaseService: SupabaseService) { }
 
   async onModuleInit() {
     this.logger.log('[EXPENSES ROBOT] Initializing automation engine...');
     // Delay first run by 30s to allow network/Supabase client to be fully ready
-    setTimeout(() => {
+    this.initialTimeout = setTimeout(() => {
       this.processRecurringExpenses().catch(err => this.logger.error(`[EXPENSES ROBOT] Initial run failed: ${err.message}`));
     }, 30000);
-    setInterval(() => {
+    this.recurringInterval = setInterval(() => {
       this.processRecurringExpenses().catch(err => this.logger.error(`[EXPENSES ROBOT] Scheduled run failed: ${err.message}`));
     }, 1000 * 60 * 60 * 6);
+  }
+
+  onModuleDestroy() {
+    if (this.initialTimeout) {
+      clearTimeout(this.initialTimeout);
+      this.initialTimeout = null;
+    }
+    if (this.recurringInterval) {
+      clearInterval(this.recurringInterval);
+      this.recurringInterval = null;
+    }
+    this.logger.log('[EXPENSES ROBOT] Automation engine stopped.');
   }
 
   private get supabase() {

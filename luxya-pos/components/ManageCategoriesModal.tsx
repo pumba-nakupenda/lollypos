@@ -6,6 +6,7 @@ import { X, Edit2, Trash2, Check, Tags, AlertTriangle } from 'lucide-react'
 import { useToast } from '@/context/ToastContext'
 import Portal from './Portal'
 import { API_URL, authFetch } from '@/utils/api'
+import ConfirmDialog from './ConfirmDialog'
 
 interface ManageCategoriesModalProps {
     isOpen: boolean
@@ -20,6 +21,7 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
     const [editingCat, setEditingCat] = useState<string | null>(null)
     const [newName, setNewName] = useState('')
     const [loading, setLoading] = useState(false)
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     if (!isOpen) return null
 
@@ -49,22 +51,29 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
     }
 
     const handleDelete = async (name: string) => {
-        if (!confirm(`Supprimer la catégorie "${name}" ? Tous les produits associés seront déplacés vers "Général".`)) return
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer la catégorie',
+            message: `Supprimer la catégorie "${name}" ? Tous les produits associés seront déplacés vers "Général".`,
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                setLoading(true)
+                try {
+                    const shopParam = shopId ? `?shopId=${shopId}` : ''
+                    await authFetch(`${API_URL}/products/categories/${encodeURIComponent(name)}${shopParam}`, {
+                        method: 'DELETE'
+                    })
 
-        setLoading(true)
-        try {
-            const shopParam = shopId ? `?shopId=${shopId}` : ''
-            await authFetch(`${API_URL}/products/categories/${encodeURIComponent(name)}${shopParam}`, {
-                method: 'DELETE'
-            })
-
-            showToast("Catégorie supprimée", "success")
-            onRefresh()
-        } catch (err) {
-            showToast("Erreur lors de la suppression", "error")
-        } finally {
-            setLoading(false)
-        }
+                    showToast("Catégorie supprimée", "success")
+                    onRefresh()
+                } catch (err) {
+                    showToast("Erreur lors de la suppression", "error")
+                } finally {
+                    setLoading(false)
+                }
+            }
+        })
+        return
     }
 
     return (
@@ -142,6 +151,7 @@ export default function ManageCategoriesModal({ isOpen, onClose, categories, sho
                     </div>
                 </div>
             </div>
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </Portal>
     )
 }

@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Query, Param, Delete, Patch } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto } from './dto/create-expense.dto';
 
@@ -7,6 +8,7 @@ export class ExpensesController {
   constructor(private readonly expensesService: ExpensesService) { }
 
   @Post()
+  @Throttle({default: {limit: 10, ttl: 60000}})
   create(@Body() createExpenseDto: CreateExpenseDto) {
     return this.expensesService.create(createExpenseDto);
   }
@@ -25,11 +27,13 @@ export class ExpensesController {
   }
 
   @Patch(':id')
+  @Throttle({default: {limit: 10, ttl: 60000}})
   update(@Param('id') id: string, @Body() updateExpenseDto: Partial<CreateExpenseDto>) {
     return this.expensesService.update(+id, updateExpenseDto);
   }
 
   @Delete(':id')
+  @Throttle({default: {limit: 10, ttl: 60000}})
   remove(@Param('id') id: string) {
     return this.expensesService.remove(+id);
   }

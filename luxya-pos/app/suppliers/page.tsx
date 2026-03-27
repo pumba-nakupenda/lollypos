@@ -8,13 +8,15 @@ import {
 import { useShop } from '@/context/ShopContext'
 import { useToast } from '@/context/ToastContext'
 import { createClient } from '@/utils/supabase/client'
+import { Supplier } from '@/types/models'
+import ConfirmDialog from '@/components/ConfirmDialog'
 
 export default function SuppliersPage() {
     const { activeShop } = useShop()
     const { showToast } = useToast()
     const supabase = createClient()
 
-    const [suppliers, setSuppliers] = useState<any[]>([])
+    const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [loading, setLoading] = useState(true)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState('')
@@ -22,6 +24,7 @@ export default function SuppliersPage() {
     const PAGE_SIZE = 100
     const [hasMore, setHasMore] = useState(true)
     const [creating, setCreating] = useState(false)
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
 
     const [newSupplier, setNewSupplier] = useState({
         name: '',
@@ -53,7 +56,7 @@ export default function SuppliersPage() {
 
             const { data, error } = await query
             if (error) throw error
-            setSuppliers(data || [])
+            setSuppliers((data || []) as Supplier[])
             setHasMore((data || []).length === PAGE_SIZE)
         } catch (err) {
             showToast("Erreur de chargement", "error")
@@ -83,15 +86,23 @@ export default function SuppliersPage() {
     }
 
     const handleDelete = async (id: string) => {
-        if (!confirm("Supprimer ce fournisseur ?")) return
-        try {
-            const { error } = await supabase.from('suppliers').delete().eq('id', id)
-            if (error) throw error
-            showToast("Fournisseur supprimé", "success")
-            fetchSuppliers()
-        } catch (err) {
-            showToast("Erreur lors de la suppression", "error")
-        }
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer le fournisseur',
+            message: 'Supprimer ce fournisseur ?',
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                try {
+                    const { error } = await supabase.from('suppliers').delete().eq('id', id)
+                    if (error) throw error
+                    showToast("Fournisseur supprimé", "success")
+                    fetchSuppliers()
+                } catch (err) {
+                    showToast("Erreur lors de la suppression", "error")
+                }
+            }
+        })
+        return
     }
 
     const filtered = suppliers.filter(s => 
@@ -115,7 +126,7 @@ export default function SuppliersPage() {
                 <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
                     <div className="relative group w-full sm:w-64">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-white transition-colors" />
-                        <input type="text" placeholder="Chercher..." className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold outline-none focus:border-white/20 transition-all text-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+                        <input type="text" placeholder="Chercher..." aria-label="Rechercher un fournisseur" className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-6 text-sm font-bold outline-none focus:border-white/20 transition-all text-white" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                     </div>
                     <button onClick={() => setIsModalOpen(true)} className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-600/20 flex items-center justify-center">
                         <Plus className="w-4 h-4 mr-2" /> Nouveau
@@ -213,27 +224,27 @@ export default function SuppliersPage() {
                         <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2 md:col-span-2">
                                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Nom de l'entreprise</label>
-                                <input required value={newSupplier.name} onChange={e => setNewSupplier({...newSupplier, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="Ex: Grossiste Global S.A." />
+                                <input required aria-label="Nom de l'entreprise" value={newSupplier.name} onChange={e => setNewSupplier({...newSupplier, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="Ex: Grossiste Global S.A." />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Contact</label>
-                                <input value={newSupplier.contact_name} onChange={e => setNewSupplier({...newSupplier, contact_name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="Nom du contact" />
+                                <input aria-label="Contact" value={newSupplier.contact_name} onChange={e => setNewSupplier({...newSupplier, contact_name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="Nom du contact" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Téléphone</label>
-                                <input value={newSupplier.phone} onChange={e => setNewSupplier({...newSupplier, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="+221 ..." />
+                                <input aria-label="Téléphone" value={newSupplier.phone} onChange={e => setNewSupplier({...newSupplier, phone: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="+221 ..." />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Email</label>
-                                <input type="email" value={newSupplier.email} onChange={e => setNewSupplier({...newSupplier, email: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="fournisseur@exemple.com" />
+                                <input type="email" aria-label="Email" value={newSupplier.email} onChange={e => setNewSupplier({...newSupplier, email: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="fournisseur@exemple.com" />
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Catégorie</label>
-                                <input value={newSupplier.category} onChange={e => setNewSupplier({...newSupplier, category: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="Ex: Cosmétiques, Tech..." />
+                                <input aria-label="Catégorie" value={newSupplier.category} onChange={e => setNewSupplier({...newSupplier, category: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white" placeholder="Ex: Cosmétiques, Tech..." />
                             </div>
                             <div className="space-y-2 md:col-span-2">
                                 <label className="text-[10px] font-black uppercase text-muted-foreground ml-2">Adresse</label>
-                                <textarea value={newSupplier.address} onChange={e => setNewSupplier({...newSupplier, address: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white h-24 resize-none" placeholder="Adresse complète..." />
+                                <textarea aria-label="Adresse" value={newSupplier.address} onChange={e => setNewSupplier({...newSupplier, address: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-sm font-bold outline-none focus:border-blue-500/50 text-white h-24 resize-none" placeholder="Adresse complète..." />
                             </div>
                             <button type="submit" disabled={creating} className="md:col-span-2 w-full py-6 bg-blue-600 text-white font-black uppercase tracking-[0.2em] rounded-[28px] hover:bg-blue-700 transition-all shadow-2xl shadow-blue-600/40 mt-4">
                                 {creating ? <Loader2 className="animate-spin mx-auto"/> : "Valider le fournisseur"}
@@ -242,6 +253,7 @@ export default function SuppliersPage() {
                     </div>
                 </div>
             )}
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div>
     )
 }

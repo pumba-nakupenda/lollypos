@@ -9,6 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import dynamic from 'next/dynamic'
 import CustomDropdown from './CustomDropdown'
 import ExpiryBadge from './ExpiryBadge'
+import ConfirmDialog from './ConfirmDialog'
 
 // Lazy load heavy modals
 const EditProductModal = dynamic(() => import('./EditProductModal'), { ssr: false })
@@ -44,6 +45,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
     const [isBrandModalOpen, setIsBrandModalOpen] = useState(false)
     const [isImportModalOpen, setIsImportModalOpen] = useState(false)
     const [isResettingStock, setIsResettingStock] = useState(false)
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} })
     const [updatingStockId, setUpdatingStockId] = useState<number | null>(null)
 
     // Sync local products when props change
@@ -366,21 +368,28 @@ export default function InventoryList({ products, allCategories = [], allBrands 
 
     const handleDelete = async (e: React.MouseEvent, id: number) => {
         e.stopPropagation()
-        if (!confirm("Supprimer définitivement ce produit ?")) return
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer le produit',
+            message: 'Supprimer définitivement ce produit ?',
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}))
+                // UI-First update
+                const oldProducts = [...localProducts]
+                setLocalProducts(prev => prev.filter(p => p.id !== id))
 
-        // UI-First update
-        const oldProducts = [...localProducts]
-        setLocalProducts(prev => prev.filter(p => p.id !== id))
-
-        try {
-            await authFetch(`${API_URL}/products/${id}`, {
-                method: 'DELETE'
-            })
-            showToast("Produit supprimé", "success")
-        } catch (err) {
-            setLocalProducts(oldProducts)
-            showToast("Erreur de suppression", "error")
-        }
+                try {
+                    await authFetch(`${API_URL}/products/${id}`, {
+                        method: 'DELETE'
+                    })
+                    showToast("Produit supprimé", "success")
+                } catch (err) {
+                    setLocalProducts(oldProducts)
+                    showToast("Erreur de suppression", "error")
+                }
+            }
+        })
+        return
     }
 
     const handleExport = async () => {
@@ -1012,6 +1021,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                 shopId={activeShop?.id}
                 onRefresh={() => window.location.reload()}
             />
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
         </div >
     )
 }

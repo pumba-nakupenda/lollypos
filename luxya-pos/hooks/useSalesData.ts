@@ -2,17 +2,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useToast } from '@/context/ToastContext';
 import { useShop } from '@/context/ShopContext';
+import { Product, Customer, Sale } from '@/types/models';
 
 export function useSalesData() {
     const supabase = createClient();
     const { showToast } = useToast();
     const { activeShop } = useShop();
 
-    const [products, setProducts] = useState<any[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<string[]>(['Toutes']);
     const [brands, setBrands] = useState<string[]>(['Toutes']);
-    const [allCustomers, setAllCustomers] = useState<any[]>([]);
-    const [salesHistory, setSalesHistory] = useState<any[]>([]);
+    const [allCustomers, setAllCustomers] = useState<Customer[]>([]);
+    const [salesHistory, setSalesHistory] = useState<Sale[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchProducts = useCallback(async () => {
@@ -28,10 +29,10 @@ export function useSalesData() {
             if (error) throw error;
             if (data) {
                 setProducts(data);
-                const visibleProducts = data.filter((p: any) => p.show_on_pos !== false);
-                const cats = new Set(visibleProducts.map((p: any) => p.category).filter(Boolean));
+                const visibleProducts = data.filter((p: Product) => p.show_on_pos !== false);
+                const cats = new Set(visibleProducts.map((p: Product) => p.category).filter(Boolean));
                 setCategories(['Toutes', ...Array.from(cats) as string[]]);
-                const bnds = new Set(visibleProducts.map((p: any) => p.brand).filter(Boolean));
+                const bnds = new Set(visibleProducts.map((p: Product) => p.brand).filter(Boolean));
                 setBrands(['Toutes', ...Array.from(bnds).sort() as string[]]);
             }
         } catch (e) {
@@ -62,10 +63,11 @@ export function useSalesData() {
         try {
             const { data, error } = await supabase
                 .from('customers')
-                .select('*')
-                .eq('shop_id', activeShop.id);
+                .select('id, name, email, phone')
+                .eq('shop_id', activeShop.id)
+                .limit(500);
             if (error) throw error;
-            if (data) setAllCustomers(data);
+            if (data) setAllCustomers(data as Customer[]);
         } catch (e) {
             // silently ignore
         }

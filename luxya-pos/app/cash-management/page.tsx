@@ -22,6 +22,10 @@ import { useShop } from '@/context/ShopContext'
 import { useUser } from '@/context/UserContext'
 import { useToast } from '@/context/ToastContext'
 import { createClient } from '@/utils/supabase/client'
+import { CashSession, CashMovement } from '@/types/models'
+
+type SessionRow = Pick<CashSession, 'id' | 'status' | 'opening_balance' | 'closed_at' | 'closing_balance_actual' | 'closing_balance_theoretical'>
+type MovementRow = Pick<CashMovement, 'id' | 'type' | 'amount' | 'description' | 'source' | 'payment_method' | 'created_at'>
 
 export default function CashManagementPage() {
     const { activeShop } = useShop()
@@ -29,9 +33,9 @@ export default function CashManagementPage() {
     const { showToast } = useToast()
     const supabase = createClient()
 
-    const [currentSession, setCurrentSession] = useState<any>(null)
-    const [lastSessions, setLastSessions] = useState<any[]>([])
-    const [movements, setMovements] = useState<any[]>([])
+    const [currentSession, setCurrentSession] = useState<SessionRow | null>(null)
+    const [lastSessions, setLastSessions] = useState<SessionRow[]>([])
+    const [movements, setMovements] = useState<MovementRow[]>([])
     const [loading, setLoading] = useState(true)
     const [isActionModalOpen, setIsActionModalOpen] = useState(false)
     const [actionType, setActionType] = useState<'income' | 'outcome' | 'deposit' | 'withdrawal' | 'open' | 'close'>('income')
@@ -84,7 +88,7 @@ export default function CashManagementPage() {
         if (data) setLastSessions(data)
     }
 
-    const fetchMovements = async (sessionId: number) => {
+    const fetchMovements = async (sessionId: string) => {
         const { data } = await supabase
             .from('cash_movements')
             .select('id, type, amount, description, source, payment_method, created_at')
@@ -137,7 +141,7 @@ export default function CashManagementPage() {
                     closing_balance_actual: parseFloat(amount),
                     closed_by: profile?.id
                 })
-                .eq('id', currentSession.id)
+                .eq('id', currentSession!.id)
 
             if (error) throw error
             showToast("Caisse clôturée !", "success")
@@ -160,7 +164,7 @@ export default function CashManagementPage() {
             const { error } = await supabase
                 .from('cash_movements')
                 .insert([{
-                    session_id: currentSession.id,
+                    session_id: currentSession!.id,
                     shop_id: activeShop?.id,
                     type: actionType,
                     amount: parseFloat(amount),
@@ -174,7 +178,7 @@ export default function CashManagementPage() {
             setIsActionModalOpen(false)
             setAmount('')
             setDescription('')
-            fetchMovements(currentSession.id)
+            fetchMovements(currentSession!.id)
         } catch (err) {
             showToast("Erreur d'enregistrement", "error")
         } finally {
@@ -183,7 +187,7 @@ export default function CashManagementPage() {
     }
 
     const metrics = movements.reduce((acc, m) => {
-        const val = parseFloat(m.amount)
+        const val = Number(m.amount)
         const method = m.payment_method || 'cash'
 
         if (m.type === 'income' || m.type === 'deposit') {
@@ -198,7 +202,7 @@ export default function CashManagementPage() {
     }, {
         in: 0,
         out: 0,
-        theoreticalCash: currentSession ? parseFloat(currentSession.opening_balance) : 0,
+        theoreticalCash: currentSession ? Number(currentSession.opening_balance) : 0,
         wallets: {} as Record<string, number>
     })
 
@@ -207,7 +211,7 @@ export default function CashManagementPage() {
         metrics.wallets['cash'] = (metrics.wallets['cash'] || 0) + metrics.theoreticalCash
     }
 
-    metrics.theoreticalCash = (currentSession ? parseFloat(currentSession.opening_balance) : 0) + metrics.in - metrics.out
+    metrics.theoreticalCash = (currentSession ? Number(currentSession.opening_balance) : 0) + metrics.in - metrics.out
 
     if (loading && !currentSession && lastSessions.length === 0) return (
         <div className="min-h-screen flex items-center justify-center">
@@ -293,7 +297,7 @@ export default function CashManagementPage() {
                             </div>
 
                             <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
-                                {movements.map((move: any) => (
+                                {movements.map((move: MovementRow) => (
                                     <div key={move.id} className="flex items-center justify-between p-5 glass-card rounded-2xl hover:border-white/10 transition-all border-transparent">
                                         <div className="flex items-center space-x-4">
                                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs border ${move.type === 'income' || move.type === 'deposit'
@@ -314,7 +318,7 @@ export default function CashManagementPage() {
                                             </div>
                                         </div>
                                         <div className={`text-right font-black text-sm ${move.type === 'income' || move.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
-                                            {move.type === 'income' || move.type === 'deposit' ? '+' : '-'}{parseFloat(move.amount).toLocaleString()} CFA
+                                            {move.type === 'income' || move.type === 'deposit' ? '+' : '-'}{Number(move.amount).toLocaleString()} CFA
                                         </div>
                                     </div>
                                 ))}
@@ -354,25 +358,25 @@ export default function CashManagementPage() {
                     <div className="glass-panel p-8 rounded-[40px] border-white/5 bg-white/[0.01]">
                         <h3 className="text-sm font-black uppercase tracking-tight mb-6">Dernières Clôtures</h3>
                         <div className="space-y-4">
-                            {lastSessions.map((session: any) => (
+                            {lastSessions.map((session: SessionRow) => (
                                 <div key={session.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-[9px] font-black uppercase text-muted-foreground">{new Date(session.closed_at).toLocaleDateString()}</span>
-                                        <div className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${parseFloat(session.closing_balance_actual) >= parseFloat(session.closing_balance_theoretical)
+                                        <span className="text-[9px] font-black uppercase text-muted-foreground">{session.closed_at ? new Date(session.closed_at).toLocaleDateString() : '—'}</span>
+                                        <div className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase ${Number(session.closing_balance_actual) >= Number(session.closing_balance_theoretical)
                                             ? 'bg-green-500/10 text-green-400'
                                             : 'bg-red-500/10 text-red-400'
                                             }`}>
-                                            {parseFloat(session.closing_balance_actual) >= parseFloat(session.closing_balance_theoretical) ? 'Équilibrée' : 'Écart'}
+                                            {Number(session.closing_balance_actual) >= Number(session.closing_balance_theoretical) ? 'Équilibrée' : 'Écart'}
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         <div>
                                             <p className="text-[8px] font-black uppercase text-muted-foreground">Théorique</p>
-                                            <p className="text-xs font-black text-white">{parseFloat(session.closing_balance_theoretical).toLocaleString()}</p>
+                                            <p className="text-xs font-black text-white">{Number(session.closing_balance_theoretical).toLocaleString()}</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[8px] font-black uppercase text-muted-foreground">Réel</p>
-                                            <p className="text-xs font-black text-shop">{parseFloat(session.closing_balance_actual).toLocaleString()}</p>
+                                            <p className="text-xs font-black text-shop">{Number(session.closing_balance_actual).toLocaleString()}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -415,6 +419,7 @@ export default function CashManagementPage() {
                                     <DollarSign className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-white transition-colors" />
                                     <input
                                         type="number"
+                                        aria-label="Montant"
                                         className="w-full bg-white/5 border border-white/10 rounded-[24px] py-5 pl-14 pr-6 text-2xl font-black outline-none focus:border-white/20 transition-all text-white"
                                         placeholder="0"
                                         value={amount}
@@ -428,6 +433,7 @@ export default function CashManagementPage() {
                                 <div className="space-y-3">
                                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-3">Description / Motif</label>
                                     <textarea
+                                        aria-label="Description"
                                         className="w-full bg-white/5 border border-white/10 rounded-[24px] py-5 px-6 text-sm font-bold outline-none focus:border-white/20 transition-all text-white min-h-[100px]"
                                         placeholder="Ex: Achat fournitures bureau..."
                                         value={description}
@@ -444,7 +450,7 @@ export default function CashManagementPage() {
                                             <button
                                                 key={m}
                                                 type="button"
-                                                onClick={() => setPayMethod(m as any)}
+                                                onClick={() => setPayMethod(m as 'cash' | 'wave' | 'om')}
                                                 className={`py-4 rounded-2xl border text-[10px] font-black uppercase tracking-widest transition-all ${payMethod === m
                                                         ? 'bg-shop text-white border-shop'
                                                         : 'bg-white/5 text-muted-foreground border-white/10 hover:border-white/20'
@@ -487,8 +493,16 @@ export default function CashManagementPage() {
     )
 }
 
-function MetricCard({ title, value, icon, color, highlight }: any) {
-    const colorMap: any = {
+interface MetricCardProps {
+    title: string
+    value: number
+    icon: React.ReactNode
+    color: 'shop' | 'green' | 'red' | 'blue'
+    highlight?: boolean
+}
+
+function MetricCard({ title, value, icon, color, highlight }: MetricCardProps) {
+    const colorMap: Record<string, string> = {
         shop: 'text-shop bg-shop/10 border-shop/20',
         green: 'text-green-400 bg-green-500/10 border-green-500/20',
         red: 'text-red-400 bg-red-500/10 border-red-500/20',
@@ -498,11 +512,11 @@ function MetricCard({ title, value, icon, color, highlight }: any) {
     return (
         <div className={`glass-panel p-6 rounded-[32px] border-white/5 relative overflow-hidden group ${highlight ? 'ring-1 ring-shop/20' : ''}`}>
             <div className={`absolute -right-2 -top-2 opacity-[0.03] group-hover:scale-110 transition-all`}>
-                {React.cloneElement(icon as React.ReactElement<any>, { className: 'w-20 h-20' })}
+                {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: 'w-20 h-20' })}
             </div>
             <p className="text-[9px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">{title}</p>
             <div className="flex items-baseline space-x-2 relative z-10">
-                <h2 className={`text-2xl font-black tracking-tight ${colorMap[color].split(' ')[0]}`}>{parseFloat(value).toLocaleString()}</h2>
+                <h2 className={`text-2xl font-black tracking-tight ${colorMap[color].split(' ')[0]}`}>{value.toLocaleString()}</h2>
                 <span className="text-[10px] font-bold opacity-30">CFA</span>
             </div>
             {highlight && (

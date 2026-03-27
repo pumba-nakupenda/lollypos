@@ -11,6 +11,7 @@ import { useToast } from '@/context/ToastContext';
 import ShopSelector from '@/components/ShopSelector';
 import ReceiptModal from '@/components/ReceiptModal';
 import Portal from '@/components/Portal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import { API_URL, authFetch } from '@/utils/api';
 import { createClient } from '@/utils/supabase/client';
 
@@ -59,6 +60,7 @@ export default function SalesTerminal() {
     const [activeTab, setActiveTab] = useState<'shop' | 'history'>('shop');
     const [currentSession, setCurrentSession] = useState<any>(null);
     const [imageErrors, setImageErrors] = useState<Record<number, boolean>>({});
+    const [confirmState, setConfirmState] = useState<{ isOpen: boolean, title: string, message: string, onConfirm: () => void }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
     useEffect(() => {
         if (activeShop) {
@@ -113,7 +115,7 @@ export default function SalesTerminal() {
                         productId: item.id,
                         quantity: item.quantity,
                         price: item.price,
-                        variantId: item.variantInfo?.id?.toString() || null,
+                        variantId: null,
                         name: item.name
                     }))
                 };
@@ -172,27 +174,43 @@ export default function SalesTerminal() {
     };
 
     const handleDeleteSale = async (id: string) => {
-        if (!confirm("Supprimer définitivement cet enregistrement ?")) return;
-        try {
-            const { error } = await supabase.from('sales').delete().eq('id', id);
-            if (error) throw error;
-            showToast("Enregistrement supprimé", "success");
-            fetchHistory();
-        } catch (e) {
-            showToast("Erreur lors de la suppression", "error");
-        }
+        setConfirmState({
+            isOpen: true,
+            title: 'Supprimer la vente',
+            message: 'Supprimer définitivement cet enregistrement ?',
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}));
+                try {
+                    const { error } = await supabase.from('sales').delete().eq('id', id);
+                    if (error) throw error;
+                    showToast("Enregistrement supprimé", "success");
+                    fetchHistory();
+                } catch (e) {
+                    showToast("Erreur lors de la suppression", "error");
+                }
+            }
+        });
+        return;
     };
 
     const handleCancelSale = async (sale: any) => {
-        if (!confirm(`Annuler la vente ${sale.invoice_number || ''} et remettre les articles en stock ?`)) return;
-        try {
-            await authFetch(`${API_URL}/sales/${sale.id}/cancel?shopId=${activeShop?.id}`, { method: 'POST' });
-            showToast("Vente annulée et stock rétabli", "success");
-            fetchHistory();
-            fetchProducts();
-        } catch (e: any) {
-            showToast(e.message || "Erreur lors de l'annulation", "error");
-        }
+        setConfirmState({
+            isOpen: true,
+            title: 'Annuler la vente',
+            message: `Annuler la vente ${sale.invoice_number || ''} et remettre les articles en stock ?`,
+            onConfirm: async () => {
+                setConfirmState(prev => ({...prev, isOpen: false}));
+                try {
+                    await authFetch(`${API_URL}/sales/${sale.id}/cancel?shopId=${activeShop?.id}`, { method: 'POST' });
+                    showToast("Vente annulée et stock rétabli", "success");
+                    fetchHistory();
+                    fetchProducts();
+                } catch (e: any) {
+                    showToast(e.message || "Erreur lors de l'annulation", "error");
+                }
+            }
+        });
+        return;
     };
 
     return (
@@ -280,6 +298,7 @@ export default function SalesTerminal() {
                 />
 
             {lastSale && <ReceiptModal isOpen={isReceiptOpen} onClose={() => setIsReceiptOpen(false)} saleData={lastSale} shop={activeShop} />}
+            <ConfirmDialog {...confirmState} onCancel={() => setConfirmState(prev => ({...prev, isOpen: false}))} />
 
             {/* Mobile Cart Floating Button */}
             {cart.length > 0 && (
@@ -305,7 +324,7 @@ export default function SalesTerminal() {
                             <button onClick={() => setSelectedProductForVariant(null)} className="absolute top-6 right-6 p-2 hover:bg-white/5 rounded-full transition-colors"><X className="w-5 h-5" /></button>
                             <div className="flex flex-col items-center text-center space-y-6">
                                 <div className="w-32 h-32 rounded-3xl bg-white/5 border border-white/10 overflow-hidden relative shadow-2xl">
-                                    <Image src={selectedProductForVariant.image} alt={selectedProductForVariant.name} fill className="object-cover" />
+                                    {selectedProductForVariant.image && <Image src={selectedProductForVariant.image} alt={selectedProductForVariant.name} fill className="object-cover" />}
                                 </div>
                                 <div>
                                     <h3 className="text-xl font-black uppercase tracking-tight text-white">{selectedProductForVariant.name}</h3>
@@ -313,7 +332,7 @@ export default function SalesTerminal() {
                                 </div>
                                 <div className="w-full space-y-4 max-h-[40vh] overflow-y-auto pr-2 custom-scrollbar">
                                     <div className="grid grid-cols-1 gap-3">
-                                        {selectedProductForVariant.variants.map((v: any, i: number) => (
+                                        {selectedProductForVariant.variants?.map((v, i) => (
                                             <button key={i} disabled={v.stock !== undefined && parseInt(v.stock) <= 0} onClick={() => { 
                                                 addToCart(selectedProductForVariant, v); 
                                                 setSelectedProductForVariant(null);
@@ -337,7 +356,7 @@ export default function SalesTerminal() {
                                     </div>
                                 </div>
                                 <button onClick={() => { 
-                                    addToCart(selectedProductForVariant, { color: 'Standard', size: 'N/A' }); 
+                                    addToCart(selectedProductForVariant, { color: 'Standard', size: 'N/A', stock: '999', price: null, image: null });
                                     setSelectedProductForVariant(null); 
                                     if (window.innerWidth < 1024) setIsCartOpen(true);
                                 }} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-white transition-colors py-2">Continuer sans variante spécifique</button>
