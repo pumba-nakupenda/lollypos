@@ -29,7 +29,6 @@ import { Suspense } from "react";
 import { createClient } from "@/utils/supabase/server";
 import Sidebar from "@/components/Sidebar";
 import GlobalLoader from "@/components/GlobalLoader";
-import AiFloatingButton from "@/components/AiFloatingButton";
 import { headers } from 'next/headers';
 
 export default async function RootLayout({
@@ -75,8 +74,6 @@ export default async function RootLayout({
     }
   }
 
-    const showAi = initialProfile?.is_super_admin === true && pathname !== '/login';
-  
     return (
       <html lang="fr" className="dark">
         <body
@@ -92,7 +89,6 @@ export default async function RootLayout({
                       <main className="flex-1 min-w-0 overflow-y-auto pb-24 lg:pb-0">
                         {children}
                       </main>
-                      {showAi && <AiFloatingButton />}
                     </div>
                 </ShopProvider>
               </UserProvider>

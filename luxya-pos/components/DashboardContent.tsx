@@ -36,7 +36,6 @@ import ShopSelector from './ShopSelector'
 import CustomDropdown from './CustomDropdown'
 import ReceiptModal from './ReceiptModal'
 import ExpiryAlertBanner from './ExpiryAlertBanner'
-import AiInsights from './AiInsights'
 import { API_URL, authFetch } from '@/utils/api'
 import { ProfitabilityIndicator, ProfitabilityHistory } from './ProfitabilityComponents'
 
@@ -235,7 +234,6 @@ export default function DashboardContent({ user }: { user: any }) {
                 <ExpiryAlertBanner shopId={activeShop?.id} />
 
                 {/* 0. AI GROWTH INSIGHTS - Only for Global View */}
-                {(!activeShop || activeShop.id === 0) && <AiInsights />}
 
                 {/* 1. KEY METRICS & FINANCIAL HEALTH */}
                 <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 sm:gap-8 items-start">

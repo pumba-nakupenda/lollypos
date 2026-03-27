@@ -16,7 +16,6 @@ import {
     X,
     Users,
     Calendar,
-    Sparkles,
     CreditCard,
     TrendingUp,
     Truck,
@@ -33,7 +32,6 @@ const navGroups = [
         items: [
             { name: 'Tableau de bord', href: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier', 'inventory', 'lead'] },
             { name: 'Agenda', href: '/calendar', icon: Calendar, roles: ['admin', 'manager', 'lead'] },
-            { name: 'Lolly AI', href: '/ai', icon: Sparkles, superAdminOnly: true },
         ]
     },
     {
