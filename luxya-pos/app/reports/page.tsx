@@ -138,7 +138,7 @@ export default function ReportsPage() {
                 date: selectedDate,
                 metrics: stats,
                 sales_count: detailedSales.length,
-                generated_by: 'Lolly Agency CRM'
+                generated_by: 'Lolly POS'
             }
 
             // Route through our server-side proxy to avoid browser CORS blocks

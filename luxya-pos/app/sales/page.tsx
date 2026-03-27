@@ -17,14 +17,12 @@ import { createClient } from '@/utils/supabase/client';
 // Hooks
 import { useSalesData } from '@/hooks/useSalesData';
 import { usePos } from '@/hooks/usePos';
-import { useAgency } from '@/hooks/useAgency';
 
 import dynamic from 'next/dynamic';
 
 // Components (Lazy Loaded for faster initial POS render)
 const ProductGrid = dynamic(() => import('./components/ProductGrid'), { ssr: false });
 const CartSidebar = dynamic(() => import('./components/CartSidebar'), { ssr: false });
-const AgencyForm = dynamic(() => import('./components/AgencyForm'), { ssr: false });
 const SalesHistoryTable = dynamic(() => import('./components/SalesHistoryTable'), { ssr: false });
 
 export default function SalesTerminal() {
@@ -35,20 +33,14 @@ export default function SalesTerminal() {
 
     // Logic extracted to Hooks
     const {
-        products, categories, brands, allCustomers, agencyHistory, projects,
-        loading, isAgency, fetchProducts, fetchHistory, fetchCustomers,
+        products, categories, brands, allCustomers, salesHistory, projects,
+        loading, fetchProducts, fetchHistory, fetchCustomers,
     } = useSalesData();
 
     const {
         cart, setCart, addToCart, updateCartItemPrice,
         selectedProductForVariant, setSelectedProductForVariant, resetCart,
-    } = usePos(isAgency, products);
-
-    const {
-        agencyLines, setAgencyLines, docType, setDocType, productSearch, setProductSearch,
-        editingDocId, setEditingDocId, linkedDocNumber, setLinkedDocNumber, linkedDocId, setLinkedDocId,
-        addAgencyLine, updateAgencyLine, addProductToAgency, handleTransformDocument, resetAgency,
-    } = useAgency(products);
+    } = usePos(false, products);
 
     // Local UI State
     const [searchQuery, setSearchQuery] = useState('');
@@ -60,8 +52,6 @@ export default function SalesTerminal() {
     const [selectedCategory, setSelectedCategory] = useState('Toutes');
     const [selectedBrand, setSelectedBrand] = useState('Toutes');
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-    const [withTva, setWithTva] = useState(false);
-    const [paidAmount, setPaidAmount] = useState('0');
     const [lastSale, setLastSale] = useState<any>(null);
     const [isReceiptOpen, setIsReceiptOpen] = useState(false);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -93,9 +83,7 @@ export default function SalesTerminal() {
         }
     };
 
-    const totalAmount = isAgency
-        ? agencyLines.reduce((sum, l) => sum + (l.price * l.quantity), 0)
-        : cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
     const handleCheckout = async () => {
         if (!activeShop || activeShop.id === 0) {
@@ -105,13 +93,13 @@ export default function SalesTerminal() {
         setIsCheckingOut(true);
 
         try {
-            if (paymentMethod.toLowerCase() === 'cash' && !currentSession && !isAgency) {
+            if (paymentMethod.toLowerCase() === 'cash' && !currentSession) {
                 showToast("La caisse est fermée. Veuillez l'ouvrir dans 'Ma Caisse' avant d'encaisser du Cash.", "error");
                 setIsCheckingOut(false);
                 return;
             }
 
-            if (!isAgency) {
+            {
                 const saleData = {
                     customer_name: customerName || 'Client Comptant',
                     customer_id: (selectedCustomerId && selectedCustomerId.length > 20) ? selectedCustomerId : undefined,
@@ -156,64 +144,6 @@ export default function SalesTerminal() {
                 setCustomerName('');
                 fetchHistory();
                 fetchProducts();
-            } else {
-                if (!customerName) {
-                    showToast("Veuillez saisir le nom du client", "error");
-                    return;
-                }
-
-                const prefix = docType === 'quote' ? 'DEV' : docType === 'invoice' ? 'FAC' : 'BL';
-                const dateCode = new Date().toISOString().split('T')[0].replace(/-/g, '');
-                const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-                const docNumber = `${prefix}-${dateCode}-${rand}`;
-
-                const docData = {
-                    customer_name: customerName,
-                    customer_id: (selectedCustomerId && selectedCustomerId.length > 20) ? selectedCustomerId : undefined,
-                    totalAmount,
-                    paymentMethod: paymentMethod.toLowerCase(),
-                    type: docType,
-                    status: docType === 'quote' ? 'pending' : 'completed',
-                    shopId: activeShop.id,
-                    created_by: profile?.id,
-                    created_at: new Date(saleDate).toISOString(),
-                    invoice_number: docNumber,
-                    with_tva: withTva,
-                    paid_amount: parseFloat(paidAmount) || 0,
-                    project_id: selectedProjectId,
-                    items: agencyLines.map(l => ({
-                        productId: l.product_id || 0,
-                        name: l.name,
-                        quantity: l.quantity,
-                        price: l.price
-                    }))
-                };
-
-                const savedDoc = await authFetch(`${API_URL}/sales`, {
-                    method: 'POST',
-                    body: JSON.stringify(docData)
-                });
-
-                if (parseFloat(paidAmount) > 0 && currentSession) {
-                    await supabase.from('cash_movements').insert([{
-                        session_id: currentSession.id,
-                        shop_id: activeShop.id,
-                        type: 'income',
-                        amount: parseFloat(paidAmount),
-                        description: `${docType === 'invoice' ? 'Facture' : 'BL'} #${savedDoc.invoice_number || savedDoc.id}`,
-                        source: 'sale',
-                        source_id: savedDoc.id?.toString(),
-                        payment_method: paymentMethod.toLowerCase()
-                    }]);
-                }
-
-                showToast(`${docType === 'quote' ? 'Devis' : 'Document'} enregistré !`, "success");
-                setLastSale({ ...savedDoc, items: agencyLines });
-                setIsReceiptOpen(true);
-                resetAgency();
-                setCustomerName('');
-                setPaidAmount('0');
-                fetchHistory();
             }
         } catch (e: any) {
             showToast(`${e.message}`, "error");
@@ -312,31 +242,18 @@ export default function SalesTerminal() {
                     {/* Catalog Content (Shop Tab) */}
                     {(activeTab === 'shop' || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
                         <div className={activeTab === 'history' ? 'hidden lg:block' : ''}>
-                            {!isAgency ? (
                                 <ProductGrid
                                     products={products} loading={loading} searchQuery={searchQuery} setSearchQuery={setSearchQuery}
                                     categories={categories} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
                                     brands={brands} selectedBrand={selectedBrand} setSelectedBrand={setSelectedBrand}
                                     addToCart={(p) => {
                                         addToCart(p);
-                                        // Auto-open cart on mobile if it's not a variant selection step
                                         if (window.innerWidth < 1024 && (!p.variants || p.variants.length === 0)) {
                                             setIsCartOpen(true);
                                         }
                                     }}
                                     imageErrors={imageErrors} setImageErrors={setImageErrors}
                                 />
-                            ) : (
-                                <AgencyForm
-                                    docType={docType} setDocType={setDocType} linkedDocNumber={linkedDocNumber} setLinkedDocNumber={setLinkedDocNumber}
-                                    customerName={customerName} setCustomerName={setCustomerName} allCustomers={allCustomers}
-                                    setSelectedCustomerId={setSelectedCustomerId} productSearch={productSearch} setProductSearch={setProductSearch}
-                                    products={products} addProductToAgency={addProductToAgency} agencyLines={agencyLines} updateAgencyLine={updateAgencyLine}
-                                    setAgencyLines={setAgencyLines} addAgencyLine={addAgencyLine} paidAmount={paidAmount} setPaidAmount={setPaidAmount}
-                                    totalAmount={totalAmount} isCheckingOut={isCheckingOut} handleCheckout={handleCheckout}
-                                    projects={projects} selectedProjectId={selectedProjectId} setSelectedProjectId={setSelectedProjectId}
-                                />
-                            )}
                         </div>
                     )}
 
@@ -344,11 +261,7 @@ export default function SalesTerminal() {
                     {(activeTab === 'history' || (typeof window !== 'undefined' && window.innerWidth >= 1024)) && (
                         <div className={`space-y-8 ${activeTab === 'shop' ? 'hidden lg:block mt-20 border-t border-white/5 pt-20' : ''}`}>
                             <SalesHistoryTable
-                                history={agencyHistory} isAgency={isAgency} docType={docType}
-                                handleTransformDocument={async (sale, type) => {
-                                    const success = await handleTransformDocument(sale, type);
-                                    if (success) setActiveTab('shop');
-                                }}
+                                history={salesHistory}
                                 handleViewReceipt={handleViewReceipt} handleDeleteSale={handleDeleteSale} handleCancelSale={handleCancelSale}
                             />
                         </div>
@@ -357,8 +270,7 @@ export default function SalesTerminal() {
             </div>
 
             {/* Sidebar Cart */}
-            {!isAgency && (
-                <CartSidebar
+            <CartSidebar
                     cart={cart} setCart={setCart} addToCart={addToCart} updateCartItemPrice={updateCartItemPrice}
                     products={products} isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen}
                     paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} receivedAmount={receivedAmount}
@@ -366,12 +278,11 @@ export default function SalesTerminal() {
                     handleCheckout={handleCheckout} projects={projects} selectedProjectId={selectedProjectId}
                     setSelectedProjectId={setSelectedProjectId}
                 />
-            )}
 
             {lastSale && <ReceiptModal isOpen={isReceiptOpen} onClose={() => setIsReceiptOpen(false)} saleData={lastSale} shop={activeShop} />}
 
             {/* Mobile Cart Floating Button */}
-            {!isAgency && cart.length > 0 && (
+            {cart.length > 0 && (
                 <button
                     onClick={() => setIsCartOpen(true)}
                     className="lg:hidden fixed bottom-28 right-6 z-[140] w-16 h-16 bg-shop text-white rounded-2xl shadow-2xl shadow-shop/40 flex items-center justify-center animate-bounce-subtle"

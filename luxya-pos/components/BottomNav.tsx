@@ -4,35 +4,21 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { 
-    LayoutDashboard, 
-    ShoppingBag, 
-    Package, 
+import {
+    LayoutDashboard,
+    ShoppingBag,
     Menu,
     Receipt,
-    FolderKanban,
-    Users,
     CreditCard,
     Wallet
 } from 'lucide-react'
-import { useShop } from '@/context/ShopContext'
 
 export default function BottomNav({ onMenuClick }: { onMenuClick: () => void }) {
     const pathname = usePathname()
-    const { activeShop } = useShop()
 
     if (pathname === '/login') return null
 
-    // Dynamic Navigation based on Shop Type
-    const isAgency = activeShop?.id === 3
-
-    const navItems = isAgency ? [
-        { name: 'Tableau', href: '/', icon: LayoutDashboard },
-        { name: 'Projets', href: '/projects', icon: FolderKanban },
-        { name: 'Facture', href: '/sales', icon: ShoppingBag },
-        { name: 'Relevés', href: '/portfolio', icon: Users },
-        { name: 'Trésor', href: '/cash-management', icon: Wallet },
-    ] : [
+    const navItems = [
         { name: 'Home', href: '/', icon: LayoutDashboard },
         { name: 'POS', href: '/sales', icon: ShoppingBag },
         { name: 'Caisse', href: '/cash-management', icon: Wallet },

@@ -11,11 +11,8 @@ import {
     BarChart3,
     Shield,
     Receipt,
-    Settings,
-    ChevronRight,
     LogOut,
     Store,
-    Menu,
     X,
     Users,
     Calendar,
@@ -23,15 +20,10 @@ import {
     CreditCard,
     TrendingUp,
     Truck,
-    Tag,
-    Lock,
     RefreshCw,
-    Globe,
     FileText,
-    FolderKanban
 } from 'lucide-react'
 import { useUser } from '@/context/UserContext'
-import { useShop } from '@/context/ShopContext'
 import ShopSelector from './ShopSelector'
 import BottomNav from './BottomNav'
 
@@ -50,8 +42,6 @@ const navGroups = [
             { name: 'Caisse POS', href: '/sales', icon: ShoppingBag, roles: ['admin', 'manager', 'cashier'] },
             { name: 'Ma Caisse', href: '/cash-management', icon: LayoutDashboard, roles: ['admin', 'manager', 'cashier'] },
             { name: 'Pipeline', href: '/customers/pipeline', icon: TrendingUp, roles: ['admin', 'manager', 'lead'] },
-            { name: 'Portfolio', href: '/portfolio', icon: Users, roles: ['admin', 'manager', 'lead'], agencyOnly: true },
-            { name: 'Projets', href: '/projects', icon: FolderKanban, roles: ['admin', 'manager', 'lead'], agencyOnly: true },
             { name: 'Clients', href: '/customers', icon: Users, roles: ['admin', 'manager', 'lead'] },
         ]
     },
@@ -84,7 +74,6 @@ const navGroups = [
 export default function Sidebar() {
     const pathname = usePathname()
     const { profile } = useUser()
-    const { activeShop } = useShop()
     const [isMobileOpen, setIsMobileOpen] = useState(false)
 
     // ERP/POS Separation: No sidebar for login page
@@ -117,43 +106,12 @@ export default function Sidebar() {
 
             <nav className="flex-1 px-4 py-6 space-y-6 overflow-y-auto custom-scrollbar pb-20">
                 {navGroups.map((group) => {
-                    const isAgency = activeShop?.id === 3
-                    const groupTitle = (!isAgency && group.title === "Gestion Stock") ? "Gestion de stock" : group.title
-
                     const filteredItems = group.items.filter((item: any) => {
                         if (item.superAdminOnly && !profile?.is_super_admin) return false
-                        if (item.agencyOnly && !isAgency) return false
                         if (!item.roles) return true
                         if (item.name === 'Inventaire' && profile?.has_stock_access) return true
                         return item.roles.includes(profile?.role || '')
-                    }).map((item: any) => {
-                        // NEW: Dynamic naming for the Agency
-                        if (item.href === '/sales') {
-                            return { ...item, name: isAgency ? 'Facturation' : 'Caisse POS' }
-                        }
-                        if (item.href === '/cash-management') {
-                            return { ...item, name: isAgency ? 'Trésorerie' : 'Ma Caisse' }
-                        }
-                        if (item.href === '/portfolio') {
-                            return { ...item, name: 'Relevés Clients' }
-                        }
-                        if (item.href === '/inventory' && !isAgency) {
-                            return { ...item, name: 'Inventaire' }
-                        }
-                        if (item.href === '/debts' && !isAgency) {
-                            return { ...item, name: 'Gestion des dettes' }
-                        }
-                        return item
                     })
-
-                    // Add Personal Expenses dynamically to Finance group for Agency
-                    if (group.title === "Finance & Frais" && isAgency && (profile?.role === 'admin' || profile?.role === 'manager')) {
-                        filteredItems.push({
-                            name: 'Dépenses Perso',
-                            href: '/personal-expenses',
-                            icon: Tag
-                        });
-                    }
 
                     if (filteredItems.length === 0) return null
 

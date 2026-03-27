@@ -225,27 +225,13 @@ export default function CashManagementPage() {
                     </div>
                     <div>
                         <h1 className="text-3xl font-black uppercase tracking-tighter shop-gradient-text">
-                            {activeShop?.id === 3 ? 'Trésorerie' : 'Ma Caisse'}
+                            Ma Caisse
                         </h1>
                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">
-                            {activeShop?.name} • {activeShop?.id === 3 ? 'Flux Trésorerie' : 'Flux Physique'}
+                            {activeShop?.name} • Flux Physique
                         </p>
                     </div>
                 </div>
-
-                {activeShop?.id === 3 && (
-                    <div className="flex flex-wrap gap-2">
-                        {['cash', 'wave', 'om'].map(wallet => (
-                            <div key={wallet} className="glass-panel px-4 py-2 rounded-xl border-white/5 flex items-center space-x-3 bg-white/[0.02]">
-                                <div className={`w-2 h-2 rounded-full ${wallet === 'cash' ? 'bg-amber-500' : wallet === 'wave' ? 'bg-blue-500' : 'bg-red-500'}`} />
-                                <div className="flex flex-col">
-                                    <span className="text-[7px] font-black uppercase text-muted-foreground">{wallet}</span>
-                                    <span className="text-[9px] font-black">{(metrics.wallets[wallet] || 0).toLocaleString()}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
 
                 {currentSession ? (
                     <div className="flex items-center space-x-4">
@@ -256,7 +242,7 @@ export default function CashManagementPage() {
                             onClick={() => { setActionType('close'); setIsActionModalOpen(true); }}
                             className="px-6 py-2.5 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-red-500/20"
                         >
-                            {activeShop?.id === 3 ? 'Arrêter la Session' : 'Clôturer la Caisse'}
+                            Clôturer la Caisse
                         </button>
                     </div>
                 ) : (
@@ -264,7 +250,7 @@ export default function CashManagementPage() {
                         onClick={() => { setActionType('open'); setIsActionModalOpen(true); }}
                         className="px-8 py-3.5 bg-shop text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-shop/20"
                     >
-                        {activeShop?.id === 3 ? 'Démarrer Session' : 'Ouvrir la Caisse'}
+                        Ouvrir la Caisse
                     </button>
                 )}
             </header>
@@ -347,7 +333,7 @@ export default function CashManagementPage() {
                             </div>
                             <div>
                                 <h3 className="text-xl font-black uppercase">
-                                    {activeShop?.id === 3 ? 'Session de Trésorerie Fermée' : 'Caisse Fermée'}
+                                    Caisse Fermée
                                 </h3>
                                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-2 max-w-xs mx-auto">
                                     Veuillez démarrer une session pour enregistrer les flux aujourd'hui.
@@ -357,7 +343,7 @@ export default function CashManagementPage() {
                                 onClick={() => { setActionType('open'); setIsActionModalOpen(true); }}
                                 className="px-10 py-4 bg-shop text-white rounded-[24px] text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-shop/20 hover:scale-105 transition-all"
                             >
-                                {activeShop?.id === 3 ? 'Démarrer Session' : 'Commencer la Journée'}
+                                Commencer la Journée
                             </button>
                         </div>
                     )}
@@ -411,8 +397,8 @@ export default function CashManagementPage() {
                             </div>
                             <div>
                                 <h2 className="text-2xl font-black uppercase tracking-tighter text-white">
-                                    {actionType === 'open' ? (activeShop?.id === 3 ? 'Ouverture Session' : 'Ouverture Caisse') :
-                                        actionType === 'close' ? (activeShop?.id === 3 ? 'Fin de Session' : 'Clôture Caisse') :
+                                    {actionType === 'open' ? 'Ouverture Caisse' :
+                                        actionType === 'close' ? 'Clôture Caisse' :
                                             actionType === 'deposit' ? 'Dépôt Manuel' : 'Retrait Manuel'}
                                 </h2>
                                 <p className="text-[10px] text-muted-foreground font-bold tracking-[0.2em] uppercase mt-1">Saisie de mouvement</p>

@@ -108,7 +108,7 @@ export default function AdminDashboard() {
     const roleOptions = [
         { label: 'Super Admin', value: 'admin', icon: <Shield className="w-3.5 h-3.5" /> },
         { label: 'Directeur Boutique', value: 'manager', icon: <Store className="w-3.5 h-3.5" /> },
-        { label: 'Chef de Projet (Agency)', value: 'lead', icon: <FolderKanban className="w-3.5 h-3.5" /> },
+        { label: 'Chef de Projet', value: 'lead', icon: <FolderKanban className="w-3.5 h-3.5" /> },
         { label: 'Gestionnaire Stock', value: 'inventory', icon: <Package className="w-3.5 h-3.5" /> },
         { label: 'Vendeur / POS', value: 'cashier', icon: <ShoppingBag className="w-3.5 h-3.5" /> },
     ]
@@ -504,7 +504,7 @@ export default function AdminDashboard() {
                                         <FolderKanban className="w-4 h-4" />
                                         <h4 className="font-black uppercase text-[10px]">Chef Projet</h4>
                                     </div>
-                                    <p className="text-[9px] text-muted-foreground leading-relaxed">Spécialisé **Agency**. Gestion des projets, Mind Map et discussion client.</p>
+                                    <p className="text-[9px] text-muted-foreground leading-relaxed">Gestion des projets et coordination d'équipe.</p>
                                 </div>
                                 <div className="p-5 bg-white/5 rounded-3xl border border-white/5 space-y-3">
                                     <div className="flex items-center space-x-2 text-orange-400">

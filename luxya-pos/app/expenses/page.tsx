@@ -88,15 +88,14 @@ export default function ExpensesPage() {
     }, [activeShop, profile, profileLoading])
 
     const fetchProjects = async () => {
-        const { data } = await supabase.from('agency_projects').select('id, name').order('name');
-        if (data) setProjects(data);
+        setProjects([]);
     }
 
     const fetchExpenses = async () => {
         try {
             setLoading(true)
             const ts = Date.now()
-            const includePersonal = activeShop?.id === 3 ? '&includePersonal=true' : ''
+            const includePersonal = ''
             const url = activeShop ? `${API_URL}/expenses?shopId=${activeShop.id}${includePersonal}&_=${ts}` : `${API_URL}/expenses?_=${ts}`
             const res = await authFetch(url)
             setExpenses(res)
