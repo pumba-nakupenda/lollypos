@@ -1,49 +1,100 @@
-import { Controller, Get, Post, Body, Query, Param, Delete, Patch } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { SalesService } from './sales.service';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
+import type { AuthenticatedRequest } from '../auth/authenticated-request';
+import { SupabaseService } from '../supabase.service';
 
 @Controller('sales')
 export class SalesController {
-    constructor(private readonly salesService: SalesService) { }
+  constructor(
+    private readonly salesService: SalesService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
-    @Post()
-    @Throttle({default: {limit: 10, ttl: 60000}})
-    create(@Body() createSaleDto: CreateSaleDto) {
-        return this.salesService.create(createSaleDto);
-    }
+  private async assertShopAccess(
+    request: AuthenticatedRequest,
+    shopId?: number | null,
+  ) {
+    if (shopId === undefined || shopId === null) return;
+    await this.supabaseService.assertShopAccess(
+      request.user?.id ?? '',
+      Number(shopId),
+    );
+  }
 
-    @Patch(':id')
-    @Throttle({default: {limit: 10, ttl: 60000}})
-    update(@Param('id') id: string, @Body() updateSaleDto: UpdateSaleDto) {
-        return this.salesService.update(id, updateSaleDto);
-    }
+  @Post()
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async create(
+    @Req() request: AuthenticatedRequest,
+    @Body() createSaleDto: CreateSaleDto,
+  ) {
+    await this.assertShopAccess(request, createSaleDto.shopId);
+    return this.salesService.create(createSaleDto);
+  }
 
-    @Get()
-    findAll(@Query('shopId') shopId?: string) {
-        return this.salesService.findAll(shopId ? +shopId : undefined);
-    }
+  @Patch(':id')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async update(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() updateSaleDto: UpdateSaleDto,
+  ) {
+    await this.assertShopAccess(request, updateSaleDto.shopId);
+    return this.salesService.update(id, updateSaleDto);
+  }
 
-    @Get('items')
-    findItems(@Query('shopId') shopId?: string) {
-        return this.salesService.getSaleItems(shopId ? +shopId : undefined);
-    }
+  @Get()
+  async findAll(
+    @Req() request: AuthenticatedRequest,
+    @Query('shopId') shopId?: string,
+  ) {
+    const id = shopId ? +shopId : undefined;
+    await this.assertShopAccess(request, id);
+    return this.salesService.findAll(id);
+  }
 
-    @Get(':id/items')
-    findSaleItems(@Param('id') id: string) {
-        return this.salesService.getSaleItemsBySaleId(id);
-    }
+  @Get('items')
+  async findItems(
+    @Req() request: AuthenticatedRequest,
+    @Query('shopId') shopId?: string,
+  ) {
+    const id = shopId ? +shopId : undefined;
+    await this.assertShopAccess(request, id);
+    return this.salesService.getSaleItems(id);
+  }
 
-    @Delete(':id')
-    @Throttle({default: {limit: 10, ttl: 60000}})
-    remove(@Param('id') id: string) {
-        return this.salesService.remove(id); // Sales IDs are UUIDs
-    }
+  @Get(':id/items')
+  findSaleItems(@Param('id') id: string) {
+    return this.salesService.getSaleItemsBySaleId(id);
+  }
 
-    @Post(':id/cancel')
-    @Throttle({default: {limit: 10, ttl: 60000}})
-    cancel(@Param('id') id: string, @Query('shopId') shopId?: string) {
-        return this.salesService.cancel(id, shopId ? +shopId : undefined);
-    }
+  @Delete(':id')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  remove(@Param('id') id: string) {
+    return this.salesService.remove(id);
+  }
+
+  @Post(':id/cancel')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  async cancel(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Query('shopId') shopId?: string,
+  ) {
+    const parsedShopId = shopId ? +shopId : undefined;
+    await this.assertShopAccess(request, parsedShopId);
+    return this.salesService.cancel(id, parsedShopId);
+  }
 }
