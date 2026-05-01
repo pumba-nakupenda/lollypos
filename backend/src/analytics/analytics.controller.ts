@@ -24,7 +24,11 @@ export class AnalyticsController {
     request: AuthenticatedRequest,
     shopId?: string,
   ) {
-    if (!shopId || shopId === 'all') return;
+    if (!shopId) return;
+    if (shopId === 'all') {
+      await this.supabaseService.assertGlobalShopAccess(request.user?.id ?? '');
+      return;
+    }
     await this.supabaseService.assertShopAccess(
       request.user?.id ?? '',
       Number(shopId),

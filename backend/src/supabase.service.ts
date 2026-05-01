@@ -84,6 +84,24 @@ export class SupabaseService implements OnModuleInit {
     return this.adminClient;
   }
 
+  async assertGlobalShopAccess(userId: string): Promise<void> {
+    if (!userId) {
+      throw new UnauthorizedException('Utilisateur requis');
+    }
+
+    const admin = this.getAdminClient();
+    const { data: profile, error } = await admin
+      .from('profiles')
+      .select('id, is_super_admin, is_active')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    if (!profile || profile.is_active === false || !profile.is_super_admin) {
+      throw new ForbiddenException('Vue globale réservée au super admin');
+    }
+  }
+
   async assertShopAccess(userId: string, shopId: number): Promise<void> {
     if (!userId) {
       throw new UnauthorizedException('Utilisateur requis');

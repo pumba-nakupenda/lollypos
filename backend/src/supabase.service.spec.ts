@@ -28,7 +28,7 @@ const createAdminClient = (shop: SupabaseRow, profile: SupabaseRow) => {
   };
 };
 
-describe('SupabaseService.assertShopAccess', () => {
+describe('SupabaseService shop access guards', () => {
   const userId = '11111111-1111-4111-8111-111111111111';
   let service: SupabaseService;
 
@@ -102,6 +102,34 @@ describe('SupabaseService.assertShopAccess', () => {
 
     await expect(service.assertShopAccess(userId, 99)).rejects.toBeInstanceOf(
       NotFoundException,
+    );
+  });
+
+  it('allows a super admin to access the global shop view', async () => {
+    mockAdminClient(null, {
+      id: userId,
+      shop_id: 1,
+      shop_ids: [1],
+      is_super_admin: true,
+      is_active: true,
+    });
+
+    await expect(
+      service.assertGlobalShopAccess(userId),
+    ).resolves.toBeUndefined();
+  });
+
+  it('rejects the global shop view for a regular shop user', async () => {
+    mockAdminClient(null, {
+      id: userId,
+      shop_id: 1,
+      shop_ids: [1],
+      is_super_admin: false,
+      is_active: true,
+    });
+
+    await expect(service.assertGlobalShopAccess(userId)).rejects.toBeInstanceOf(
+      ForbiddenException,
     );
   });
 });
