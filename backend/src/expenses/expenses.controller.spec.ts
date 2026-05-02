@@ -1,42 +1,46 @@
 import { ForbiddenException } from '@nestjs/common';
-import { ProductsController } from './products.controller';
+
+jest.mock('./dto/create-expense.dto', () => ({}));
+
+import { ExpensesController } from './expenses.controller';
 import type { AuthenticatedRequest } from '../auth/authenticated-request';
 
-describe('ProductsController shop access', () => {
+describe('ExpensesController shop access', () => {
   const request = { user: { id: 'user-shop-1' } } as AuthenticatedRequest;
-  let controller: ProductsController;
-  let productsService: { create: jest.Mock };
+  let controller: ExpensesController;
+  let expensesService: { createCategory: jest.Mock };
   let supabaseService: { assertShopAccess: jest.Mock };
 
   beforeEach(() => {
-    productsService = {
-      create: jest.fn(),
+    expensesService = {
+      createCategory: jest.fn(),
     };
     supabaseService = {
       assertShopAccess: jest.fn(),
     };
-    controller = new ProductsController(
-      productsService as never,
+    controller = new ExpensesController(
+      expensesService as never,
       supabaseService as never,
     );
   });
 
-  it('rejects creating a product in another shop', async () => {
+  it('rejects creating an expense category in another shop', async () => {
     supabaseService.assertShopAccess.mockRejectedValue(
       new ForbiddenException('Acces refuse a cette boutique'),
     );
 
     await expect(
-      controller.create(request, {
-        name: 'Cross-shop product',
-        shop_id: 2,
-      } as never),
+      controller.createCategory(request, {
+        name: 'Frais shop B',
+        shopId: 2,
+        isPersonal: false,
+      }),
     ).rejects.toBeInstanceOf(ForbiddenException);
 
     expect(supabaseService.assertShopAccess).toHaveBeenCalledWith(
       'user-shop-1',
       2,
     );
-    expect(productsService.create).not.toHaveBeenCalled();
+    expect(expensesService.createCategory).not.toHaveBeenCalled();
   });
 });
