@@ -221,24 +221,35 @@ export default async function InventoryPage(props: { searchParams: Promise<{ sho
           </div>
         </div>
 
-        {/* Mobile Shop Selector */}
-        <div className="sm:hidden">
-          <ShopSelector />
-        </div>
+        {/* Product List Container */}
+        <InventoryList products={products} allCategories={allCategories} allBrands={allBrands} />
 
-        {/* Inventory List */}
-        <InventoryList
-          products={products}
-          allCategories={allCategories}
-          allBrands={allBrands}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          getPaginationLink={getPaginationLink}
-          searchQuery={searchQuery}
-          categoryFilter={categoryFilter}
-          statusFilter={statusFilter}
-          shopId={effectiveShopId}
-        />
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center space-x-4 pt-8">
+            {currentPage > 1 && (
+              <Link
+                href={getPaginationLink(currentPage - 1)}
+                className="px-6 py-3 glass-card rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+              >
+                Précédent
+              </Link>
+            )}
+            <div className="glass-card px-6 py-3 rounded-xl border border-white/10">
+              <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
+                Page {currentPage} sur {totalPages}
+              </span>
+            </div>
+            {currentPage < totalPages && (
+              <Link
+                href={getPaginationLink(currentPage + 1)}
+                className="px-6 py-3 bg-shop text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-shop/20"
+              >
+                Suivant
+              </Link>
+            )}
+          </div>
+        )}
       </main>
     </div>
   )
