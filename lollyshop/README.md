@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LOLLY Shop e-commerce
 
-## Getting Started
+Front e-commerce Next.js multi-shops pour LOLLYSHOP, LUXYA, HOMETEK et futurs univers.
 
-First, run the development server:
+## Environnement
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Variables principales : Supabase public URL/anon key, service-role key pour routes serveur admin, URL backend, URL site, et `SHOP_HOST_MAP` pour mapper des hostnames vers des slugs boutique.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Commandes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install
+npm run dev -- -p 3001
+npm run build
+npm run lint
+```
 
-## Learn More
+URL locale conseillee : `http://localhost:3001`.
 
-To learn more about Next.js, take a look at the following resources:
+## Resolution boutique
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Le helper `lib/resolve-shop.ts` resout la boutique par ordre de priorite :
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. query `shopId` ou `shop` ;
+2. hostname / sous-domaine / `SHOP_HOST_MAP` ;
+3. fallback explicite seulement quand il est fourni par le code appelant.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Eviter tout retour implicite vers `shop_id: 1`.
