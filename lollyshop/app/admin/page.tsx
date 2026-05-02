@@ -475,6 +475,10 @@ export default function AdminDashboard() {
         }
     };
 
+    const shopOptions = Array.from(new Map(products.filter((p) => p.shop_id).map((p) => [p.shop_id, { id: p.shop_id, name: p.shops?.name || `Boutique ${p.shop_id}` }])).values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
+
+    const getProductShopName = (product: any) => product.shops?.name || `Boutique ${product.shop_id || ''}`.trim();
+
     const filteredProducts = products.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesShop = shopFilter === 'all' || p.shop_id?.toString() === shopFilter;
@@ -725,8 +729,9 @@ export default function AdminDashboard() {
                                         onChange={e => setShopFilter(e.target.value)}
                                     >
                                         <option value="all">Toutes Boutiques</option>
-                                        <option value="1">Luxya Beauté</option>
-                                        <option value="2">Homtek Tech</option>
+                                        {shopOptions.map((shop: any) => (
+                                            <option key={shop.id} value={shop.id}>{shop.name}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </header>
@@ -759,8 +764,8 @@ export default function AdminDashboard() {
                                                             <div>
                                                                 <p className="text-sm font-black italic">{p.name}</p>
                                                                 <div className="flex items-center space-x-2 mt-1">
-                                                                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded ${p.shop_id === 1 ? 'bg-red-500/10 text-red-500' : 'bg-blue-500/10 text-blue-500'}`}>
-                                                                        {p.shop_id === 1 ? 'Luxya' : 'Homtek'}
+                                                                    <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-lolly/10 text-lolly">
+                                                                        {getProductShopName(p)}
                                                                     </span>
                                                                     <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">{p.category}</span>
                                                                 </div>

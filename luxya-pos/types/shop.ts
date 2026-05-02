@@ -38,3 +38,10 @@ export const shops: Shop[] = [
         }
     }
 ]
+
+
+export const getShopById = (shopId?: number | null) =>
+    shops.find((shop) => shop.id === shopId)
+
+export const getShopName = (shopId?: number | null) =>
+    getShopById(shopId)?.name || (shopId ? `Boutique ${shopId}` : 'Boutique')

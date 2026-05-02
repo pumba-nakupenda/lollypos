@@ -12,7 +12,7 @@ export async function GET() {
 
         const { data, error } = await supabase
             .from('products')
-            .select('*')
+            .select('*, shops(id, name, slug)')
             .order('name', { ascending: true });
 
         if (error) throw error;

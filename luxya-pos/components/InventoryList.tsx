@@ -23,6 +23,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useShop } from '@/context/ShopContext'
 import { useUser } from '@/context/UserContext'
 import { useToast } from '@/context/ToastContext'
+import { getShopName } from '@/types/shop'
 
 interface InventoryListProps {
     products: any[]
@@ -174,13 +175,12 @@ export default function InventoryList({ products, allCategories = [], allBrands 
     const handleCreateQuick = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // NEW: Mandatory cost_price validation for Physical Products in Shops 1 & 2
         const shopId = activeShop?.id || 1;
-        const isPhysicalShop = shopId === 1 || shopId === 2;
+        const isPhysicalProduct = shopId > 0;
         const costPrice = parseFloat(newProduct.cost_price || '0');
 
-        if (isPhysicalShop && costPrice <= 0) {
-            showToast("Le prix de revient est obligatoire pour les produits physiques (Luxya/Homtek).", "error");
+        if (isPhysicalProduct && costPrice <= 0) {
+            showToast("Le prix de revient est obligatoire pour les produits physiques.", "error");
             return;
         }
 
@@ -773,7 +773,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
 
                                 <div className="hidden lg:flex items-center space-x-3 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
                                     <Link href={`/sales?shopId=${product.shop_id}&q=${encodeURIComponent(product.name)}`} onClick={(e) => e.stopPropagation()} className="p-3.5 glass-panel rounded-2xl hover:bg-shop/20 hover:text-shop transition-all border border-white/5 hover:border-shop/30 shadow-xl" title="Voir en Caisse"><ShoppingCart className="w-5 h-5" /></Link>
-                                    {(product.shop_id === 1 || product.shop_id === 2) && (<a href={`${SITE_URL}/?q=${encodeURIComponent(product.name)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-3.5 glass-panel rounded-2xl hover:bg-blue-500/20 hover:text-blue-400 transition-all border border-white/5 hover:border-blue-500/30 shadow-xl" title="Voir sur le Site"><ExternalLink className="w-5 h-5" /></a>)}
+                                    {product.show_on_website !== false && (<a href={`${SITE_URL}/?shop=${product.shop_id}&q=${encodeURIComponent(product.name)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-3.5 glass-panel rounded-2xl hover:bg-blue-500/20 hover:text-blue-400 transition-all border border-white/5 hover:border-blue-500/30 shadow-xl" title={`Voir sur le site ${getShopName(product.shop_id)}`}><ExternalLink className="w-5 h-5" /></a>)}
                                     <div className="p-3.5 glass-panel rounded-2xl hover:bg-shop/20 hover:text-shop transition-all border border-white/5 hover:border-shop/30 shadow-xl" onClick={(e) => { e.stopPropagation(); handleEdit(product); }}><Edit2 className="w-5 h-5" /></div>
                                     <div onClick={(e) => handleDelete(e, product.id)} className="p-3.5 glass-panel rounded-2xl hover:bg-red-500/20 hover:text-red-400 transition-all border border-white/5 hover:border-red-500/30 shadow-xl"><Trash2 className="w-5 h-5" /></div>
                                 </div>
@@ -783,7 +783,7 @@ export default function InventoryList({ products, allCategories = [], allBrands 
                             <div className="flex lg:hidden items-center justify-between gap-2 border-t border-white/5 pt-3 mt-1">
                                 <div className="flex flex-wrap gap-1.5">
                                     <Link href={`/sales?shopId=${product.shop_id}&q=${encodeURIComponent(product.name)}`} onClick={(e) => e.stopPropagation()} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-muted-foreground active:bg-white/10"><ShoppingCart className="w-3.5 h-3.5" /></Link>
-                                    {(product.shop_id === 1 || product.shop_id === 2) && (<a href={`${SITE_URL}/?q=${encodeURIComponent(product.name)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-muted-foreground active:bg-white/10"><ExternalLink className="w-3.5 h-3.5" /></a>)}
+                                    {product.show_on_website !== false && (<a href={`${SITE_URL}/?shop=${product.shop_id}&q=${encodeURIComponent(product.name)}`} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-muted-foreground active:bg-white/10" title={`Voir sur le site ${getShopName(product.shop_id)}`}><ExternalLink className="w-3.5 h-3.5" /></a>)}
                                 </div>
                                 <div className="flex flex-wrap gap-1.5">
                                     <div className="p-2.5 bg-shop/10 border border-shop/20 rounded-xl text-shop active:bg-shop/20" onClick={(e) => { e.stopPropagation(); handleEdit(product); }}><Edit2 className="w-3.5 h-3.5" /></div>

@@ -580,7 +580,7 @@ export default function DashboardContent({ user }: { user: any }) {
                 isOpen={isReceiptOpen}
                 onClose={() => setIsReceiptOpen(false)}
                 saleData={selectedSaleForReceipt}
-                shop={activeShop || { name: 'LUXYA' }}
+                shop={activeShop || { name: 'Toutes les boutiques' }}
             />
         </div>
     )

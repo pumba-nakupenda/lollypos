@@ -63,8 +63,8 @@ export default function ProductCard({ product }: { product: any }) {
         }
     };
 
-    const shopName = product.shop_id === 1 ? "Luxya" : "Homtek";
-    const shopColor = product.shop_id === 1 ? "text-pink-500" : "text-lolly";
+    const shopName = product.shops?.name || product.shop?.name || `Boutique ${product.shop_id || ''}`.trim();
+    const shopColor = "text-lolly";
     const hasPromo = product.promo_price && product.promo_price > 0 && Number(product.promo_price) < Number(product.price);
     const isFavorite = isInWishlist(product.id);
 

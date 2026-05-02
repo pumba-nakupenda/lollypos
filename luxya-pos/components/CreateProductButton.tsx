@@ -145,9 +145,9 @@ export default function CreateProductButton() {
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
-        const isPhysicalShop = selectedShopId === 1 || selectedShopId === 2;
+        const isPhysicalProduct = selectedShopId > 0;
         const costPrice = parseFloat(formData.get('cost_price') as string || '0');
-        if (itemType === 'product' && isPhysicalShop && costPrice <= 0) return setError("Le prix de revient est obligatoire.");
+        if (itemType === 'product' && isPhysicalProduct && costPrice <= 0) return setError("Le prix de revient est obligatoire.");
 
         setLoading(true)
         setError(null)
@@ -228,7 +228,7 @@ export default function CreateProductButton() {
                             <div className="p-5 sm:p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02] flex-shrink-0">
                                 <div>
                                     <h3 className="text-xl sm:text-2xl font-black shop-gradient-text uppercase tracking-tighter leading-none">Nouveau Produit</h3>
-                                    <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1 truncate">Magasin {activeShop?.name || 'Luxya'}</p>
+                                    <p className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1 truncate">Magasin {activeShop?.name || 'Boutique'}</p>
                                 </div>
                                 <button onClick={() => setIsOpen(false)} className="p-2.5 glass-card rounded-xl text-muted-foreground hover:text-white transition-colors"><X className="w-6 h-6" /></button>
                             </div>

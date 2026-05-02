@@ -19,6 +19,7 @@ import {
 import Link from 'next/link'
 import { useShop } from '@/context/ShopContext'
 import { API_URL } from '@/utils/api'
+import { getShopName } from '@/types/shop'
 
 export default function SalesHistoryPage() {
     const { activeShop } = useShop()
@@ -146,7 +147,7 @@ export default function SalesHistoryPage() {
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-shop/60">{sale.shop_id === 1 ? 'Luxya' : 'Homtek'}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-shop/60">{getShopName(sale.shop_id)}</span>
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <div className="flex items-center justify-end space-x-4">

@@ -95,8 +95,8 @@ export default function ProductDisplay({ product, related, isPage = false, onClo
     const baseGallery = product.images && product.images.length > 0 ? product.images : (product.image ? [product.image] : []);
     const gallery = Array.from(new Set([...baseGallery, ...variantImages]));
 
-    const shopName = product.shop_id === 1 ? "Luxya" : "Homtek";
-    const shopColor = product.shop_id === 1 ? "text-red-500" : "text-blue-600";
+    const shopName = product.shops?.name || product.shop?.name || `Boutique ${product.shop_id || ''}`.trim();
+    const shopColor = "text-lolly";
     const hasPromo = product.promo_price && product.promo_price > 0 && Number(product.promo_price) < Number(product.price);
 
     const viewingCount = (product.id % 15) + 3;

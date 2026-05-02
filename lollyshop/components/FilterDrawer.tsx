@@ -5,15 +5,18 @@ import { X, Filter, RotateCcw, ChevronRight, Check } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
+interface ShopOption { id: number; name: string }
+
 interface FilterDrawerProps {
     isOpen: boolean
     onClose: () => void
     categories: string[]
     brands: string[]
+    shops: ShopOption[]
     activeFilters: any
 }
 
-export default function FilterDrawer({ isOpen, onClose, categories, brands, activeFilters }: FilterDrawerProps) {
+export default function FilterDrawer({ isOpen, onClose, categories, brands, shops, activeFilters }: FilterDrawerProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -59,8 +62,7 @@ export default function FilterDrawer({ isOpen, onClose, categories, brands, acti
                         <div className="grid grid-cols-1 gap-2">
                             {[
                                 { label: 'Tout Lolly', val: 'all', color: 'bg-black' },
-                                { label: 'Luxya Beauty', val: '1', color: 'bg-red-600' },
-                                { label: 'Homtek Tech', val: '2', color: 'bg-blue-600' }
+                                ...shops.map((shop) => ({ label: shop.name, val: String(shop.id), color: 'bg-[#0055ff]' }))
                             ].map((s) => (
                                 <button
                                     key={s.val}

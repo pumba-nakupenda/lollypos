@@ -141,9 +141,9 @@ export default function EditProductModal({ product, isOpen, onClose }: EditProdu
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         const formData = new FormData(e.currentTarget)
-        const isPhysicalShop = product.shop_id === 1 || product.shop_id === 2;
+        const isPhysicalProduct = Number(product.shop_id) > 0;
         const costPrice = parseFloat(formData.get('cost_price') as string || '0');
-        if (itemType === 'product' && isPhysicalShop && costPrice <= 0) return showToast("Prix de revient obligatoire", "error");
+        if (itemType === 'product' && isPhysicalProduct && costPrice <= 0) return showToast("Prix de revient obligatoire", "error");
 
         setLoading(true)
         formData.set('type', itemType)

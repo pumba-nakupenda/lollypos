@@ -6,13 +6,16 @@ import { Search, SlidersHorizontal, X, ChevronDown, ArrowUpDown, CheckCircle2, F
 import FilterDrawer from './FilterDrawer'
 
 
+interface ShopOption { id: number; name: string }
+
 interface FilterBarProps {
     categories: string[]
     resultsCount: number
     brands: string[]
+    shops: ShopOption[]
 }
 
-export default function FilterBar({ categories, resultsCount, brands }: FilterBarProps) {
+export default function FilterBar({ categories, resultsCount, brands, shops }: FilterBarProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isPending, startTransition] = useTransition()
@@ -57,7 +60,7 @@ export default function FilterBar({ categories, resultsCount, brands }: FilterBa
 
     const activeFilters = []
     if (searchParams.get('q')) activeFilters.push({ key: 'q', label: `"${searchParams.get('q')}"` })
-    if (shop !== 'all') activeFilters.push({ key: 'shop', label: shop === '1' ? 'Luxya' : 'Homtek' })
+    if (shop !== 'all') activeFilters.push({ key: 'shop', label: shops.find((s) => String(s.id) === shop)?.name || `Boutique ${shop}` })
     if (cat !== 'all') activeFilters.push({ key: 'cat', label: cat })
     if (brand !== 'all') activeFilters.push({ key: 'brand', label: brand })
     if (inStock) activeFilters.push({ key: 'stock', label: 'En Stock' })
@@ -107,8 +110,7 @@ export default function FilterBar({ categories, resultsCount, brands }: FilterBa
                         <div className="relative min-w-[120px]">
                             <select value={shop} onChange={(e) => { setShop(e.target.value); setCat('all'); updateFilters({ shop: e.target.value, cat: 'all' }); }} className="w-full bg-gray-50 border-none rounded-xl py-3 px-4 pr-8 text-[10px] font-black uppercase tracking-widest outline-none appearance-none cursor-pointer">
                                 <option value="all">Boutique</option>
-                                <option value="1">Luxya</option>
-                                <option value="2">Homtek</option>
+                                {shops.map((shop) => <option key={shop.id} value={shop.id}>{shop.name}</option>)}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
                         </div>

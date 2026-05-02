@@ -37,7 +37,7 @@ async function getProducts(filters: {
         const supabase = await createClient();
         let query = supabase
             .from('products')
-            .select('*', { count: 'exact' });
+            .select('*, shops(id, name, slug)', { count: 'exact' });
 
         // Apply show_on_website constraint
         query = query.neq('show_on_website', false);
@@ -140,6 +140,21 @@ async function getFilterData(filters: { shopId?: string, cat?: string }) {
     }
 }
 
+async function getShops() {
+    try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+            .from('shops')
+            .select('id, name, slug')
+            .order('name', { ascending: true });
+        if (error) throw error;
+        return data || [];
+    } catch (e) {
+        console.error("getShops failed:", e);
+        return [];
+    }
+}
+
 async function getSiteSettings() {
     try {
         const supabase = await createClient();
@@ -180,7 +195,7 @@ export default async function Home(props: {
     const onlyInStock = searchParams.stock || "false";
 
     // Dynamic loading of products based on filters
-    const [{ products: filteredProducts, totalCount }, siteSettings, { categories, brands }, { products: promoProducts }] = await Promise.all([
+    const [{ products: filteredProducts, totalCount }, siteSettings, { categories, brands }, { products: promoProducts }, shops] = await Promise.all([
         getProducts({
             page: currentPage,
             shopId: shopFilter,
@@ -193,7 +208,8 @@ export default async function Home(props: {
         }),
         getSiteSettings(),
         getFilterData({ shopId: shopFilter, cat: catFilter }),
-        getProducts({ sort: 'promo', limit: 12 }) // For Stories
+        getProducts({ sort: 'promo', limit: 12 }), // For Stories
+        getShops()
     ]);
 
     const categoryGroups = groupCategories(categories, siteSettings?.category_groups || []);
@@ -347,8 +363,9 @@ export default async function Home(props: {
                                     <h3 className="text-[11px] font-black uppercase tracking-widest text-gray-900 mb-3 border-b border-gray-50 pb-2">Univers</h3>
                                     <div className="flex lg:flex-col gap-4 lg:gap-2">
                                         <Link href={`/?shop=all&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold whitespace-nowrap ${shopFilter === 'all' ? 'text-lolly' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === 'all' ? 'bg-lolly' : 'bg-gray-300'}`} /> Tout Lolly</Link>
-                                        <Link href={`/?shop=1&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold whitespace-nowrap ${shopFilter === '1' ? 'text-red-600' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === '1' ? 'bg-red-600' : 'bg-gray-300'}`} /> Luxya Beauty</Link>
-                                        <Link href={`/?shop=2&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold whitespace-nowrap ${shopFilter === '2' ? 'text-blue-600' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === '2' ? 'bg-blue-600' : 'bg-gray-300'}`} /> Homtek Tech</Link>
+                                        {shops.map((shop: any) => (
+                                            <Link key={shop.id} href={`/?shop=${shop.id}&cat=all&price=${priceFilter}&stock=${onlyInStock}&sort=${sort}`} className={`flex items-center text-xs font-bold whitespace-nowrap ${shopFilter === String(shop.id) ? 'text-[#0055ff]' : 'text-gray-600'}`}><div className={`w-2 h-2 rounded-full mr-2 ${shopFilter === String(shop.id) ? 'bg-[#0055ff]' : 'bg-gray-300'}`} /> {shop.name}</Link>
+                                        ))}
                                     </div>
                                 </div>
 
